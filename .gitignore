@@ -1,0 +1,45 @@
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Editors
+.vscode/
+.idea/
+*.code-workspace
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+debug.log
+
+# WordPress sensitive/config files
+wp-config.php
+.env
+.env.*
+*.sql
+*.sql.gz
+
+# Archives and backups
+*.zip
+*.tar
+*.tar.gz
+*.7z
+*.rar
+
+# Node dependencies
+node_modules/
+
+# Composer dependencies
+vendor/
+
+# Build/cache folders
+.cache/
+dist/
+build/
+
+# OS metadata
+.DS_Store

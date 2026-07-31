@@ -1,0 +1,68 @@
+
+
+/* assets/css/web.css */
+
+/* Wrappers */
+.niz-carousel-wrapper, .niz-web-wrapper { width: 100%; max-width: 1200px; margin: auto; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+.niz-carousel-wrapper { padding-bottom: 45px; }
+
+.niz-web-filter-bar { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 15px; 
+    margin-bottom: 35px; 
+    padding: 20px; 
+    border-radius: 12px; 
+    
+    /* A much more prominent, vibrant Emerald Green to Sky Blue */
+    background: linear-gradient(135deg, #a7f3d0 0%, #bae6fd 100%) !important; 
+    
+    /* A slightly darker green border to frame it sharply */
+    border: 1px solid #6ee7b7 !important; 
+    
+    /* Slightly stronger shadow to lift it off the page */
+    box-shadow: 0 6px 20px rgba(0, 107, 62, 0.15) !important; 
+}
+
+.web-card-img-box, .niz-card-img-box { width: 100%; height: 180px; position: relative; background: #f8fafc; overflow: hidden; }
+.web-card-img-box img, .niz-card-img-box img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease; }
+
+.niz-web-input-group { display: flex; flex-direction: column; flex: 1; gap: 6px; }
+.niz-web-input-group label { font-size: 11px; font-weight: 700; color: #1e3a5f; text-transform: uppercase; letter-spacing: 0.5px; }
+.niz-web-input-group input, .niz-web-input-group select { padding: 12px 16px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; width: 100%; background-color: #f8fafc; color: #334155; transition: all 0.2s; }
+.niz-web-input-group input:focus, .niz-web-input-group select:focus { border-color: #2c5f8a; background-color: #fff; outline: none; }
+
+/* Grid */
+.niz-grid-canvas { display: grid; grid-template-columns: 1fr; gap: 25px; margin-top: 15px; }
+
+/* Hover FX */
+.web-card-link:hover .web-card, .niz-web-card:hover { transform: translateY(-5px); border-color: #cbd5e1; box-shadow: 0 12px 30px rgba(30, 58, 95, 0.08); }
+.web-card-link:hover img, .niz-web-card:hover img { transform: scale(1.05); }
+.web-card-link:hover .web-name, .niz-web-card:hover .niz-card-title { color: #2c5f8a; }
+
+/* Button & Pagination */
+.load-more-web-btn { display: block; margin: 40px auto; padding: 12px 28px; background: #fff; color: #1e3a5f; border: 2px solid #1e3a5f; border-radius: 8px; font-weight: 700; cursor: pointer; transition: 0.2s; }
+.load-more-web-btn:hover { background: #1e3a5f; color: #fff; }
+.nizWebSwiper .swiper-pagination-bullet-active { background: #2c5f8a; width: 22px; border-radius: 4px; }
+
+/* Desktop Resizing */
+@media (min-width: 768px) {
+    .niz-web-filter-bar { flex-direction: row; }
+}
+
+/* Desktop Resizing */
+@media (min-width: 768px) {
+    /* Default behavior: All 3 input groups side-by-side */
+    .niz-web-filter-bar { flex-direction: row; }
+    
+    /* OVERRIDE: 2-Row layout specifically for single 'web' posts */
+    .niz-web-filter-bar.is-web-post { 
+        display: grid; 
+        grid-template-columns: 1fr 1fr; /* Splits top row into 2 equal halves */
+    }
+    
+    /* Forces the 3rd input group (Country + Add Button) to span across both columns on the 2nd row */
+    .niz-web-filter-bar.is-web-post .niz-web-input-group:nth-child(3) { 
+        grid-column: 1 / -1; 
+    }
+}

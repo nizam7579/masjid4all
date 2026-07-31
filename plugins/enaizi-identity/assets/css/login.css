@@ -1,0 +1,304 @@
+.niz-login-wrapper {
+
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    padding:20px;
+
+}
+
+
+
+.niz-login-box {
+
+    width:100%;
+
+    max-width:420px;
+
+    background:#ffffff;
+
+    padding:35px;
+
+    border-radius:18px;
+
+    box-shadow:
+    0 10px 30px rgba(0,0,0,.08);
+
+}
+
+
+
+.niz-login-title {
+
+    text-align:center;
+
+    font-size:28px;
+
+    margin-bottom:8px;
+
+}
+
+
+
+.niz-login-subtitle {
+
+    text-align:center;
+
+    color:#777;
+
+    margin-bottom:25px;
+
+}
+
+
+
+
+.niz-google-login {
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    gap:12px;
+
+    width:100%;
+
+    height:48px;
+
+    border:1px solid #ddd;
+
+    border-radius:10px;
+
+    background:#fff;
+
+    color:#333;
+
+    text-decoration:none;
+
+    font-weight:600;
+
+    transition:.2s;
+
+}
+
+
+
+.niz-google-login:hover {
+
+    background:#f7f7f7;
+
+}
+
+
+
+.niz-google-icon {
+
+    font-size:22px;
+
+    font-weight:bold;
+
+}
+
+
+
+.niz-divider {
+
+    display:flex;
+
+    align-items:center;
+
+    margin:25px 0;
+
+    color:#999;
+
+}
+
+
+
+.niz-divider:before,
+.niz-divider:after {
+
+    content:"";
+
+    flex:1;
+
+    height:1px;
+
+    background:#ddd;
+
+}
+
+
+
+.niz-divider span {
+
+    padding:0 15px;
+
+    font-size:13px;
+
+}
+
+
+
+
+
+.niz-input-group {
+
+    margin-bottom:18px;
+
+}
+
+
+
+.niz-input-group label {
+
+    display:block;
+
+    font-size:14px;
+
+    margin-bottom:6px;
+
+    font-weight:500;
+
+}
+
+
+
+.niz-input-group input {
+
+    width:100%;
+
+    height:48px;
+
+    padding:0 14px;
+
+    border:1px solid #ddd;
+
+    border-radius:10px;
+
+    font-size:15px;
+
+    box-sizing:border-box;
+
+}
+
+
+
+.niz-input-group input:focus {
+
+    outline:none;
+
+    border-color:#0b7dda;
+
+}
+
+
+
+
+
+.niz-login-options {
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    font-size:14px;
+
+    margin-bottom:20px;
+
+}
+
+
+
+.niz-login-options a {
+
+    text-decoration:none;
+
+}
+
+
+
+.niz-login-button {
+
+    width:100%;
+
+    height:50px;
+
+    border:none;
+
+    border-radius:10px;
+
+    background:#0b7dda;
+
+    color:white;
+
+    font-size:16px;
+
+    font-weight:600;
+
+    cursor:pointer;
+
+}
+
+
+
+.niz-login-button:hover {
+
+    opacity:.9;
+
+}
+
+
+
+
+.niz-register-link {
+
+    text-align:center;
+
+    margin-top:25px;
+
+    font-size:14px;
+
+}
+
+
+
+.niz-register-link a {
+
+    font-weight:600;
+
+}
+
+.niz-checkbox{
+
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+
+    font-size:14px;
+
+    margin:20px 0;
+
+    line-height:1.5;
+
+}
+
+.niz-checkbox input{
+
+    margin-top:4px;
+
+}
+
+.niz-checkbox a{
+
+    text-decoration:none;
+
+}

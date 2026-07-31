@@ -1,0 +1,212 @@
+<div class="niz-login-wrapper">
+
+<div class="niz-login-box">
+
+
+<h2 class="niz-login-title">
+Welcome to Masjid4All
+</h2>
+
+
+<p class="niz-login-subtitle">
+Join thousands of Muslims worldwide
+</p>
+
+
+
+<a
+href="<?php echo esc_url(
+    Niz_Google_Provider::login_url()
+); ?>"
+class="niz-google-login">
+
+<img
+src="<?php echo NIZ_IDENTITY_URL; ?>assets/images/google.svg"
+width="20"
+height="20">
+
+Continue with Google
+
+</a>
+
+
+
+<div class="niz-divider">
+<span>OR</span>
+</div>
+
+
+
+<div id="niz-register-message"></div>
+
+
+
+<form id="niz-register-form">
+
+
+<?php
+
+wp_nonce_field(
+    'niz_register_nonce',
+    'niz_nonce'
+);
+
+?>
+
+
+
+<div class="niz-input-group">
+
+<label>
+Full Name
+</label>
+
+
+<input
+type="text"
+name="full_name"
+id="niz_name"
+placeholder="Enter your full name"
+required>
+
+</div>
+
+
+
+
+<div class="niz-input-group">
+
+<label>
+Email Address
+</label>
+
+
+<input
+type="email"
+name="email"
+id="niz_email"
+placeholder="Enter your email"
+required>
+
+</div>
+
+
+
+
+<div class="niz-input-group">
+
+<label>
+WhatsApp Number (Optional)
+</label>
+
+
+<input
+type="text"
+name="phone"
+id="niz_phone"
+placeholder="60123456789">
+
+</div>
+
+
+
+
+<div class="niz-input-group">
+
+<label>
+Password
+</label>
+
+
+<input
+type="password"
+name="password"
+id="niz_password"
+required>
+
+</div>
+
+
+
+
+<div class="niz-input-group">
+
+<label>
+Confirm Password
+</label>
+
+
+<input
+type="password"
+name="confirm_password"
+id="niz_confirm_password"
+required>
+
+</div>
+
+
+
+
+<label class="niz-checkbox">
+
+
+<input
+type="checkbox"
+id="niz_accept_terms"
+required>
+
+
+I agree to the
+
+<a href="/terms-of-service/" target="_blank">
+Terms of Service
+</a>
+
+and
+
+<a href="/privacy-policy/" target="_blank">
+Privacy Policy
+</a>
+
+
+</label>
+
+
+
+
+<button
+
+type="submit"
+
+id="niz-register-button"
+
+class="niz-login-button">
+
+
+Create Account
+
+
+</button>
+
+
+
+</form>
+
+
+
+
+<div class="niz-register-link">
+
+Already have an account?
+
+<a href="/member/">
+Login
+</a>
+
+</div>
+
+
+
+</div>
+
+</div>

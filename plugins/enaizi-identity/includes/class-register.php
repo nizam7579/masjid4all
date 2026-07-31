@@ -1,0 +1,174 @@
+<?php
+
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+
+class Niz_Register {
+
+
+public static function init(){
+
+    
+    add_action(
+    'wp_ajax_nopriv_niz_register',
+    array(
+    __CLASS__,
+    'register'
+    )
+    );
+    
+    
+    
+    add_action(
+    'wp_ajax_niz_register',
+    array(
+    __CLASS__,
+    'register'
+    )
+    );
+    
+    
+    }
+    
+    
+    
+    
+    // REGISTER USER
+    public static function register(){
+
+        if(!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'niz_register_nonce' ) ){
+            wp_send_json_error(
+                array(
+                'message'=>'Security verification failed.'
+                )
+            );
+        }
+
+        $name     = sanitize_text_field($_POST['name'] ?? '');
+        $email    = sanitize_email($_POST['email'] ?? '' );
+        $phone    = sanitize_text_field($_POST['phone'] ?? '');
+        $password = $_POST['password'] ?? '';
+        $confirm  = $_POST['confirm_password'] ?? '';
+        
+        if(empty($name) || empty($email) || empty($password) ){
+            wp_send_json_error(
+            array(
+                'message'=>'Please complete all required fields.'
+                )
+            );
+        }
+
+        if(!is_email($email)){
+            wp_send_json_error(
+                array(
+                    'message'=>'Please enter a valid email.'
+                )
+            );
+        }
+        
+        if($password !== $confirm){
+            wp_send_json_error(
+                array(
+                'message'=>'Passwords do not match.'
+                )
+            );
+        }
+
+        if(email_exists($email)){
+            wp_send_json_error(
+            array(
+                'message'=>'Email already registered.'
+                )
+            );
+        }
+        
+        $username = sanitize_user(current(explode('@', $email )));
+
+        if(username_exists($username)){
+            $username .= wp_rand(100,999);
+        }
+        
+        $user_data = [
+            'user_login'   => $username,
+            'user_pass'    => $password,
+            'user_email'   => $email,
+            'first_name'   => $name,
+            'display_name' => $name,         // Can be a full name, nickname, etc.
+            'role'         => 'subscriber'   // Optional: defaults to the default site role
+        ];
+        
+        $user_id = wp_insert_user($user_data);
+        
+        // Check for errors
+        if (is_wp_error($user_id)) {
+            echo "Error creating user: " . $user_id->get_error_message();
+        } else {
+            echo "User created successfully with ID: " . $user_id;
+        }
+        
+        /*
+        
+        $user_id = wp_create_user(
+            $username,
+            $password,
+            $email
+        );
+        
+        if(is_wp_error($user_id)){
+            wp_send_json_error(
+                array(
+                'message'=>$user_id->get_error_message()
+                )
+            );
+        }
+        
+        wp_update_user(
+            array(
+                'ID' => $user_id,
+                'display_name' => $name,
+                'first_name'   => $name
+            )
+        );
+        
+        // optional explicit meta update
+        update_user_meta(
+            $user_id,
+            'first_name',
+            $name
+        );
+        
+        */
+        
+        
+        update_user_meta($user_id, 'niz_email_verified', 'No' );
+        update_user_meta($user_id, 'niz_google_connected', 'No' );
+        update_user_meta($user_id, 'niz_whatsapp_verified', 'No' );
+        
+        if(!empty($phone)){
+            update_user_meta($user_id, 'user_phone', $phone );
+        }
+
+        $token = Niz_Email_Verification::generate_token($user_id  );
+        
+        Niz_Email_Verification::send_email(
+            $user_id,
+            $token
+        );
+        
+        wp_set_current_user($user_id);
+        
+        wp_set_auth_cookie($user_id );
+
+        wp_send_json_success(
+            array(
+            'message'=>'Registration successful. Please verify your email.',
+            'redirect'=>home_url('/member/')
+            )
+        );
+
+    }
+
+
+}

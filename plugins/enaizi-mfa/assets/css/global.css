@@ -1,0 +1,321 @@
+/* Cards */
+
+.m4a-card {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    margin-top: 100px; 
+    padding: 24px;
+    
+    /* Elegant, ultra-light gradient background */
+    background: linear-gradient(135deg, #f2faf7 0%, #f0f7fa 100%);
+    
+    /* Subtle border that blends beautifully with the gradient */
+    border: 2px solid rgba(209, 213, 219, 0.8); 
+    border-radius: 16px;
+    
+    /* Soft ambient shadow stack */
+    box-shadow: 
+        0 1px 3px rgba(0, 0, 0, 0.01),
+        0 4px 12px rgba(0, 0, 0, 0.02);
+        
+    /* Smooth physical transition */
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.web-card-link, .niz-web-card { display: flex; flex-direction: column; text-decoration: none !important; color: inherit !important; height: 100%; min-height: 200px; transition: transform 0.2s ease-in-out; }
+
+.web-card, .niz-web-card {
+    background: #ffffff;
+    border-radius: 16px;
+    
+    /* INCREASED SHADOW: Wider blur and slightly higher opacity for more presence */
+    box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.08), 0 4px 8px -4px rgba(0, 0, 0, 0.04);
+    
+    border: 1px solid rgba(39, 177, 157, 0.45); 
+    
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%; /* <-- THIS IS THE FIX: Forces the card to stretch to the grid row height */
+    overflow: hidden;
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), 
+                box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1), 
+                border-color 0.35s ease;
+}
+
+.m4a-lists {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+    margin-top: 1rem;
+}
+
+.m4a-lists ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+@media (max-width: 768px) {
+    .m4a-lists {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Make sure your hover shadow is proportionally larger so the animation still pops! */
+.web-card:hover, .niz-web-card:hover {
+    transform: translateY(-4px);
+    /* Bumped the hover shadow up slightly to compensate for the stronger base shadow */
+    box-shadow: 0 16px 32px -6px rgba(39, 177, 157, 0.18), 0 8px 16px -8px rgba(0, 0, 0, 0.08);
+    border-color: #27B19D; 
+}
+
+.web-card-img-box, .niz-card-img-box { width: 100%; height: 180px; position: relative; background: #f8fafc; overflow: hidden; }
+.web-card-img-box img, .niz-card-img-box img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease; }
+
+
+/* Category Badge overlay */
+.web-cat-badge { position: absolute; top: 12px; left: 12px; background: rgba(30, 58, 95, 0.9); color: #fff; font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 6px; letter-spacing: 0.5px; }
+
+.web-card-content, .niz-card-content { padding: 20px; display: flex; flex-direction: column; flex-grow: 1; }
+.web-name, .niz-card-title { font-size: 17px; font-weight: 700; color: #0f172a; margin: 0 0 8px 0; line-height: 1.3; }
+.web-intro { font-size: 13px; font-weight: 400; color: #1e3a5f; }
+.web-domain, .niz-card-url { font-size: 13px; color: #25988B; margin: 0; display: flex; align-items: center; gap: 6px; }
+
+.web-card-footer { padding: 10px 20px; border-top: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; background: #fafbfc; }
+.web-country-metric { font-size: 12px; font-weight: 600; color: #475569; }
+.web-visit-btn { font-size: 12px; font-weight: 700; color: #1e3a5f; }
+
+
+/**************************/
+/* === Prayer Times ===   */
+/**************************/
+/* Reserve height on mobile so the footer doesn't miscalculate during API load */
+.niz-mfa-prayer-times-wrapper {
+    min-height: 280px; /* Adjust this number slightly if your module is taller/shorter */
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+
+/* niz-prayer-times.css - Prayer Times Styles */
+.niz-mfa-prayer-times-wrapper {
+    font-family: inherit;
+    width: 100%;
+    margin-bottom: 24px;
+}
+
+.niz-prayer-grid-container {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
+    width: 100%;
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+.niz-prayer-item {
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 14px 8px;
+    text-align: center;
+    transition: transform 0.2s ease, border-color 0.2s ease, background 0.3s ease;
+}
+
+.niz-prayer-item .niz-label {
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.niz-prayer-item .niz-time-val {
+    font-size: 15px;
+    font-weight: 700;
+    color: #006B3E;
+}
+
+/* Highlight state style context */
+.niz-prayer-item.niz-active {
+    background: #006B3E !important;
+    border-color: #006B3E !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 107, 62, 0.15);
+}
+
+.niz-prayer-item.niz-active .niz-label {
+    color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.niz-prayer-item.niz-active .niz-time-val {
+    color: #ffffff !important;
+}
+
+.niz-countdown-card {
+    border: 1px solid #e2e8f0;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    border-radius: 16px;
+    padding: 20px;
+    margin: 30px auto 10px auto;
+    text-align: center;
+    width: 100%;
+    max-width: 320px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+}
+
+.niz-cd-title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #64748b;
+    letter-spacing: 1px;
+}
+
+.niz-next-name {
+    font-size: 28px;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 6px 0;
+}
+
+.niz-countdown-clock {
+    font-size: 14px;
+    color: #475569;
+    font-weight: 500;
+}
+
+/* Responsive breakpoints */
+@media (max-width: 768px) {
+    .niz-prayer-grid-container {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+    }
+}
+
+   
+/*****************************/
+/* === qIBLA dIRECTION ===   */
+/*****************************/   
+/* assets/css/qibla.css */
+.niz-qibla-app {
+    text-align: center;
+    font-family: inherit;
+    max-width: 360px;
+    margin: auto;
+    padding: 10px;
+}
+
+.niz-title {
+    font-size: 14px;
+    margin-bottom: 14px;
+    color: #333;
+    line-height: 1.4;
+}
+
+.niz-circle {
+    width: 260px;
+    height: 260px;
+    margin: auto;
+    border-radius: 50%;
+    position: relative;
+    background: #ffffff;
+    border: 4px solid #006B3E;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+    overflow: hidden;
+    will-change: transform;
+}
+
+.niz-ring {
+    position: absolute;
+    inset: 14px;
+    border-radius: 50%;
+    border: 1px solid rgba(0,0,0,0.06);
+    pointer-events: none;
+}
+
+.niz-kaaba {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 28px;
+    z-index: 10;
+}
+
+.niz-arrow-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    margin: auto;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform-origin: center center;
+}
+
+/* Hardware Accelerate CSS Paint Boundaries */
+.m4a-hardware-layer {
+    will-change: transform;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+}
+
+.niz-vector-arrow {
+    width: 0;
+    height: 0;
+    border-left: 14px solid transparent;
+    border-right: 14px solid transparent;
+    border-bottom: 55px solid #d32f2f;
+    position: relative;
+    top: -15px;
+}
+
+.niz-status-box {
+    margin-top: 12px;
+    padding: 10px 14px;
+    border-radius: 20px;
+    background: #f5f5f5;
+    font-size: 13px;
+    font-weight: 500;
+    min-height: 20px;
+    transition: background 0.25s ease, color 0.25s ease;
+    color: #333;
+}
+
+.niz-button-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin-top: 18px;
+    min-height: 50px;
+}
+
+.niz-btn {
+    background: #006B3E;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 999px;
+    font-size: 14px;
+    cursor: pointer;
+    box-shadow: 0 6px 14px rgba(0,0,0,0.12);
+    font-weight: bold;
+    width: 100%;
+    max-width: 280px;
+    transition: transform 0.1s ease;
+}
+
+.niz-btn:active {
+    transform: scale(0.97);
+}   
+

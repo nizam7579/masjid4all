@@ -1,0 +1,141 @@
+/**
+ * Modern Clean UI Styling for Masjid4All Stripe Form
+ * Location: /assets/css/stripe.css
+ */
+
+.mfa-country-select {
+    background: #f1f1f1;
+    padding: 12px 10px;
+    border: none;
+    border-right: 1px solid #cccccc;
+    color: #333333;
+    font-size: 14px;
+    outline: none;
+    cursor: pointer;
+    max-width: 160px;
+}
+
+.mfa-stripe-form-container {
+    max-width: 480px;
+    margin: 20px auto;
+    padding: 30px;
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+.mfa-form-group {
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.mfa-form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #333333;
+    font-size: 14px;
+}
+
+.mfa-form-group input[type="text"],
+.mfa-form-group input[type="email"] {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #cccccc;
+    border-radius: 6px;
+    box-sizing: border-box;
+    font-size: 15px;
+    transition: border-color 0.2s ease;
+}
+
+/* Elegant country code layout structure for Malaysia numbers */
+.mfa-whatsapp-input-wrapper {
+    display: flex;
+    align-items: center;
+    border: 1px solid #cccccc;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #ffffff;
+}
+
+.mfa-phone-prefix {
+    background: #f1f1f1;
+    padding: 12px 14px;
+    border-right: 1px solid #cccccc;
+    color: #666666;
+    font-size: 15px;
+    font-weight: 500;
+    user-select: none;
+}
+
+.mfa-whatsapp-input-wrapper input[type="tel"] {
+    border: none;
+    width: 100%;
+    padding: 12px;
+    font-size: 15px;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.mfa-form-group input:focus,
+.mfa-whatsapp-input-wrapper:focus-within {
+    border-color: #0073aa; /* Standard crisp WP Blue highlights */
+}
+
+.mfa-form-help {
+    display: block;
+    margin-top: 5px;
+    color: #777777;
+    font-size: 12px;
+}
+
+.mfa-error-message {
+    background: #fff0f0;
+    border-left: 4px solid #d9381e;
+    color: #d9381e;
+    padding: 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    margin-bottom: 20px;
+}
+
+.mfa-submit-button {
+    width: 100%;
+    background-color: #111111; /* Sleek elegant dark checkout button */
+    color: #ffffff;
+    border: none;
+    padding: 14px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: background-color 0.2s ease;
+}
+
+.mfa-submit-button:hover:not(:disabled) {
+    background-color: #222222;
+}
+
+.mfa-submit-button:disabled {
+    background-color: #888888;
+    cursor: not-allowed;
+}
+
+/* Simple CSS micro-spinner for operational UI feedback */
+.btn-spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #ffffff;
+    animation: mfa-spin 0.8s linear infinite;
+    margin-left: 10px;
+}
+
+@keyframes mfa-spin {
+    to { transform: rotate(360deg); }
+}

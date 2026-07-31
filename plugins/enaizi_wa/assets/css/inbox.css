@@ -1,0 +1,151 @@
+.niz-wa-inbox-wrap {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.niz-wa-window-status {
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    font-weight: bold;
+}
+
+.niz-wa-window-status.active {
+    background: #dff0d8;
+}
+
+.niz-wa-window-status.expired {
+    background: #f2dede;
+}
+
+.niz-wa-messages {
+    height: 500px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    padding: 15px;
+    background: #fafafa;
+}
+
+.niz-wa-message {
+    max-width: 75%;
+    padding: 10px;
+    border-radius: 10px;
+    margin-bottom: 12px;
+}
+
+.niz-wa-inbound {
+    background: #fff;
+    margin-right: auto;
+}
+
+.niz-wa-outbound {
+    background: #dcf8c6;
+    margin-left: auto;
+}
+
+.niz-wa-message .sender {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.niz-wa-message .time {
+    font-size: 12px;
+    opacity: 0.7;
+    margin-top: 6px;
+}
+
+.niz-wa-composer {
+    margin-top: 15px;
+    display: flex;
+    gap: 10px;
+}
+
+.niz-wa-composer textarea {
+    flex: 1;
+    min-height: 80px;
+}
+
+.niz-wa-template-buttons {
+    margin-top: 15px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.niz-wa-inbox {
+    display: flex;
+    gap: 1px;
+    background: #f0f0f0;
+    border: 1px solid #ddd;
+    height: 600px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+.niz-wa-conversations {
+    width: 30%;
+    background: #fff;
+    overflow-y: auto;
+    border-right: 1px solid #ddd;
+}
+.niz-wa-conversations > div {
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+}
+.niz-wa-conversations > div:hover {
+    background: #f5f5f5;
+}
+.niz-wa-messages-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #e5ddd5;
+}
+.niz-wa-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+}
+.niz-wa-message {
+    max-width: 70%;
+    margin-bottom: 10px;
+    padding: 8px 12px;
+    border-radius: 18px;
+    word-wrap: break-word;
+    clear: both;
+}
+.niz-wa-inbound {
+    background: #fff;
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+}
+.niz-wa-outbound {
+    background: #dcf8c5;
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
+}
+.niz-wa-reply-area {
+    padding: 10px;
+    background: #fff;
+    display: flex;
+    gap: 8px;
+    border-top: 1px solid #ddd;
+}
+.niz-wa-reply-area textarea {
+    flex: 1;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    padding: 8px 12px;
+    resize: none;
+    font-family: inherit;
+}
+.niz-wa-reply-area button {
+    background: #25d366;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+}

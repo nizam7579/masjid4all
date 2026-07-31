@@ -18,16 +18,7 @@ if (!defined('ABSPATH')) {
  * Plugin Constants
  */
 
-define(
-    'NIZ_GOOGLE_CLIENT_ID',
-    'REDACTED_ROTATE_THIS_SECRET'
-);
-
-
-define(
-    'NIZ_GOOGLE_CLIENT_SECRET',
-    'REDACTED_ROTATE_THIS_SECRET'
-);
+// NIZ_GOOGLE_CLIENT_ID and NIZ_GOOGLE_CLIENT_SECRET are defined in wp-config.php
 
 
 define('NIZ_IDENTITY_VERSION', '1.0.0');

@@ -9,12 +9,12 @@ if (!defined('ABSPATH')) exit;
  */
 function upload_to_cloudflare_r2x($file_path, $file_name) {
     // 🔌 CONFIGURATION BLOCK
-    $account_id  = '7ccd342e6cf3589155846a8c3106086c'; 
+    $account_id  = NIZ_R2_ACCOUNT_ID; 
     $bucket_name = 'masjid4all'; 
     $public_url  = 'https://cdn.staging.masjid4all.com'; 
     
-    $access_key  = 'e5c256c28a7facb3a71ac368b103b55c';     
-    $secret_key  = '9ec992ab7a11a436a543066f201b807df008427b540c5a08754b43a3dfc63127'; 
+    $access_key  = NIZ_R2_ACCESS_KEY_ID;     
+    $secret_key  = NIZ_R2_SECRET_ACCESS_KEY; 
 
     $region      = 'auto';
     $service     = 's3';

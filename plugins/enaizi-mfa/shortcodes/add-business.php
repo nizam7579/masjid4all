@@ -22,7 +22,7 @@ function directory_add_business_shortcode() {
         $output .= $directory_form_feedback;
     }
 
-    $api_key = 'AIzaSyCaONGaCSg0o34FQOXIYET9ZiqBMrOYYFk';
+    $api_key = NIZ_GOOGLE_MAPS_API_KEY;
     wp_enqueue_script('google-legacy-places', 'https://maps.googleapis.com/maps/api/js?key=' . $api_key . '&libraries=places', array(), null, true);
     $ajax_url = admin_url('admin-ajax.php');
 

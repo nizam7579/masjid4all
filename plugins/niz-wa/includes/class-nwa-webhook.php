@@ -149,6 +149,16 @@ class NWA_Webhook {
 		NWA_Router::handle_message( $user_id, $wa_number, $conversation, $content, $type );
 	}
 
+	/**
+	 * Resolves a WhatsApp number to the identity niz-wa should key
+	 * conversations/messages/profiles on. A site plugin can hook
+	 * 'nwa_resolve_user_id' to link this to its own user/CRM model (e.g.
+	 * mfa-core links WhatsApp numbers to real WordPress users on
+	 * Masjid4All). With no filter hooked, niz-wa manages its own
+	 * lightweight contact record instead of assuming WordPress users
+	 * exist at all — this is what makes niz-wa usable standalone on any
+	 * site, not just ones running a specific identity plugin.
+	 */
 	private static function resolve_user_id( $wa_number, $contact_name ) {
 		$user_id = apply_filters( 'nwa_resolve_user_id', null, $wa_number, $contact_name );
 
@@ -156,24 +166,7 @@ class NWA_Webhook {
 			return (int) $user_id;
 		}
 
-		$existing = get_users( array( 'meta_key' => 'user_phone', 'meta_value' => $wa_number, 'number' => 1, 'fields' => 'ID' ) );
-		if ( ! empty( $existing ) ) {
-			return (int) $existing[0];
-		}
-
-		$new_user_id = wp_insert_user( array(
-			'user_login' => 'wa_' . $wa_number,
-			'user_pass'  => wp_generate_password( 20 ),
-			'display_name' => $contact_name ?: $wa_number,
-		) );
-
-		if ( is_wp_error( $new_user_id ) ) {
-			error_log( 'Nemkad WA: failed to create user for ' . $wa_number . ' - ' . $new_user_id->get_error_message() );
-			return 0;
-		}
-
-		update_user_meta( $new_user_id, 'user_phone', $wa_number );
-		return (int) $new_user_id;
+		return NWA_DB::get_or_create_contact( $wa_number, $contact_name );
 	}
 
 	private static function extract_content( $message, $type ) {

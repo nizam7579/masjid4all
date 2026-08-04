@@ -10,6 +10,7 @@ class NWA_DB {
 	public static function actions_table()       { global $wpdb; return $wpdb->prefix . 'nwa_actions'; }
 	public static function knowledge_table()     { global $wpdb; return $wpdb->prefix . 'nwa_knowledge_base'; }
 	public static function profiles_table()      { global $wpdb; return $wpdb->prefix . 'nwa_user_profiles'; }
+	public static function contacts_table()      { global $wpdb; return $wpdb->prefix . 'nwa_contacts'; }
 
 	public static function create_tables() {
 		global $wpdb;
@@ -21,6 +22,7 @@ class NWA_DB {
 		$actions       = self::actions_table();
 		$knowledge     = self::knowledge_table();
 		$profiles      = self::profiles_table();
+		$contacts      = self::contacts_table();
 
 		dbDelta( "CREATE TABLE {$conversations} (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -91,6 +93,15 @@ class NWA_DB {
 			message_count_at_last_update INT UNSIGNED NOT NULL DEFAULT 0,
 			updated_at DATETIME DEFAULT NULL,
 			PRIMARY KEY  (user_id)
+		) {$cc};" );
+
+		dbDelta( "CREATE TABLE {$contacts} (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			wa_number VARCHAR(32) NOT NULL,
+			contact_name VARCHAR(191) DEFAULT NULL,
+			created_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY wa_number (wa_number)
 		) {$cc};" );
 	}
 
@@ -461,5 +472,26 @@ class NWA_DB {
 		$total   = self::count_messages_for_conversation( $conversation_id );
 		$profile = self::get_profile( $user_id );
 		return $total - $profile['message_count_at_last_update'];
+	}
+
+	/* ---------------- Contacts (standalone identity, used only when no
+	   nwa_resolve_user_id filter is hooked by a site plugin) ---------------- */
+
+	public static function get_or_create_contact( $wa_number, $contact_name = null ) {
+		global $wpdb;
+		$table = self::contacts_table();
+
+		$contact_id = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$table} WHERE wa_number = %s", $wa_number ) );
+		if ( $contact_id ) {
+			return (int) $contact_id;
+		}
+
+		$wpdb->insert(
+			$table,
+			array( 'wa_number' => $wa_number, 'contact_name' => $contact_name, 'created_at' => current_time( 'mysql' ) ),
+			array( '%s', '%s', '%s' )
+		);
+
+		return (int) $wpdb->insert_id;
 	}
 }

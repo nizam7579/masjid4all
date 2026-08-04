@@ -22,7 +22,8 @@ require_once NWA_PATH . 'includes/class-nwa-ai.php';
 require_once NWA_PATH . 'includes/class-nwa-router.php';
 require_once NWA_PATH . 'includes/class-nwa-webhook.php';
 require_once NWA_PATH . 'includes/class-nwa-admin.php';
-require_once NWA_PATH . 'includes/site-integration.php';
+// site-integration.php removed — moved to mfa-core so niz-wa has zero
+// masjid4all-specific code. See mfa-core/includes/niz-wa-integration.php.
 
 function nwa_activate() {
 	NWA_DB::create_tables();

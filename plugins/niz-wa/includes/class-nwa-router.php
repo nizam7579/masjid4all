@@ -13,6 +13,23 @@ class NWA_Router {
 			return;
 		}
 
+		/**
+		 * Lets a site plugin intercept a message by custom pattern (e.g. a
+		 * dynamic "VERIFY-XXXX" code) instead of niz-wa's exact-keyword
+		 * action matching, and short-circuit normal routing entirely.
+		 * Return null to leave the message for normal routing, or a string
+		 * (possibly '') to claim it — the string is sent as the reply.
+		 */
+		$override = apply_filters( 'nwa_route_message_override', null, $user_id, $wa_number, $message_text, $conversation );
+
+		if ( null !== $override ) {
+			if ( '' !== $override ) {
+				nwa_send_message( $user_id, $wa_number, $override );
+			}
+			self::maybe_refresh_profile( $conversation, $user_id );
+			return;
+		}
+
 		$pending = NWA_DB::get_active_pending_action( $conversation );
 
 		if ( $pending ) {

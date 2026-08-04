@@ -9,38 +9,66 @@
 ## Site Context
 Masjid4All is an Islamic digital ecosystem: mosque directory, prayer times, Qibla
 direction, halal business listings, Islamic knowledge resources, and an AI WhatsApp
-assistant ("Sofia"). Content and UX should respect Islamic terminology conventions
-and JAKIM-aligned halal compliance where relevant. Default language is English;
-Bahasa Melayu content may appear alongside it — don't auto-translate without asking.
+assistant. (The old `enaizi_wa` assistant was branded "Sofia" — that persona wasn't
+carried into the current `niz-wa` plugin; its AI prompts are generic/unbranded.)
+Content and UX should respect Islamic terminology conventions and JAKIM-aligned
+halal compliance where relevant. Default language is English; Bahasa Melayu content
+may appear alongside it — don't auto-translate without asking.
 
 ## Plugin Architecture
-Current custom plugins (in consolidation):
+Current custom plugins:
 - `enaizi-identity`
 - `enaizi-mfa`
 - `enaizi-user`
-- `enaizi_wa` — **being replaced**, see below
+- `enaizi_wa` — **retired, inactive** (see cutover status below)
+- `niz-wa` — **active**, the WhatsApp plugin (renamed from a separate `nemkad-wa`
+  codebase, not built from scratch — see naming note below). Mirrored into this repo
+  at `plugins/niz-wa/` as of 2026-08-04; the copy on staging is authoritative — pull
+  fresh from staging via Novamira before assuming this local copy is current.
 
-**Target state**: consolidate into two plugins:
-1. **Identity/User/MFA plugin** — merges `enaizi-identity`, `enaizi-user`, `enaizi-mfa`
-2. **`niz-wa`** — new standalone WhatsApp plugin, built on Meta Cloud API, designed to
-   be **portable/multi-site installable** (not masjid4all-specific — also targets
-   nemkad.com). This **replaces** the currently active `enaizi_wa` plugin.
+**Target state (still open)**: consolidate `enaizi-identity`, `enaizi-user`,
+`enaizi-mfa` into a single Identity/User/MFA plugin. Not started yet — treat as a
+separate future effort, unrelated to the `niz-wa` work below.
 
-### `niz-wa` replacement notes
-- `niz-wa` is a clean rebuild, not a renamed copy of `enaizi_wa` — new plugin slug,
-  new namespace/prefix (`niz_wa_*` / `NizWa`, not `enaizi_wa_*`), fresh option keys.
-- `enaizi_wa` stays **active in production** until `niz-wa` is verified working on
-  staging (webhook receive/send, message templates, Sofia integration if applicable).
-  Don't deactivate `enaizi_wa` as a side effect of `niz-wa` work.
-- Cutover plan: build and test `niz-wa` fully on staging → confirm feature parity
-  with `enaizi_wa` (message send/receive, any WA-triggered automations) → only then
-  plan deactivation of `enaizi_wa` and activation of `niz-wa` on production. Flag
-  this cutover explicitly when it's ready — don't do it as part of routine dev work.
-- If `enaizi_wa` stores data (message logs, opted-in numbers, templates) that
-  `niz-wa` needs to inherit, call out a migration step rather than assuming a
-  fresh start is fine.
-- Until cutover, treat `enaizi_wa` as read-reference only — look at it to understand
-  current behavior, but new work goes into `niz-wa`.
+### `niz-wa` — actual status as of 2026-08-04
+- **Cutover is complete.** `enaizi_wa` has been deactivated on staging (not deleted —
+  its plugin files and DB tables, `wp_niz_wa_*`, are still present for reference/
+  rollback). `niz-wa` is now the sole handler of WhatsApp traffic on staging. Don't
+  reactivate `enaizi_wa` or treat it as a live code path; it's historical reference
+  only from here on.
+- **Naming convention differs from the original plan.** `niz-wa` was not built from
+  scratch — it started as a separate, more advanced codebase (`nemkad-wa`) that was
+  renamed to `niz-wa` (folder + plugin header only). Internally it still uses the
+  `NWA_*` class prefix and `nwa_*` function/hook prefix (`NWA_DB`, `NWA_Router`,
+  `NWA_AI`, `nwa_send_message()`, `wp_nwa_*` tables, `nwa_resolve_user_id` filter),
+  **not** `niz_wa_*`/`NizWa` as originally planned. Follow the existing `NWA_*`/`nwa_*`
+  convention for any further work on this plugin — don't introduce a mixed prefix.
+- The REST webhook namespace is also still `nemkad-wa/v1` (e.g.
+  `/wp-json/nemkad-wa/v1/webhook`) — this is what's registered with Meta and is live;
+  don't rename it without a coordinated webhook-URL update in Meta's dashboard.
+- **Not yet portable/multi-site.** Despite the original goal, the current build has
+  masjid4all-specific content: hardcoded `staging.masjid4all.com` URLs in the
+  `claim_business`/`membership_price`/`advertise` action replies
+  (`includes/site-integration.php`), and Knowledge Base entries specific to
+  Masjid4All. If nemkad.com portability is still wanted, that's unstarted work, not
+  a completed design goal.
+- **No "Sofia" branding.** The AI system prompts in `niz-wa` are generic/unbranded —
+  the "Sofia" persona only existed in the old `enaizi_wa` code and was not carried
+  over.
+- **User resolution is wired to `enaizi-user`.** `includes/site-integration.php`
+  hooks `nwa_resolve_user_id` to call `niz_user_check()` / `niz_user_create_prospect()`
+  from `enaizi-user`, so unknown WhatsApp numbers become `prospect` users (not full
+  members) via the existing identity system — this is the "don't duplicate
+  user-creation logic" coordination the original plan called for; `enaizi-user` owns
+  user creation, `niz-wa` calls into it.
+- **Hosting-specific gotcha, important for future changes:** this host (Hostinger,
+  LiteSpeed) kills fire-and-forget non-blocking loopback HTTP requests before slow
+  outbound calls (e.g. an AI API call) can finish — `wp_remote_post(..., 'blocking'
+  => false)` used for background processing is unreliable here. Because of this,
+  `NWA_Webhook::handle()` processes each inbound message **synchronously** (including
+  the AI call) before acking Meta, instead of the async hand-off pattern the original
+  `nemkad-wa` code used. Don't reintroduce a background/async hop for message
+  processing on this host without solving that reliability problem first.
 
 When working across the identity/user/MFA plugins, treat the consolidation as a
 refactor, not a rewrite: preserve existing hooks, option names, and DB schema where
@@ -76,6 +104,11 @@ working copy: `C:\projects\masjid4all`.
   without asking first.
 - After committing, push to `origin main` so changes are backed up — don't leave
   work sitting only in local commits.
+- Code changes to `niz-wa` (and any other plugin) are typically made **directly on
+  staging** via Novamira MCP, not in this local working copy first — the local copy
+  under `plugins/` is a periodic mirror pulled down for version control, not the
+  live editing surface. When staging code changes, re-sync the affected plugin
+  folder here and commit, rather than assuming local and staging are already in sync.
 
 ## Development Workflow
 - Work happens on **staging.masjid4all.com** via Novamira MCP.
@@ -100,17 +133,26 @@ working copy: `C:\projects\masjid4all`.
   is mobile. Test responsive behavior by default.
 
 ## WhatsApp Business Plugin — `niz-wa` (Meta Cloud API)
-- Being built as a **portable WordPress plugin** — no masjid4all-specific hardcoding.
-  Initial scope/testing ground is nemkad.com, but assume it will be installed on
-  other sites (including masjid4all.com for the Sofia assistant) later.
-- **Replaces `enaizi_wa`** — see cutover notes above. Don't touch `enaizi_wa` unless
-  explicitly asked to reference its current behavior or migrate its data.
-- Keep Meta API credentials, webhook verification tokens, and phone number IDs
-  configurable per-install, not hardcoded.
-- Design with multi-site reuse in mind: settings page, not constants, for
-  anything that varies by deployment.
-- Use the `niz_wa_*` / `NizWa` naming convention consistently across functions,
-  classes, hooks, and option keys — don't mix in the old `enaizi_wa` prefix.
+- **Currently masjid4all-specific, not portable** — see the "Not yet portable" note
+  above. Portability to nemkad.com/other sites is an unstarted goal, not a completed
+  design property. Don't assume config is deployment-agnostic without checking.
+- **Has already replaced `enaizi_wa`** — cutover is done, `enaizi_wa` is inactive.
+  Only touch `enaizi_wa` to reference historical behavior or migrate remaining data
+  (e.g. its FAQ table, old conversation history) — never reactivate it.
+- Meta API credentials (`NWA_PHONE_NUMBER_ID`, `NWA_ACCESS_TOKEN`, `NWA_APP_SECRET`,
+  `NWA_VERIFY_TOKEN`) are `wp-config.php` constants — read/set via
+  `includes/class-nwa-config.php` (`NWA_Config::get()`), falling back to the
+  `nwa_settings` DB option if a constant isn't defined.
+- **AI provider/model is the one thing already made UI-configurable**, specifically
+  so it doesn't require `wp-config.php` edits: **wp-admin → Niz WA → Settings** has
+  an editable form for AI Provider (Anthropic / DeepSeek / OpenRouter), Model, and
+  API Key, backed by the `nwa_settings` option. This only takes effect if
+  `NWA_AI_PROVIDER` / `NWA_AI_MODEL` / `NWA_AI_API_KEY` are **not** defined as
+  constants — constants always win over the form. OpenRouter is the preferred way
+  to test multiple underlying models: one key, switch models by editing the Model
+  field to an OpenRouter `provider/model` string (e.g. `anthropic/claude-3.5-sonnet`).
+- Use the existing `NWA_*` / `nwa_*` naming convention consistently — see the naming
+  note above. Do not introduce `niz_wa_*`/`NizWa`.
 
 ## SEO
 - RankMath + Google Site Kit are configured on masjid4all.com.
@@ -119,31 +161,44 @@ working copy: `C:\projects\masjid4all`.
 - Flag any change that affects meta titles, schema markup, or URL structure —
   these have SEO implications on a live-indexed site.
 
-### `niz-wa` feature scope
-Full WhatsApp management plugin, not just a messaging shim. Core capabilities:
-- **Sending messages** — outbound text/media messages via Meta Cloud API
-- **Template management** — create/manage WhatsApp message templates (and submit
-  for Meta approval where the API requires it), send template-based messages
-- **User/contact management** — create new users/contacts from WhatsApp numbers
-  (e.g. new inbound number → new user record), not just message logging
-- **Receiving/webhook handling** — inbound message + status webhook processing
-  (delivery, read receipts, opt-in/opt-out events)
-
-Treat this as the feature-parity checklist against `enaizi_wa` for the eventual
-cutover — confirm each of these works on staging before `enaizi_wa` is retired.
-If `enaizi_wa` does more than this (e.g. Sofia-specific hooks, automations), flag
-that explicitly rather than assuming this list is exhaustive — check `enaizi_wa`'s
-current code for anything not captured here before calling parity "done."
+### `niz-wa` feature scope — status
+Full WhatsApp management plugin, not just a messaging shim. Core capabilities and
+their actual status as of the 2026-08-04 cutover:
+- **Sending messages** — ✅ done. Text via `nwa_send_message()`, templates via
+  `nwa_send_template()`, both in `includes/class-nwa-sender.php`. AI-generated
+  replies are passed through `NWA_Sender::format_for_whatsapp()` to convert
+  Markdown (`**bold**`, `### headers`) into WhatsApp's own formatting before sending.
+- **Template management** — ❌ not built. Sending a template message works, but
+  there's no UI/API flow to create templates or submit them to Meta for approval.
+  Still a gap against the original scope if that's needed.
+- **User/contact management** — ✅ done, via the `enaizi-user` integration described
+  above (`nwa_resolve_user_id` → `niz_user_check()`/`niz_user_create_prospect()`).
+  New WhatsApp numbers become `prospect` users in the existing identity system.
+- **Receiving/webhook handling** — ✅ done, with the synchronous-processing caveat
+  noted above. Signature verification (`x-hub-signature-256` HMAC), dedupe, and a
+  "typing…" indicator (`NWA_Sender::mark_read_with_typing()`) shown while a reply is
+  generated are all implemented. No opt-out/unsubscribe flow has been built.
+- **Action registry** — a data-driven system not in the original scope doc:
+  `wp_nwa_actions` holds keyword-triggered and AI-intent-classified actions
+  (`start`, `register`, `reset_password`, `claim_business`, `membership_price`,
+  `advertise`), each backed by a global PHP callback registered in
+  `includes/site-integration.php`. `advertise`'s reply is still placeholder
+  copy/URLs — real content was intentionally left for later (KIV).
+- **Knowledge base + AI Q&A fallback** — done. `wp_nwa_knowledge_base` grounds
+  open-ended questions; populated with real Masjid4All content (see the portability
+  note above on why this isn't reusable as-is on another site).
+- **User profile memory** — done. `NWA_AI::maybe_update_profile()` summarizes new
+  facts into `wp_nwa_user_profiles` every 8 messages, merging rather than
+  overwriting, and feeds that summary back into future AI replies.
 
 Given "create new user" is in scope, this plugin touches the same territory as the
-identity/user plugin above — coordinate on user-creation logic (don't duplicate
-user-creation code paths between `niz-wa` and the identity/user/MFA plugin; decide
-which one owns "create WP user" and have the other call into it).
+identity/user plugin above — user creation is *not* duplicated: `enaizi-user` owns
+it, `niz-wa` calls into it via the `nwa_resolve_user_id` filter.
 - Don't push changes straight to production (masjid4all.com).
 - Don't reintroduce hardcoded secrets.
 - Don't rewrite auth/session code without flagging it first.
-- Don't invent new plugin naming conventions — follow the `enaizi-*` prefix for
-  anything in the identity/user/MFA consolidation, and `niz-wa`/`niz_wa_*` for the
-  new WhatsApp plugin.
-- Don't deactivate `enaizi_wa` or touch its data as a side effect of `niz-wa` work —
-  cutover is a separate, explicit step.
+- Follow the existing `enaizi-*` prefix for anything in the identity/user/MFA
+  consolidation, and the existing `NWA_*`/`nwa_*` prefix for `niz-wa` — don't
+  introduce a third naming scheme.
+- `enaizi_wa` is already deactivated; don't reactivate it or resume dual-running it
+  as part of routine `niz-wa` work.

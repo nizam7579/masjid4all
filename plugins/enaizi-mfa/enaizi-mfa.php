@@ -133,7 +133,7 @@ function niz_mfa_enqueue_plugin_assets() {
     }
 
     // Prayer Times Assets
-    // $prayer_css_path = NIZ_MFA_PLUGIN_DIR . 'assets/css/prayer-times.css';
+    $prayer_css_path = NIZ_MFA_PLUGIN_DIR . 'assets/css/prayer-times.css';
     $prayer_js_path  = NIZ_MFA_PLUGIN_DIR . 'assets/js/prayer-times.js';
 
     if (file_exists($prayer_css_path)) {
@@ -144,7 +144,7 @@ function niz_mfa_enqueue_plugin_assets() {
     }
 
     // Qibla Finder Assets
-    // $qibla_css_path = NIZ_MFA_PLUGIN_DIR . 'assets/css/qibla.css';
+    $qibla_css_path = NIZ_MFA_PLUGIN_DIR . 'assets/css/qibla.css';
     $qibla_js_path  = NIZ_MFA_PLUGIN_DIR . 'assets/js/qibla.js';
 
     // Force LiteSpeed to ignore critical plugin CSS

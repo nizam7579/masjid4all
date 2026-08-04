@@ -39,7 +39,8 @@ foreach ( $user_shortcode_files as $file ) {
 // LOAD INCLUDES & HELPERS
 // =============================================
 $user_core_files = [
-    'user.php',
+    // 'user.php' removed — moved to mfa-core/includes/identity-core.php.
+    // niz_user_check/register/create_prospect/etc. now live there.
     'ajax-handlers.php',
     'fluentform.php',
     'member.php',

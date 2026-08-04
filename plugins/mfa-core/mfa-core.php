@@ -19,6 +19,7 @@ $mfa_core_includes = array(
 	'includes/identity-email.php',
 	'includes/niz-wa-integration.php',
 	'includes/identity-core.php',
+	'includes/whatsapp-verify.php',
 );
 
 foreach ( $mfa_core_includes as $mfa_core_include ) {

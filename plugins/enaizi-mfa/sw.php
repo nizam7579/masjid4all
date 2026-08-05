@@ -9,7 +9,7 @@ $offline_url = $plugin_url . 'offline.html';
 ?>
 
 // Enaizi PWA Service Worker
-const CACHE_VERSION = 'v4.53'; // Version bumped to force device updates (quran-page.css renamed to v2 to bust stale cache)
+const CACHE_VERSION = 'v4.56'; // Version bumped to force device updates (desktop max-width fix on quran page, css renamed to v5)
 const CACHE_NAME = `enaizi-pwa-${CACHE_VERSION}`;
 const OFFLINE_URL = '<?php echo esc_url($offline_url); ?>';
 

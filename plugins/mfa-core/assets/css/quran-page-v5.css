@@ -6,15 +6,18 @@
    dependency on Kadence's .kt-row-column-wrap/.kt-inside-inner-col) —
    the intended template for refactoring the other pages the same way. */
 
-.mfa-quran-page { font-family: Lato, sans-serif; }
+.mfa-quran-page { font-family: Lato, sans-serif; max-width: 1290px; margin: 0 auto; }
 
 .mfa-quran-header {
   text-align: center;
   padding: 48px 24px 36px;
   background: linear-gradient(150deg, #12181f 0%, #0d4d47 100%);
   color: #f4faf9;
-  border-radius: 16px;
+  border-radius: 0;
   margin-bottom: 32px;
+}
+@media (min-width: 901px) {
+  .mfa-quran-header { border-radius: 16px; }
 }
 .mfa-quran-header h1 {
   font-size: clamp(28px, 4vw, 40px);
@@ -57,6 +60,13 @@
   .mfa-page-col-content,
   .mfa-page-col-ad {
     padding: 0 24px;
+  }
+}
+@media (max-width: 900px) {
+  .mfa-page-col-ad {
+    margin-top: 50px;
+    padding: 24px 20px;
+    background-color: #eef2f1;
   }
 }
 

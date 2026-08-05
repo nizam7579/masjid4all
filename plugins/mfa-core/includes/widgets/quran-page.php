@@ -17,7 +17,7 @@ function mfa_quran_page_shortcode() {
 	<div class="mfa-quran-page">
 		<header class="mfa-quran-header">
 			<h1>Daily Quran</h1>
-			<p class="mfa-quran-tagline">Transform your relationship with the words of Allah by focusing deeply on one short Surah every day. Taking less than five minutes, this practice builds a meaningful, consistent habit through three simple steps:</p>
+			<p class="mfa-quran-tagline">Build a daily habit with the Quran — just one short Surah, five minutes a day. Here's how:</p>
 			<p class="mfa-quran-steps"><strong>Recite, Listen and Understand.</strong></p>
 		</header>
 

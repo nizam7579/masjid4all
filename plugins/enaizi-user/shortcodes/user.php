@@ -452,31 +452,5 @@ function niz_user_namecard_shortcode() {
 
 
 
-add_shortcode('current_page_qr', 'wp_current_page_qrcode_shortcode');
-function wp_current_page_qrcode_shortcode($atts) {
-    // 1. Define default attributes (size defaults to 150x150 pixels)
-    $args = shortcode_atts(array(
-        'size' => '150',
-    ), $atts);
-
-    // 2. Fetch the current page/post URL safely
-    global $wp;
-    $current_url = home_url(add_query_arg(array(), $wp->request));
-    
-    // Ensure it works nicely if it's the home page or a query string is present
-    if (is_front_page()) {
-        $current_url = home_url('/');
-    }
-
-    // 3. URL-encode the link so the API can read it seamlessly
-    $encoded_url = urlencode($current_url);
-
-    // 4. Construct the API request (Using the reliable goQR.me or QuickChart API)
-    $qr_api_url = "https://api.qrserver.com/v1/create-qr-code/?size={$args['size']}x{$args['size']}&data={$encoded_url}";
-
-    // 5. Return the clean, stylized image HTML markup
-    return '<div class="page-qrcode-wrapper">
-                <img src="' . esc_url($qr_api_url) . '" alt="QR Code for ' . esc_attr(get_the_title()) . '" width="' . esc_attr($args['size']) . '" height="' . esc_attr($args['size']) . '" style="border:none;" />
-            </div>';
-}
+// current_page_qr moved to mfa-core/includes/widgets/qr-code.php
 

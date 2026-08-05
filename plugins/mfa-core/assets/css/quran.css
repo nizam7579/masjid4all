@@ -1,0 +1,39 @@
+.m4a-quran-container {
+    max-width: 900px;
+    margin: 20px auto;
+    font-family: system-ui, -apple-system, sans-serif;
+    border: 1px solid #e2e8f0;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    background: #fff;
+    min-height: 200px;
+}
+.m4a-quran-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 150px;
+    color: #64748b;
+    font-size: 16px;
+    gap: 10px;
+}
+.m4a-quran-columns { display: flex; flex-direction: column; gap: 30px; }
+@media (min-width: 768px) {
+    .m4a-quran-columns { flex-direction: row; }
+    .m4a-column-left, .m4a-column-right { flex: 1; width: 50%; }
+    .m4a-column-left { border-right: 1px solid #f1f5f9; padding-right: 25px; }
+}
+.m4a-spinner {
+    animation: m4a-spin 1s linear infinite;
+    display: inline-block;
+}
+@keyframes m4a-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+.m4a-surah-selector-wrapper { max-width: 400px; margin: 20px 0; font-family: system-ui, sans-serif; }
+.m4a-surah-selector-wrapper select {
+    width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 4px;
+    background-color: #fff; font-size: 15px; color: #333; cursor: pointer;
+}

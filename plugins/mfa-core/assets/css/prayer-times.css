@@ -1,0 +1,105 @@
+/* Reserve height on mobile so the footer doesn't miscalculate during API load */
+.niz-mfa-prayer-times-wrapper {
+    min-height: 280px; /* Adjust this number slightly if your module is taller/shorter */
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+
+/* niz-prayer-times.css - Prayer Times Styles */
+.niz-mfa-prayer-times-wrapper {
+    font-family: inherit;
+    width: 100%;
+    margin-bottom: 24px;
+}
+
+.niz-prayer-grid-container {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
+    width: 100%;
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+.niz-prayer-item {
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 14px 8px;
+    text-align: center;
+    transition: transform 0.2s ease, border-color 0.2s ease, background 0.3s ease;
+}
+
+.niz-prayer-item .niz-label {
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.niz-prayer-item .niz-time-val {
+    font-size: 15px;
+    font-weight: 700;
+    color: #006B3E;
+}
+
+/* Highlight state style context */
+.niz-prayer-item.niz-active {
+    background: #006B3E !important;
+    border-color: #006B3E !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 107, 62, 0.15);
+}
+
+.niz-prayer-item.niz-active .niz-label {
+    color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.niz-prayer-item.niz-active .niz-time-val {
+    color: #ffffff !important;
+}
+
+.niz-countdown-card {
+    border: 1px solid #e2e8f0;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    border-radius: 16px;
+    padding: 20px;
+    margin: 30px auto 10px auto;
+    text-align: center;
+    width: 100%;
+    max-width: 320px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+}
+
+.niz-cd-title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #64748b;
+    letter-spacing: 1px;
+}
+
+.niz-next-name {
+    font-size: 28px;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 6px 0;
+}
+
+.niz-countdown-clock {
+    font-size: 14px;
+    color: #475569;
+    font-weight: 500;
+}
+
+/* Responsive breakpoints */
+@media (max-width: 768px) {
+    .niz-prayer-grid-container {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+    }
+}

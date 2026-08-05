@@ -22,7 +22,7 @@ function niz_user_info_shortcode() {
 
     $rank   = niz_user_field_by_userid($user_id, 'rank');
     $points = niz_user_field_by_userid($user_id, 'points');
-    
+
     if (!$points){
         $points = 50;
         niz_user_add_points($user_id, 'Welcome Bonus', $points);
@@ -33,7 +33,7 @@ function niz_user_info_shortcode() {
     $phone   = sanitize_text_field(get_user_meta($user_id, 'user_phone', true));
     $status  = 'New User';
     $chg_pwd = get_user_meta($user_id, 'change_password', true);
-    
+
     // Set phone cookies safely
     if (!empty($phone)) {
         setcookie(
@@ -46,7 +46,7 @@ function niz_user_info_shortcode() {
             false // allow JS access
         );
     }
-    
+
     $country     = isset($_COOKIE['country']) ? sanitize_text_field(wp_unslash($_COOKIE['country'])) : '';
     $partner_id  = isset($_COOKIE['partnerid']) ? intval($_COOKIE['partnerid']) : 0;
     $referrer_id = isset($_COOKIE['affiliateid']) ? intval($_COOKIE['affiliateid']) : 14270;
@@ -109,18 +109,7 @@ function niz_user_info_shortcode() {
     return ob_get_clean();
 }
 
-/**
- * Displays a logout button
- * [niz_user_logout] 
- */
-add_shortcode('niz_user_logout', 'niz_user_logout_shortcode');
-function niz_user_logout_shortcode() {
-    if (!is_user_logged_in()) {
-        return ''; // nothing shown if already logged out
-    }
-    $user = wp_get_current_user();
-    return '<button id="niz_user_logout_btn" class="niz-user-logout-btn">➜]</button>';
-}
+// niz_user_logout moved to mfa-core/includes/widgets/user-logout.php
 
 
 // Welcome
@@ -130,15 +119,15 @@ function niz_user_welcome_shortcode() {
     $user_id = $current_user->ID;
     $rank   = niz_user_field_by_userid($user_id, 'rank');
     $points = niz_user_field_by_userid($user_id, 'points');
-    
+
     if (!$points){
         $points = 50;
         niz_user_add_points($user_id, 'Welcome Bonus', $points);
     }
-    
+
     ob_start();
     ?>
-    
+
     <script>
         jQuery(document).ready(function($) {
             console.log('Member info loaded');
@@ -155,7 +144,7 @@ function niz_user_welcome_shortcode() {
     if ($chk_card=='Yes'){$chk_card = ' ✅';}
     $chk_share   = niz_user_field_by_userid($user_id, 'chk_share');
     if ($chk_share=='Yes'){$chk_share = ' ✅';}
-    $chk_aff     = niz_user_field_by_userid($user_id, 'chk_affiliate'); 
+    $chk_aff     = niz_user_field_by_userid($user_id, 'chk_affiliate');
     if ($chk_aff=='Yes'){$chk_aff = ' ✅';}
     ?>
 
@@ -174,4 +163,4 @@ function niz_user_welcome_shortcode() {
 
     <?php
     return ob_get_clean();
-}  
+}

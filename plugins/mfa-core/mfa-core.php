@@ -20,6 +20,15 @@ $mfa_core_includes = array(
 	'includes/niz-wa-integration.php',
 	'includes/identity-core.php',
 	'includes/whatsapp-verify.php',
+	'includes/widgets/prayer-times.php',
+	'includes/widgets/qibla.php',
+	'includes/widgets/daily-quran.php',
+	'includes/widgets/set-cookies.php',
+	'includes/widgets/member-share.php',
+	'includes/widgets/qr-code.php',
+	'includes/widgets/user-logout.php',
+	'includes/widgets/homepage-stats.php',
+	'includes/widgets-enqueue.php',
 );
 
 foreach ( $mfa_core_includes as $mfa_core_include ) {

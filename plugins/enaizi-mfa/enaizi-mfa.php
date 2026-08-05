@@ -41,22 +41,20 @@ $mfa_shortcode_files = [
     'directory.php',
     'website.php',
     'barakah.php',
-    'review.php', 
+    'review.php',
     'upload-image.php',
     'image-upload.php',
     'image-upload-r2.php',
     'location.php',
     'date.php',
-    'prayer-times.php', 
-    'qibla.php',
-    'set-cookies.php',  
+    // 'prayer-times.php', 'qibla.php', 'set-cookies.php', 'quran.php' removed
+    // moved to mfa-core/includes/widgets/. Same shortcode tags, now owned by mfa-core.
     'user-web-process.php',
-    'quran.php',
     'community.php',
     'register.php',
     'admin.php',
     'member.php',
-    'install-button.php'   
+    'install-button.php'
 ];
 
 foreach ($mfa_shortcode_files as $file) {
@@ -118,7 +116,7 @@ add_action('wp_enqueue_scripts', function(){
         true
     );
 
-}); 
+});
 
 add_action('wp_enqueue_scripts', 'niz_mfa_enqueue_plugin_assets');
 function niz_mfa_enqueue_plugin_assets() {
@@ -132,39 +130,19 @@ function niz_mfa_enqueue_plugin_assets() {
         wp_enqueue_style('niz-global', NIZ_MFA_PLUGIN_URL . 'assets/css/global.css', array(), $get_version($global_css_path));
     }
 
-    // Prayer Times Assets
-    $prayer_css_path = NIZ_MFA_PLUGIN_DIR . 'assets/css/prayer-times.css';
-    $prayer_js_path  = NIZ_MFA_PLUGIN_DIR . 'assets/js/prayer-times.js';
-
-    if (file_exists($prayer_css_path)) {
-        wp_enqueue_style('niz-prayer-times', NIZ_MFA_PLUGIN_URL . 'assets/css/prayer-times.css', array(), $get_version($prayer_css_path));
-    }
-    if (file_exists($prayer_js_path)) {
-        wp_enqueue_script('niz-prayer-times', NIZ_MFA_PLUGIN_URL . 'assets/js/prayer-times.js', array(), $get_version($prayer_js_path), true);
-    }
-
-    // Qibla Finder Assets
-    $qibla_css_path = NIZ_MFA_PLUGIN_DIR . 'assets/css/qibla.css';
-    $qibla_js_path  = NIZ_MFA_PLUGIN_DIR . 'assets/js/qibla.js';
+    // Prayer Times / Qibla Finder assets removed — moved to
+    // mfa-core/includes/widgets-enqueue.php (now conditionally loaded via
+    // has_shortcode() instead of sitewide-unconditional).
 
     // Force LiteSpeed to ignore critical plugin CSS
     add_filter( 'litespeed_optimize_css_excludes', function( $excludes ) {
-        $excludes[] = 'prayer-times.css';
         $excludes[] = 'mosque.css';
         $excludes[] = 'business.css';
         $excludes[] = 'knowledge.css';
         $excludes[] = 'web.css';
-        $excludes[] = 'qibla.css';
         $excludes[] = 'global.css';
         return $excludes;
     } );
-
-    if (file_exists($qibla_css_path)) {
-        wp_enqueue_style('niz-qibla-finder', NIZ_MFA_PLUGIN_URL . 'assets/css/qibla.css', array(), $get_version($qibla_css_path));
-    }
-    if (file_exists($qibla_js_path)) {
-        wp_enqueue_script('niz-qibla-finder', NIZ_MFA_PLUGIN_URL . 'assets/js/qibla.js', array(), $get_version($qibla_js_path), true);
-    }
 }
 
 // =============================================
@@ -238,4 +216,3 @@ function niz_mfa_deactivate() {
     flush_rewrite_rules();
     flush_rewrite_rules();
 }
-

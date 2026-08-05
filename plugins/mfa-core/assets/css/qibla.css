@@ -1,0 +1,118 @@
+/* assets/css/qibla.css */
+.niz-qibla-app {
+    text-align: center;
+    font-family: inherit;
+    max-width: 360px;
+    margin: auto;
+    padding: 10px;
+}
+
+.niz-title {
+    font-size: 14px;
+    margin-bottom: 14px;
+    color: #333;
+    line-height: 1.4;
+}
+
+.niz-circle {
+    width: 260px;
+    height: 260px;
+    margin: auto;
+    border-radius: 50%;
+    position: relative;
+    background: #ffffff;
+    border: 4px solid #006B3E;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+    overflow: hidden;
+    will-change: transform;
+}
+
+.niz-ring {
+    position: absolute;
+    inset: 14px;
+    border-radius: 50%;
+    border: 1px solid rgba(0,0,0,0.06);
+    pointer-events: none;
+}
+
+.niz-kaaba {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 28px;
+    z-index: 10;
+}
+
+.niz-arrow-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    margin: auto;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform-origin: center center;
+}
+
+/* Hardware Accelerate CSS Paint Boundaries */
+.m4a-hardware-layer {
+    will-change: transform;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+}
+
+.niz-vector-arrow {
+    width: 0;
+    height: 0;
+    border-left: 14px solid transparent;
+    border-right: 14px solid transparent;
+    border-bottom: 55px solid #d32f2f;
+    position: relative;
+    top: -15px;
+}
+
+.niz-status-box {
+    margin-top: 12px;
+    padding: 10px 14px;
+    border-radius: 20px;
+    background: #f5f5f5;
+    font-size: 13px;
+    font-weight: 500;
+    min-height: 20px;
+    transition: background 0.25s ease, color 0.25s ease;
+    color: #333;
+}
+
+.niz-button-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin-top: 18px;
+    min-height: 50px;
+}
+
+.niz-btn {
+    background: #006B3E;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 999px;
+    font-size: 14px;
+    cursor: pointer;
+    box-shadow: 0 6px 14px rgba(0,0,0,0.12);
+    font-weight: bold;
+    width: 100%;
+    max-width: 280px;
+    transition: transform 0.1s ease;
+}
+
+.niz-btn:active {
+    transform: scale(0.97);
+}

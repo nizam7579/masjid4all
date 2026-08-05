@@ -146,7 +146,7 @@ class NWA_Webhook {
 
 		$conversation = NWA_DB::get_conversation_by_user( $user_id );
 
-		NWA_Router::handle_message( $user_id, $wa_number, $conversation, $content, $type );
+		NWA_Router::handle_message( $user_id, $wa_number, $conversation, $content, $type, $message['id'] ?? null );
 	}
 
 	/**

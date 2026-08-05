@@ -8,7 +8,7 @@ class NWA_Router {
 	private static $yes_words = array( 'yes', 'y', 'ya', 'yep', 'ok', 'okay', 'sure', 'boleh' );
 	private static $no_words  = array( 'no', 'n', 'nope', 'tak', 'tidak', 'jangan' );
 
-	public static function handle_message( $user_id, $wa_number, $conversation, $message_text, $msg_type ) {
+	public static function handle_message( $user_id, $wa_number, $conversation, $message_text, $msg_type, $wa_message_id = null ) {
 		if ( 'text' !== $msg_type || '' === trim( (string) $message_text ) ) {
 			return;
 		}
@@ -57,6 +57,15 @@ class NWA_Router {
 
 		$context = NWA_DB::get_recent_context( $conversation->id, NWA_AI::HISTORY_MESSAGE_LIMIT, NWA_AI::HISTORY_MINUTES_CUTOFF );
 		$profile = NWA_DB::get_profile( $user_id );
+
+		// Re-trigger the typing indicator right before the slowest step — open-ended
+		// Q&A generation — since it resets WhatsApp's ~25s auto-clear window and the
+		// first trigger (on message receipt, before intent classification) may otherwise
+		// expire before this reply is ready.
+		if ( $wa_message_id ) {
+			NWA_Sender::mark_read_with_typing( $wa_message_id );
+		}
+
 		$answer  = NWA_AI::answer_question( $message_text, $context, $profile['summary'] );
 
 		if ( $answer ) {

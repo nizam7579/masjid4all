@@ -64,9 +64,18 @@ function mfa_business_page_shortcode() {
 	ob_start();
 	?>
 	<div class="mfa-tool-page">
-		<header class="mfa-tool-page-header">
-			<h1>Business Directory</h1>
-			<p class="mfa-tool-page-tagline">Discover trusted local services and explore.</p>
+		<header class="mfa-tool-page-header mfa-tool-page-header--split">
+			<div class="mfa-tool-page-header-inner">
+				<div class="mfa-tool-page-header-main">
+					<h1>Business Directory</h1>
+					<p class="mfa-tool-page-tagline">Discover trusted local services and explore.</p>
+				</div>
+				<div class="mfa-tool-page-header-cta">
+					<h2>Your business is not listed?</h2>
+					<p>Add your business now</p>
+					<a href="/add-business" class="mfa-tool-page-header-cta-btn">Add Business</a>
+				</div>
+			</div>
 		</header>
 
 		<div class="mfa-page-row">
@@ -89,9 +98,18 @@ function mfa_web_page_shortcode() {
 	ob_start();
 	?>
 	<div class="mfa-tool-page">
-		<header class="mfa-tool-page-header">
-			<h1>Website Directory</h1>
-			<p class="mfa-tool-page-tagline">Discover trusted online resources.</p>
+		<header class="mfa-tool-page-header mfa-tool-page-header--split">
+			<div class="mfa-tool-page-header-inner">
+				<div class="mfa-tool-page-header-main">
+					<h1>Website Directory</h1>
+					<p class="mfa-tool-page-tagline">Discover trusted online resources.</p>
+				</div>
+				<div class="mfa-tool-page-header-cta">
+					<h2>Your website is not listed?</h2>
+					<p>Add your website now</p>
+					<a href="/add-website" class="mfa-tool-page-header-cta-btn">Add Website</a>
+				</div>
+			</div>
 		</header>
 
 		<div class="mfa-page-row">

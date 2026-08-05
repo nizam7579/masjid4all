@@ -230,18 +230,12 @@ add_shortcode('niz_mfa_web_directory', function($atts) {
             </div>
             <div class="niz-web-input-group">
                 <label>Country</label>
-                <div style="display: flex; gap: 10px; align-items: center;">
-                    <select class="niz-web-country" style="flex: 1;">
-                        <option value="">Global (All)</option>
-                        <?php foreach ($country_list as $c_name): ?>
-                            <option value="<?php echo esc_attr($c_name); ?>"><?php echo esc_html($c_name); ?></option>
-                        <?php endforeach; ?>
-                    </select>
-
-                    <a href="/add-website" style="background-color: #006B3E; color: white; text-decoration: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; font-size: 14px; white-space: nowrap; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                        + Add Website
-                    </a>
-                </div>
+                <select class="niz-web-country">
+                    <option value="">Global (All)</option>
+                    <?php foreach ($country_list as $c_name): ?>
+                        <option value="<?php echo esc_attr($c_name); ?>"><?php echo esc_html($c_name); ?></option>
+                    <?php endforeach; ?>
+                </select>
             </div>
         </div>
         

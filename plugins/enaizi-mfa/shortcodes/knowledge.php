@@ -26,7 +26,7 @@ add_shortcode('niz_knowledge_carousel', function() {
     wp_enqueue_style('swiper-cdn-css', 'https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css', [], '11.0.0');
     wp_enqueue_script('swiper-cdn-js', 'https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js', [], '11.0.0', true);
     
-    wp_enqueue_style('niz-knowledge-css', plugin_dir_url(__FILE__) . '../assets/css/knowledge.css', [], NIZ_MFA_VERSION);
+    wp_enqueue_style('niz-knowledge-css', plugin_dir_url(__FILE__) . '../assets/css/knowledge-v2.css', [], NIZ_MFA_VERSION);
     wp_enqueue_script('niz-knowledge-js', plugin_dir_url(__FILE__) . '../assets/js/knowledge.js', ['swiper-cdn-js'], NIZ_MFA_VERSION, true);
 
     $unique_carousel_id = 'niz-know-swiper-' . wp_generate_password(6, false);
@@ -93,7 +93,7 @@ add_shortcode('niz_mfa_knowledge_directory', function($atts) {
         "Tazkiyah", "Contemporary Issues", "Da’wah & Community", "Finance & Wealth"
     ];
 
-    wp_enqueue_style('niz-knowledge-css', plugin_dir_url(__FILE__) . '../assets/css/knowledge.css', [], NIZ_MFA_VERSION);
+    wp_enqueue_style('niz-knowledge-css', plugin_dir_url(__FILE__) . '../assets/css/knowledge-v2.css', [], NIZ_MFA_VERSION);
     wp_enqueue_script('niz-knowledge-js', plugin_dir_url(__FILE__) . '../assets/js/knowledge.js', [], NIZ_MFA_VERSION, true);
 
     $widget_id = 'niz-knowledge-widget-' . wp_generate_password(6, false);

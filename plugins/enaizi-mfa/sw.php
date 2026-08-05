@@ -9,7 +9,7 @@ $offline_url = $plugin_url . 'offline.html';
 ?>
 
 // Enaizi PWA Service Worker
-const CACHE_VERSION = 'v4.81'; // Version bumped to force device updates (remove Kadence wrapper, pure-CSS full-bleed header + mobile bottom padding)
+const CACHE_VERSION = 'v4.82'; // Version bumped to force device updates (directory pages rebuilt off Kadence, business/web/knowledge widget colors retinted to brand teal)
 const CACHE_NAME = `enaizi-pwa-${CACHE_VERSION}`;
 const OFFLINE_URL = '<?php echo esc_url($offline_url); ?>';
 

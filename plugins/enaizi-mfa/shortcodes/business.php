@@ -160,7 +160,7 @@ add_shortcode('niz_business_carousel', function($atts) {
     wp_enqueue_style('swiper-cdn-css', 'https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css', [], '11.0.0');
     wp_enqueue_script('swiper-cdn-js', 'https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js', [], '11.0.0', true);
     
-    wp_enqueue_style('niz-business-css', plugin_dir_url(__FILE__) . '../assets/css/business.css', [], NIZ_MFA_VERSION);
+    wp_enqueue_style('niz-business-css', plugin_dir_url(__FILE__) . '../assets/css/business-v2.css', [], NIZ_MFA_VERSION);
     wp_enqueue_script('niz-business-js', plugin_dir_url(__FILE__) . '../assets/js/business.js', ['swiper-cdn-js'], NIZ_MFA_VERSION, true);
  
     $unique_carousel_id = 'niz-biz-swiper-' . wp_generate_password(6, false);
@@ -225,7 +225,7 @@ add_shortcode('niz_mfa_nearest_business', function($atts) {
     }
     if (empty($country_list)) $country_list = ['Malaysia'];
 
-    wp_enqueue_style('niz-business-css', plugin_dir_url(__FILE__) . '../assets/css/business.css', [], NIZ_MFA_VERSION);
+    wp_enqueue_style('niz-business-css', plugin_dir_url(__FILE__) . '../assets/css/business-v2.css', [], NIZ_MFA_VERSION);
     wp_enqueue_script('niz-business-js', plugin_dir_url(__FILE__) . '../assets/js/business.js', [], NIZ_MFA_VERSION, true);
 
     // GENERATE A UNIQUE WIDGET ID
@@ -417,7 +417,7 @@ add_shortcode('niz_mfa_local_business', function() {
         }
     }
 
-    wp_enqueue_style('niz-business-css', plugin_dir_url(__FILE__) . '../assets/css/business.css', [], NIZ_MFA_VERSION);
+    wp_enqueue_style('niz-business-css', plugin_dir_url(__FILE__) . '../assets/css/business-v2.css', [], NIZ_MFA_VERSION);
     wp_enqueue_script('niz-business-js', plugin_dir_url(__FILE__) . '../assets/js/business.js', [], NIZ_MFA_VERSION, true);
 
     $unique_local_id = 'niz-local-biz-' . wp_generate_password(6, false);

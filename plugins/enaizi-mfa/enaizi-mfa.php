@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 // =============================================
 // 2. CONSTANTS
 // =============================================
-define('NIZ_MFA_VERSION', '1.0.4');
+define('NIZ_MFA_VERSION', '1.0.5');
 define('NIZ_MFA_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('NIZ_MFA_PLUGIN_URL', plugin_dir_url(__FILE__));
 
@@ -137,9 +137,9 @@ function niz_mfa_enqueue_plugin_assets() {
     // Force LiteSpeed to ignore critical plugin CSS
     add_filter( 'litespeed_optimize_css_excludes', function( $excludes ) {
         $excludes[] = 'mosque.css';
-        $excludes[] = 'business.css';
-        $excludes[] = 'knowledge.css';
-        $excludes[] = 'web.css';
+        $excludes[] = 'business-v2.css';
+        $excludes[] = 'knowledge-v2.css';
+        $excludes[] = 'web-v2.css';
         $excludes[] = 'global.css';
         return $excludes;
     } );

@@ -113,7 +113,7 @@ add_shortcode('niz_web_carousel', function($atts) {
     wp_enqueue_style('swiper-cdn-css', 'https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css', [], '11.0.0');
     wp_enqueue_script('swiper-cdn-js', 'https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js', [], '11.0.0', true);
     
-    wp_enqueue_style('niz-web-css', plugin_dir_url(__FILE__) . '../assets/css/web.css', [], NIZ_MFA_VERSION);
+    wp_enqueue_style('niz-web-css', plugin_dir_url(__FILE__) . '../assets/css/web-v2.css', [], NIZ_MFA_VERSION);
     wp_enqueue_script('niz-web-js', plugin_dir_url(__FILE__) . '../assets/js/web.js', ['swiper-cdn-js'], NIZ_MFA_VERSION, true);
 
     $unique_carousel_id = 'niz-web-swiper-' . wp_generate_password(6, false);
@@ -194,7 +194,7 @@ add_shortcode('niz_mfa_web_directory', function($atts) {
     // 12 Universal Categories
     $categories = ["Islamic Resources", "Islamic Bodies", "Government", "Education", "Finance", "Business & Services", "Charity & Zakat", "Health & Wellness", "Family & Lifestyle", "Community & Social", "News & Media", "Technology & Tools", "E-Commerce & Shopping", "Travel & Directory", "Other" ];
 
-    wp_enqueue_style('niz-web-css', plugin_dir_url(__FILE__) . '../assets/css/web.css', [], NIZ_MFA_VERSION);
+    wp_enqueue_style('niz-web-css', plugin_dir_url(__FILE__) . '../assets/css/web-v2.css', [], NIZ_MFA_VERSION);
     wp_enqueue_script('niz-web-js', plugin_dir_url(__FILE__) . '../assets/js/web.js', [], NIZ_MFA_VERSION, true);
 
     $widget_id = 'niz-web-widget-' . wp_generate_password(6, false);

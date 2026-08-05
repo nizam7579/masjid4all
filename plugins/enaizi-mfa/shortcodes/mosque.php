@@ -451,7 +451,7 @@ function niz_mfa_local_mosques_shortcode() {
     }
 
     // Enqueue both Mosque JS (for logic) and Business CSS (for the cards)
-    wp_enqueue_style('niz-business-css', plugin_dir_url(__FILE__) . '../assets/css/business.css', [], NIZ_MFA_VERSION);
+    wp_enqueue_style('niz-business-css', plugin_dir_url(__FILE__) . '../assets/css/business-v2.css', [], NIZ_MFA_VERSION);
     wp_enqueue_script('niz-mosque-js', plugin_dir_url(__FILE__) . '../assets/js/mosque.js', [], NIZ_MFA_VERSION, true);
 
     $unique_id = 'niz-mosque-dir-' . wp_generate_password(6, false);

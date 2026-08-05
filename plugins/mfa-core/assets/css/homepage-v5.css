@@ -10,6 +10,7 @@
 @media (max-width: 782px) {
   .mfa-home .mfa-section { padding: 48px 20px; }
   .mfa-home .mfa-hero { padding-left: 0; padding-right: 0; }
+  .mfa-home .mfa-hero-inner { padding-left: 20px; padding-right: 20px; }
 }
 
 /* ---------- Eyebrow ---------- */

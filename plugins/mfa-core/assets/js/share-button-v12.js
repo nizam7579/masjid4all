@@ -109,10 +109,16 @@
 
   // Stacks the Share and Sofia floating buttons directly beneath
   // Kadence's own pre-existing "scroll to top" button (#kt-scroll-up),
-  // reading its LIVE position rather than a hardcoded pixel guess -
-  // its own CSS `bottom` value doesn't match where it actually renders
-  // (something else nudges it), so hardcoding numbers here drifted out
-  // of sync and the buttons visibly overlapped.
+  // reading its LIVE position rather than a hardcoded pixel guess, and
+  // center-aligns them on its horizontal center (edge-alignment left
+  // differently-sized buttons visually off-center from each other).
+  //
+  // Positioned via `right` (distance from viewport's right edge), not
+  // `left` - `left`-based fixed positioning on this element was observed
+  // to render ~15px off from its own declared inline value for reasons
+  // that didn't resolve after checking for transformed ancestors (a
+  // common cause); `right` has been reliable throughout, so centering is
+  // computed as a `right` offset instead.
   var STACK_GAP = 10;
 
   function positionFloatingButtons() {
@@ -128,11 +134,21 @@
       var scrollUpRect = scrollUp.getBoundingClientRect();
       anchorBottomDistance = windowHeight - scrollUpRect.bottom;
     } else {
-      // No scroll-to-top button on this page/state - just anchor near
-      // the bottom of the viewport instead.
       anchorBottomDistance = 0;
     }
 
+    // Horizontal centering is a STATIC CSS `right` value (see
+    // share-button.css), not computed here - setting `right`/`left`/
+    // `transform` via JS on these elements was observed to have no
+    // effect on actual rendering (inline style attribute updates
+    // correctly, but getComputedStyle/getBoundingClientRect never
+    // reflect it, even after a forced reflow), for reasons that didn't
+    // resolve after extensive debugging. #kt-scroll-up's own horizontal
+    // position is a fixed `right: 17px` regardless of viewport width, so
+    // a static centering offset (based on the width difference between
+    // it and each button) holds correctly at any width - only the
+    // vertical stacking genuinely needs to be computed at runtime, since
+    // it depends on scroll-up's live bottom position.
     var shareHeight = shareBtn.offsetHeight || 40;
     var shareBottom = anchorBottomDistance - STACK_GAP - shareHeight;
     shareBtn.style.bottom = shareBottom + 'px';
@@ -152,13 +168,24 @@
     replaceFooterIcons();
     highlightActiveFooterItem();
     positionFloatingButtons();
-    // Retry a couple of times in case Kadence's own icon renderer / scroll-
-    // to-top positioning runs after us and shifts things.
     setTimeout(replaceFooterIcons, 400);
     setTimeout(replaceFooterIcons, 1200);
     setTimeout(positionFloatingButtons, 400);
     setTimeout(positionFloatingButtons, 1200);
+    setTimeout(positionFloatingButtons, 2500);
+    window.addEventListener('load', positionFloatingButtons);
     window.addEventListener('resize', positionFloatingButtons);
+    var scrollUpEl = document.getElementById('kt-scroll-up');
+    if (scrollUpEl && window.MutationObserver) {
+      var observer = new MutationObserver(positionFloatingButtons);
+      observer.observe(scrollUpEl, { attributes: true, attributeFilter: ['style', 'class'] });
+    }
+    var pollCount = 0;
+    var pollId = setInterval(function () {
+      positionFloatingButtons();
+      pollCount++;
+      if (pollCount >= 20) clearInterval(pollId);
+    }, 500);
   }
 
   if (document.readyState === 'loading') {

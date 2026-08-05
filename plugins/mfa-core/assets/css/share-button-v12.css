@@ -21,8 +21,13 @@
   cursor: pointer;
   padding: 0;
   position: fixed !important;
-  right: 17px !important;
-  left: auto !important;
+  /* Centers this 40px button on #kt-scroll-up's horizontal center.
+     Scroll-up is 25.59px wide at a fixed right:17px (independent of
+     viewport width), so its center sits 17 + 25.59/2 = 29.8px from the
+     right edge; offsetting this 40px-wide button by 29.8 - 40/2 = 9.8px
+     lands its own center at the same point. Static rather than JS-
+     computed - see share-button.js for why. */
+  right: 9.8px;
   top: auto !important;
   margin: 0 !important;
   z-index: 100000;
@@ -64,8 +69,11 @@
 }
 .kb-image83_18d87b-14 {
   position: fixed !important;
-  right: 17px !important;
-  left: auto !important;
+  /* Same centering logic as .mfa-share-btn above, but for the visible
+     50px circular image (which is right-aligned flush with this
+     wrapper's own right edge, so offsetting the wrapper offsets the
+     image identically): 29.8 - 50/2 = 4.8px. */
+  right: 4.8px;
   top: auto !important;
   margin: 0 !important;
   z-index: 100000;
@@ -149,23 +157,52 @@
 }
 
 /* ---------- Sofia popup ---------- */
+/* Rounded corners + a soft shadow on the modal card - its own generated
+   CSS (border-radius:5px in the block config) never applied either. */
+#kt-modal83_a6d16f-34 .kt-modal-container {
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(13, 77, 71, 0.25);
+}
+
+/* Recolor the popup's headings to the site's established dark-teal
+   palette instead of the generic dark-gray/green Kadence defaults. */
+.kt-adv-heading67433_66ce86-73 {
+  color: #0d4d47 !important;
+}
+.kt-adv-heading67433_779c00-32,
+.kt-adv-heading67433_d5d96c-84 {
+  color: #56655f !important;
+}
+
 /* The "Sample Questions" links are missing their generated block-level
    CSS, so they default to inline display and run together as one
    unbroken line instead of separate rows. Force block display with
-   spacing, and clean up the default underline + the description's
-   italic (<em>) styling. */
+   spacing, remove the default underline, and recolor title/description
+   to match the site palette instead of the uniform accent-teal both
+   inherited by default. */
 .kadence-column83_5bc203-32 .kb-advanced-heading-link {
   display: block;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   text-decoration: none !important;
+  color: inherit;
+}
+.kadence-column83_5bc203-32 .kb-advanced-heading-link strong {
+  color: #0d4d47;
 }
 .kadence-column83_5bc203-32 .kb-advanced-heading-link em {
-  font-style: normal;
+  color: #6b7280;
+  font-style: italic;
+  font-weight: 400;
 }
 
-/* Breathing room around the "Try out these sample questions" heading. */
+/* Breathing room + accent color around the "Try out these sample
+   questions" heading, with a subtle divider separating it from the
+   welcome text above. */
 .kadence-column83_5bc203-32 .kt-adv-heading83_5e2d95-a2 {
   display: block;
-  margin-top: 14px !important;
-  margin-bottom: 10px !important;
+  margin-top: 16px !important;
+  margin-bottom: 12px !important;
+  padding-top: 16px !important;
+  border-top: 1px solid #e7efed;
+  color: #0d4d47 !important;
 }

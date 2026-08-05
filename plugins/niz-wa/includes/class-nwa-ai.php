@@ -10,6 +10,15 @@ class NWA_AI {
 	const HISTORY_MESSAGE_LIMIT     = 6;
 	const HISTORY_MINUTES_CUTOFF    = 45;
 
+	public static function default_persona() {
+		return "You are Alya, the AI assistant for Masjid4All — a digital platform "
+			. "connecting Muslims with mosque directories, prayer times, Qibla direction, "
+			. "halal business listings, and Islamic knowledge resources. You help users "
+			. "with questions about the Masjid4All platform, as well as general questions "
+			. "about Islam and everyday general knowledge. Be warm, respectful, and concise. "
+			. "Reply in the same language the user writes in.";
+	}
+
 	/**
 	 * Classify a message against the currently enabled action registry.
 	 * Returns array( 'intent' => string|null, 'confidence' => float ).
@@ -71,14 +80,20 @@ class NWA_AI {
 		$profile_line = self::format_profile_line( $profile_summary );
 		$history_text = self::format_history( $context_messages );
 
+		$persona = NWA_Config::get( 'ai_persona' ) ?: self::default_persona();
+
 		if ( ! empty( $kb_text ) ) {
-			$system = "Answer using ONLY the information provided below. If the answer isn't "
-				. "contained in this information, say you don't have that detail and offer to "
-				. "connect them with a human — do not guess or use outside knowledge for "
-				. "company/product specific questions.\n\n"
+			$system = $persona . "\n\n"
+				. "For questions about the Masjid4All platform, answer using ONLY the information "
+				. "provided below. If the answer isn't contained in this information, say you "
+				. "don't have that detail and offer to connect them with a human — do not guess "
+				. "or use outside knowledge for company/product specific questions. For general "
+				. "Islamic or general-knowledge questions unrelated to the platform, answer from "
+				. "your own knowledge as described in your persona above.\n\n"
 				. "Reference information:\n{$kb_text}";
 		} else {
-			$system = "Answer the user's question clearly and concisely. If you're not confident "
+			$system = $persona . "\n\n"
+				. "Answer the user's question clearly and concisely. If you're not confident "
 				. "in the answer, say so rather than guessing.";
 		}
 

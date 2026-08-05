@@ -26,6 +26,7 @@ class NWA_Admin {
 			$settings = get_option( NWA_Config::OPTION_KEY, array() );
 			$settings['ai_provider'] = sanitize_key( wp_unslash( $_POST['ai_provider'] ?? '' ) );
 			$settings['ai_model']    = sanitize_text_field( wp_unslash( $_POST['ai_model'] ?? '' ) );
+			$settings['ai_persona']  = sanitize_textarea_field( wp_unslash( $_POST['ai_persona'] ?? '' ) );
 
 			$new_key = trim( wp_unslash( $_POST['ai_api_key'] ?? '' ) );
 			if ( '' !== $new_key ) {
@@ -112,6 +113,13 @@ class NWA_Admin {
 						<td>
 							<input type="password" name="ai_api_key" value="" class="regular-text" placeholder="<?php echo NWA_Config::get( 'ai_api_key' ) ? '(current key set — leave blank to keep it)' : ''; ?>">
 							<p class="description">Leave blank to keep the current key. Used for whichever provider is selected above.</p>
+						</td>
+					</tr>
+					<tr>
+						<th><label>Persona</label></th>
+						<td>
+							<textarea name="ai_persona" rows="6" class="large-text" placeholder="<?php echo esc_attr( NWA_AI::default_persona() ); ?>"><?php echo esc_textarea( NWA_Config::get( 'ai_persona' ) ); ?></textarea>
+							<p class="description">System prompt prepended to the AI's replies in open-ended conversation (the Knowledge Base Q&amp;A fallback). Leave blank to use the default shown as placeholder above.</p>
 						</td>
 					</tr>
 				</table>

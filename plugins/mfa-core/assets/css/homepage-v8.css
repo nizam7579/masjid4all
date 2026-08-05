@@ -191,7 +191,7 @@
 .mfa-tool-card.mfa-tool-wide h3,
 .mfa-tool-card.mfa-tool-wide > p { text-align: center; }
 .mfa-tool-card.mfa-tool-wide h3 { justify-content: center; }
-.mfa-tool-card .m4a-quran-container { border: none; box-shadow: none; padding: 0; margin: 0; min-height: auto; }
+.mfa-tool-card .m4a-quran-container { border: none; box-shadow: none; padding: 0; margin: 0 auto; min-height: auto; }
 .mfa-tool-card.mfa-tool-wide .m4a-quran-loaded-content > div:first-child { justify-content: center !important; }
 
 /* ---------- Mission / Who we are ---------- */

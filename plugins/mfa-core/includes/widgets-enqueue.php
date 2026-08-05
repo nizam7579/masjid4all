@@ -86,6 +86,14 @@ function mfa_core_enqueue_widget_assets() {
 		$css = MFA_CORE_PATH . 'assets/css/brand-page-v2.css';
 		wp_enqueue_style( 'mfa-core-brand-page', MFA_CORE_URL . 'assets/css/brand-page-v2.css', array(), $get_version( $css ) );
 	}
+
+	$is_legal_page = $post && in_array( $post->post_name, array( 'privacy-policy', 'terms-of-service' ), true );
+	if ( $is_legal_page ) {
+		$header_css = MFA_CORE_PATH . 'assets/css/tool-page.css';
+		wp_enqueue_style( 'mfa-core-tool-page', MFA_CORE_URL . 'assets/css/tool-page.css', array(), $get_version( $header_css ) );
+		$css = MFA_CORE_PATH . 'assets/css/legal-page.css';
+		wp_enqueue_style( 'mfa-core-legal-page', MFA_CORE_URL . 'assets/css/legal-page.css', array(), $get_version( $css ) );
+	}
 }
 
 add_filter( 'litespeed_optimize_css_excludes', 'mfa_core_litespeed_css_excludes' );
@@ -97,6 +105,7 @@ function mfa_core_litespeed_css_excludes( $excludes ) {
 	$excludes[] = 'mfa-core/assets/css/quran-page-v7.css';
 	$excludes[] = 'mfa-core/assets/css/tool-page.css';
 	$excludes[] = 'mfa-core/assets/css/brand-page-v2.css';
+	$excludes[] = 'mfa-core/assets/css/legal-page.css';
 	$excludes[] = 'mfa-core/assets/css/share-button-v12.css';
 	return $excludes;
 }

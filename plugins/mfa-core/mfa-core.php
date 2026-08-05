@@ -24,7 +24,7 @@ $mfa_core_includes = array(
 	'includes/widgets/qibla.php',
 	'includes/widgets/daily-quran.php',
 	'includes/widgets/set-cookies.php',
-	'includes/widgets/member-share.php',
+	'includes/widgets/share-button.php',
 	'includes/widgets/qr-code.php',
 	'includes/widgets/user-logout.php',
 	'includes/widgets/homepage-stats.php',

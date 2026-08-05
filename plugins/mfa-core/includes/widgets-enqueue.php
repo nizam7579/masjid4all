@@ -45,12 +45,12 @@ function mfa_core_enqueue_widget_assets() {
 		wp_enqueue_script( 'mfa-core-quran', MFA_CORE_URL . 'assets/js/quran.js', array(), $get_version( $js ), true );
 	}
 
-	if ( has_shortcode( $content, 'mfa_member_share' ) ) {
-		$css = MFA_CORE_PATH . 'assets/css/member-share.css';
-		$js  = MFA_CORE_PATH . 'assets/js/member-share.js';
-		wp_enqueue_style( 'mfa-core-member-share', MFA_CORE_URL . 'assets/css/member-share.css', array(), $get_version( $css ) );
-		wp_enqueue_script( 'mfa-core-member-share', MFA_CORE_URL . 'assets/js/member-share.js', array(), $get_version( $js ), true );
-	}
+	// Floating footer share button — sitewide, since the Kadence Theme
+	// Builder footer isn't part of any specific page's post_content.
+	$share_btn_css = MFA_CORE_PATH . 'assets/css/share-button-v2.css';
+	$share_btn_js  = MFA_CORE_PATH . 'assets/js/share-button.js';
+	wp_enqueue_style( 'mfa-core-share-button', MFA_CORE_URL . 'assets/css/share-button-v2.css', array(), $get_version( $share_btn_css ) );
+	wp_enqueue_script( 'mfa-core-share-button', MFA_CORE_URL . 'assets/js/share-button.js', array(), $get_version( $share_btn_js ), true );
 
 	// Reusable content/ad two-column layout utility — sitewide, not tied
 	// to a specific page or shortcode. See page-layout-v2.css for usage.
@@ -75,5 +75,6 @@ function mfa_core_litespeed_css_excludes( $excludes ) {
 	$excludes[] = 'mfa-core/assets/css/homepage-v8.css';
 	$excludes[] = 'mfa-core/assets/css/page-layout-v2.css';
 	$excludes[] = 'mfa-core/assets/css/quran-page-v7.css';
+	$excludes[] = 'mfa-core/assets/css/share-button-v2.css';
 	return $excludes;
 }

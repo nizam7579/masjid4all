@@ -73,7 +73,7 @@ function mfa_core_enqueue_widget_assets() {
 		wp_enqueue_style( 'mfa-core-quran-page', MFA_CORE_URL . 'assets/css/quran-page-v7.css', array(), $get_version( $css ) );
 	}
 
-	$is_tool_page = $post && in_array( $post->post_name, array( 'prayer-times', 'qibla-finder' ), true );
+	$is_tool_page = $post && in_array( $post->post_name, array( 'prayer-times', 'qibla-finder', 'masjid', 'business', 'web', 'knowledge-hub' ), true );
 	if ( $is_tool_page ) {
 		$css = MFA_CORE_PATH . 'assets/css/tool-page-v2.css';
 		wp_enqueue_style( 'mfa-core-tool-page', MFA_CORE_URL . 'assets/css/tool-page-v2.css', array(), $get_version( $css ) );

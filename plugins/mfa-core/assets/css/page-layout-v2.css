@@ -1,0 +1,30 @@
+/* mfa-core page-layout.css — reusable content/ad two-column layout used
+   inside a full-width Kadence section. Apply className: "mfa-page-row" to
+   the Kadence row block; the two structural columns are targeted by
+   position (first = content, second = ad) rather than their own
+   className, since Kadence's per-column custom-class support doesn't
+   reliably apply when a row's columns share a duplicate uniqueID (a
+   pre-existing quirk on some pages, not something this file depends on
+   being fixed).
+   !important is required here: Kadence generates its own per-block
+   inline/ID-scoped CSS for column padding/gutter that otherwise wins
+   over an external stylesheet regardless of selector specificity.
+   Gutter: 8px between columns. Inner padding: 20px mobile, 24px desktop. */
+
+.mfa-page-row .kt-row-column-wrap {
+  column-gap: 8px !important;
+}
+
+.mfa-page-row .kt-row-column-wrap > div:nth-child(1) > .kt-inside-inner-col,
+.mfa-page-row .kt-row-column-wrap > div:nth-child(2) > .kt-inside-inner-col {
+  padding-left: 20px !important;
+  padding-right: 20px !important;
+}
+
+@media (min-width: 783px) {
+  .mfa-page-row .kt-row-column-wrap > div:nth-child(1) > .kt-inside-inner-col,
+  .mfa-page-row .kt-row-column-wrap > div:nth-child(2) > .kt-inside-inner-col {
+    padding-left: 24px !important;
+    padding-right: 24px !important;
+  }
+}

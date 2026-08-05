@@ -51,6 +51,11 @@ function mfa_core_enqueue_widget_assets() {
 		wp_enqueue_script( 'mfa-core-member-share', MFA_CORE_URL . 'assets/js/member-share.js', array(), $get_version( $js ), true );
 	}
 
+	// Reusable content/ad two-column layout utility — sitewide, not tied
+	// to a specific page or shortcode. See page-layout-v2.css for usage.
+	$page_layout_css = MFA_CORE_PATH . 'assets/css/page-layout-v2.css';
+	wp_enqueue_style( 'mfa-core-page-layout', MFA_CORE_URL . 'assets/css/page-layout-v2.css', array(), $get_version( $page_layout_css ) );
+
 	if ( $post && 'homepage' === $post->post_name ) {
 		$css = MFA_CORE_PATH . 'assets/css/homepage-v8.css';
 		wp_enqueue_style( 'mfa-core-homepage', MFA_CORE_URL . 'assets/css/homepage-v8.css', array(), $get_version( $css ) );
@@ -62,5 +67,6 @@ function mfa_core_litespeed_css_excludes( $excludes ) {
 	$excludes[] = 'mfa-core/assets/css/prayer-times.css';
 	$excludes[] = 'mfa-core/assets/css/qibla.css';
 	$excludes[] = 'mfa-core/assets/css/homepage-v8.css';
+	$excludes[] = 'mfa-core/assets/css/page-layout-v2.css';
 	return $excludes;
 }

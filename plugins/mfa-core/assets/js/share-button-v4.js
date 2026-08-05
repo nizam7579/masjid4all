@@ -107,6 +107,43 @@
     });
   }
 
+  // Stacks the Share and Sofia floating buttons directly beneath
+  // Kadence's own pre-existing "scroll to top" button (#kt-scroll-up),
+  // reading its LIVE position rather than a hardcoded pixel guess -
+  // its own CSS `bottom` value doesn't match where it actually renders
+  // (something else nudges it), so hardcoding numbers here drifted out
+  // of sync and the buttons visibly overlapped.
+  var STACK_GAP = 10;
+
+  function positionFloatingButtons() {
+    var scrollUp = document.getElementById('kt-scroll-up');
+    var shareBtn = document.getElementById('mfa-share-btn');
+    var sofiaWrap = document.querySelector('.kb-image83_18d87b-14');
+    if (!shareBtn) return;
+
+    var windowHeight = window.innerHeight;
+    var anchorBottomDistance;
+
+    if (scrollUp) {
+      var scrollUpRect = scrollUp.getBoundingClientRect();
+      anchorBottomDistance = windowHeight - scrollUpRect.bottom;
+    } else {
+      // No scroll-to-top button on this page/state - just anchor near
+      // the bottom of the viewport instead.
+      anchorBottomDistance = 0;
+    }
+
+    var shareHeight = shareBtn.offsetHeight || 40;
+    var shareBottom = anchorBottomDistance - STACK_GAP - shareHeight;
+    shareBtn.style.bottom = shareBottom + 'px';
+
+    if (sofiaWrap) {
+      var sofiaHeight = sofiaWrap.offsetHeight || 50;
+      var sofiaBottom = shareBottom - STACK_GAP - sofiaHeight;
+      sofiaWrap.style.bottom = sofiaBottom + 'px';
+    }
+  }
+
   function init() {
     var btn = document.getElementById('mfa-share-btn');
     if (btn) {
@@ -114,10 +151,14 @@
     }
     replaceFooterIcons();
     highlightActiveFooterItem();
-    // Retry a couple of times in case Kadence's own icon renderer runs
-    // after us and overwrites the replacement.
+    positionFloatingButtons();
+    // Retry a couple of times in case Kadence's own icon renderer / scroll-
+    // to-top positioning runs after us and shifts things.
     setTimeout(replaceFooterIcons, 400);
     setTimeout(replaceFooterIcons, 1200);
+    setTimeout(positionFloatingButtons, 400);
+    setTimeout(positionFloatingButtons, 1200);
+    window.addEventListener('resize', positionFloatingButtons);
   }
 
   if (document.readyState === 'loading') {

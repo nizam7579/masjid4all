@@ -52,8 +52,8 @@ function mfa_core_enqueue_widget_assets() {
 	}
 
 	if ( $post && 'homepage' === $post->post_name ) {
-		$css = MFA_CORE_PATH . 'assets/css/homepage-v6.css';
-		wp_enqueue_style( 'mfa-core-homepage', MFA_CORE_URL . 'assets/css/homepage-v6.css', array(), $get_version( $css ) );
+		$css = MFA_CORE_PATH . 'assets/css/homepage-v7.css';
+		wp_enqueue_style( 'mfa-core-homepage', MFA_CORE_URL . 'assets/css/homepage-v7.css', array(), $get_version( $css ) );
 	}
 }
 
@@ -61,6 +61,6 @@ add_filter( 'litespeed_optimize_css_excludes', 'mfa_core_litespeed_css_excludes'
 function mfa_core_litespeed_css_excludes( $excludes ) {
 	$excludes[] = 'mfa-core/assets/css/prayer-times.css';
 	$excludes[] = 'mfa-core/assets/css/qibla.css';
-	$excludes[] = 'mfa-core/assets/css/homepage-v6.css';
+	$excludes[] = 'mfa-core/assets/css/homepage-v7.css';
 	return $excludes;
 }

@@ -21,14 +21,14 @@
   letter-spacing: 2px;
   text-transform: uppercase;
   color: #5cfce8;
-  margin-bottom: 18px;
+  margin-bottom: 12px;
 }
 .mfa-eyebrow.mfa-eyebrow-dark { color: #25988b; }
 
 /* ---------- Hero ---------- */
 .mfa-hero {
   position: relative;
-  padding: 96px 24px 110px;
+  padding: 56px 24px 96px;
   background: linear-gradient(150deg, #12181f 0%, #0d4d47 100%);
   text-align: center;
   color: #f4faf9;
@@ -170,6 +170,7 @@
 .mfa-impact-card.mfa-impact-feature h3 { color: #fff; font-size: 22px; margin: 0 0 10px; }
 .mfa-impact-card.mfa-impact-feature p { color: #cfe3e0; font-size: 14.5px; line-height: 1.6; margin: 0; }
 .mfa-impact-card.mfa-impact-feature .mfa-impact-number { font-size: 40px; font-weight: 800; color: #5cfce8; line-height: 1; margin-bottom: 10px; }
+.mfa-impact-card.mfa-impact-feature .mfa-btn { margin-top: 16px; margin-bottom: 4px; }
 .mfa-impact-card h3 { font-size: 15.5px; font-weight: 700; color: #12181f; margin: 0 0 6px; }
 .mfa-impact-card p { font-size: 13.5px; color: #5b6b66; line-height: 1.5; margin: 0; }
 .mfa-impact-card .mfa-impact-icon { font-size: 20px; margin-bottom: 10px; display: block; }
@@ -191,6 +192,7 @@
 .mfa-tool-card.mfa-tool-wide > p { text-align: center; }
 .mfa-tool-card.mfa-tool-wide h3 { justify-content: center; }
 .mfa-tool-card .m4a-quran-container { border: none; box-shadow: none; padding: 0; margin: 0; min-height: auto; }
+.mfa-tool-card.mfa-tool-wide .m4a-quran-loaded-content > div:first-child { justify-content: center !important; }
 
 /* ---------- Mission / Who we are ---------- */
 .mfa-mission { background: #12181f; color: #eef5f3; }

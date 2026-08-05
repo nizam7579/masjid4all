@@ -1,0 +1,139 @@
+/* mfa-core brand-page.css — shared styling for [mfa_about_page] and
+   [mfa_contact_page] (/about-us/ and /contact-us/). Plain HTML, no
+   Kadence blocks. Reuses .mfa-tool-page-header from tool-page.css (both
+   files are always enqueued together on these pages). */
+
+.mfa-brand-page { font-family: Lato, sans-serif; max-width: 900px; margin: 0 auto; }
+.mfa-brand-page-body { padding: 0 20px 64px; }
+@media (min-width: 783px) {
+  .mfa-brand-page-body { padding: 0 24px 72px; }
+}
+
+/* ---------- About: intro ---------- */
+.mfa-about-intro { text-align: center; }
+.mfa-about-logo {
+  max-width: 220px;
+  height: auto;
+  margin: 0 auto 28px;
+  display: block;
+}
+.mfa-about-body {
+  text-align: left;
+  max-width: 720px;
+  margin: 0 auto;
+}
+.mfa-about-body p {
+  font-size: 15.5px;
+  line-height: 1.75;
+  color: #3d4a45;
+  margin: 0 0 14px;
+}
+.mfa-about-body strong { color: #12181f; }
+
+.mfa-about-partner-strip {
+  max-width: 100%;
+  height: auto;
+  margin: 32px auto 0;
+  display: block;
+}
+
+/* ---------- About: recognition ---------- */
+.mfa-about-recognition {
+  margin-top: 48px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+@media (max-width: 700px) {
+  .mfa-about-recognition { grid-template-columns: 1fr; }
+}
+.mfa-recognition-block {
+  background: #ffffff;
+  border: 1px solid #e7efed;
+  border-radius: 16px;
+  padding: 24px;
+  text-align: center;
+}
+.mfa-recognition-block h2 {
+  font-size: 15.5px;
+  font-weight: 700;
+  color: #12181f;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 18px;
+}
+.mfa-recognition-block img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+.mfa-award-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+}
+
+/* ---------- Contact: info card ---------- */
+.mfa-contact-info { text-align: center; margin-bottom: 40px; }
+.mfa-contact-info .mfa-about-logo { max-width: 180px; margin-bottom: 20px; }
+.mfa-contact-info h2 {
+  font-size: 22px;
+  font-weight: 800;
+  color: #12181f;
+  margin: 0 0 6px;
+}
+.mfa-contact-regno {
+  font-size: 13px;
+  font-style: italic;
+  font-weight: 600;
+  color: #56655f;
+  margin: 0 0 10px;
+}
+.mfa-contact-address {
+  font-size: 15px;
+  color: #3d4a45;
+  margin: 0;
+}
+
+/* ---------- Contact: form + map ---------- */
+.mfa-contact-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 32px;
+  align-items: start;
+}
+@media (max-width: 820px) {
+  .mfa-contact-grid { grid-template-columns: 1fr; }
+}
+
+.mfa-contact-form-col {
+  background: #ffffff;
+  border: 1px solid #e7efed;
+  border-radius: 18px;
+  padding: 28px;
+}
+.mfa-contact-form-col .ff-el-form-control,
+.mfa-contact-form-col textarea {
+  border-radius: 10px !important;
+}
+.mfa-contact-form-col .ff-btn-submit,
+.mfa-contact-form-col button[type="submit"] {
+  background: #25988b !important;
+  border-radius: 999px !important;
+  font-weight: 700 !important;
+}
+.mfa-contact-form-col .ff-btn-submit:hover,
+.mfa-contact-form-col button[type="submit"]:hover {
+  filter: brightness(1.08);
+}
+
+.mfa-contact-map-col iframe {
+  width: 100%;
+  height: 100%;
+  min-height: 380px;
+  border: 1px solid #e7efed;
+  border-radius: 18px;
+  display: block;
+}

@@ -30,17 +30,17 @@ function mfa_core_enqueue_widget_assets() {
 	// literal post_content, not shortcodes nested inside another
 	// shortcode's PHP callback. Same class of bug fixed for /quran/ earlier.
 	if ( has_shortcode( $content, 'niz_mfa_prayer_times' ) || 'prayer-times' === $post_name ) {
-		$css = MFA_CORE_PATH . 'assets/css/prayer-times.css';
+		$css = MFA_CORE_PATH . 'assets/css/prayer-times-v2.css';
 		$js  = MFA_CORE_PATH . 'assets/js/prayer-times.js';
-		wp_enqueue_style( 'mfa-core-prayer-times', MFA_CORE_URL . 'assets/css/prayer-times.css', array(), $get_version( $css ) );
+		wp_enqueue_style( 'mfa-core-prayer-times', MFA_CORE_URL . 'assets/css/prayer-times-v2.css', array(), $get_version( $css ) );
 		wp_enqueue_script( 'mfa-core-prayer-times', MFA_CORE_URL . 'assets/js/prayer-times.js', array(), $get_version( $js ), true );
 	}
 
 	if ( has_shortcode( $content, 'niz_mfa_qibla' ) || 'qibla-finder' === $post_name ) {
-		$css = MFA_CORE_PATH . 'assets/css/qibla.css';
-		$js  = MFA_CORE_PATH . 'assets/js/qibla.js';
-		wp_enqueue_style( 'mfa-core-qibla', MFA_CORE_URL . 'assets/css/qibla.css', array(), $get_version( $css ) );
-		wp_enqueue_script( 'mfa-core-qibla', MFA_CORE_URL . 'assets/js/qibla.js', array(), $get_version( $js ), true );
+		$css = MFA_CORE_PATH . 'assets/css/qibla-v2.css';
+		$js  = MFA_CORE_PATH . 'assets/js/qibla-v2.js';
+		wp_enqueue_style( 'mfa-core-qibla', MFA_CORE_URL . 'assets/css/qibla-v2.css', array(), $get_version( $css ) );
+		wp_enqueue_script( 'mfa-core-qibla', MFA_CORE_URL . 'assets/js/qibla-v2.js', array(), $get_version( $js ), true );
 	}
 
 	$is_quran_page = $post && ( 'quran' === $post->post_name || 'quran' === $post->post_type );
@@ -78,16 +78,25 @@ function mfa_core_enqueue_widget_assets() {
 		$css = MFA_CORE_PATH . 'assets/css/tool-page.css';
 		wp_enqueue_style( 'mfa-core-tool-page', MFA_CORE_URL . 'assets/css/tool-page.css', array(), $get_version( $css ) );
 	}
+
+	$is_brand_page = $post && in_array( $post->post_name, array( 'about-us', 'contact-us' ), true );
+	if ( $is_brand_page ) {
+		$header_css = MFA_CORE_PATH . 'assets/css/tool-page.css';
+		wp_enqueue_style( 'mfa-core-tool-page', MFA_CORE_URL . 'assets/css/tool-page.css', array(), $get_version( $header_css ) );
+		$css = MFA_CORE_PATH . 'assets/css/brand-page-v2.css';
+		wp_enqueue_style( 'mfa-core-brand-page', MFA_CORE_URL . 'assets/css/brand-page-v2.css', array(), $get_version( $css ) );
+	}
 }
 
 add_filter( 'litespeed_optimize_css_excludes', 'mfa_core_litespeed_css_excludes' );
 function mfa_core_litespeed_css_excludes( $excludes ) {
-	$excludes[] = 'mfa-core/assets/css/prayer-times.css';
-	$excludes[] = 'mfa-core/assets/css/qibla.css';
+	$excludes[] = 'mfa-core/assets/css/prayer-times-v2.css';
+	$excludes[] = 'mfa-core/assets/css/qibla-v2.css';
 	$excludes[] = 'mfa-core/assets/css/homepage-v8.css';
 	$excludes[] = 'mfa-core/assets/css/page-layout-v2.css';
 	$excludes[] = 'mfa-core/assets/css/quran-page-v7.css';
 	$excludes[] = 'mfa-core/assets/css/tool-page.css';
+	$excludes[] = 'mfa-core/assets/css/brand-page-v2.css';
 	$excludes[] = 'mfa-core/assets/css/share-button-v12.css';
 	return $excludes;
 }

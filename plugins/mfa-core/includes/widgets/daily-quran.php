@@ -89,7 +89,7 @@ function m4a_load_single_quran_surah_handler() {
             </div>
             <div class="m4a-arabic" dir="rtl" style="font-size: 26px; line-height: 2.3; text-align: right; margin-bottom: 25px; font-family: 'Traditional Arabic', serif; background: #fafafa; padding: 18px; border: 1px solid #f1f5f9; border-radius: 6px; color: #0f172a;">
                 <?php foreach ($arabic as $ayah) {
-                    echo esc_html($ayah['text']) . ' ﷿' . esc_html($ayah['numberInSurah']) . '﷾ ';
+                    echo esc_html($ayah['text']) . ' ﴿' . esc_html($ayah['numberInSurah']) . '﴾ ';
                 } ?>
             </div>
         </div>

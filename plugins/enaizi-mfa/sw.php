@@ -9,7 +9,7 @@ $offline_url = $plugin_url . 'offline.html';
 ?>
 
 // Enaizi PWA Service Worker
-const CACHE_VERSION = 'v4.47'; // Version bumped to force device updates (mfa-core hero-inner text padding)
+const CACHE_VERSION = 'v4.48'; // Version bumped to force device updates (live counts, centering, arabic fix)
 const CACHE_NAME = `enaizi-pwa-${CACHE_VERSION}`;
 const OFFLINE_URL = '<?php echo esc_url($offline_url); ?>';
 

@@ -18,7 +18,7 @@ function mfa_quran_single_shortcode() {
 	?>
 	<div class="mfa-quran-page">
 		<header class="mfa-quran-header">
-			<h1><?php echo esc_html( get_the_title() ); ?></h1>
+			<h2><?php echo esc_html( get_the_title() ); ?></h2>
 			<p class="mfa-quran-tagline">Build a daily habit with the Quran — just one short Surah, five minutes a day. Here's how:</p>
 			<p class="mfa-quran-steps"><strong>Recite, Listen and Understand.</strong></p>
 		</header>

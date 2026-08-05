@@ -2,7 +2,7 @@
 
 /* assets/css/knowledge.css */
 
-.niz-knowledge-wrapper { width: 100%; max-width: 1200px; margin: auto; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+.niz-knowledge-wrapper { width: 100%; max-width: 1200px; margin: auto; padding: 10px; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
 
 /* Filter Custom Bar Layouts */
 .niz-knowledge-filter-bar { 

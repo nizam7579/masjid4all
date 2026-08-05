@@ -5,6 +5,7 @@
 /* Wrappers */
 .niz-carousel-wrapper, .niz-web-wrapper { width: 100%; max-width: 1200px; margin: auto; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
 .niz-carousel-wrapper { padding-bottom: 45px; }
+.niz-web-wrapper { padding: 10px; box-sizing: border-box; }
 
 .niz-web-filter-bar { 
     display: flex; 

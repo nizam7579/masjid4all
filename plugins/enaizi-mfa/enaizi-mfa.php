@@ -138,8 +138,8 @@ function niz_mfa_enqueue_plugin_assets() {
     add_filter( 'litespeed_optimize_css_excludes', function( $excludes ) {
         $excludes[] = 'mosque.css';
         $excludes[] = 'business-v2.css';
-        $excludes[] = 'knowledge-v2.css';
-        $excludes[] = 'web-v2.css';
+        $excludes[] = 'knowledge-v3.css';
+        $excludes[] = 'web-v3.css';
         $excludes[] = 'global.css';
         return $excludes;
     } );

@@ -128,8 +128,17 @@
 @media (min-width: 901px) {
   .mfa-page-row { align-items: flex-start; }
 }
+/* Mobile: no outer gutter on the content column - the directory widgets
+   (niz-directory-wrapper, niz-business-wrapper, niz-web-wrapper,
+   niz-knowledge-wrapper) each carry their own 10px inset already, so an
+   outer 10px here would double it to 20px. The column itself also goes
+   full-bleed (same technique as the header/ad column) so that inset is
+   the theme's .entry-content padding (~24px) doesn't stack on top and
+   inflate it further - prayer-times/qibla-finder's centered tool card
+   and FAQ list are unaffected since they carry their own max-width +
+   auto margins regardless of how wide this parent is. */
 .mfa-page-col-content {
-  padding: 0 10px;
+  padding: 0;
 }
 .mfa-page-col-ad {
   padding: 0 20px;
@@ -141,6 +150,11 @@
   }
 }
 @media (max-width: 900px) {
+  .mfa-page-col-content {
+    width: 100vw;
+    margin-left: calc(-50vw + 50%);
+    margin-right: calc(-50vw + 50%);
+  }
   .mfa-page-col-ad {
     width: 100vw;
     margin-left: calc(-50vw + 50%);

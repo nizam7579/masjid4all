@@ -38,8 +38,7 @@ function mfa_masjid_page_shortcode() {
 				</div>
 				<div class="mfa-tool-page-header-cta">
 					<h2>Your mosque is not listed?</h2>
-					<p>Add your mosque now</p>
-					<a href="/add-mosque" class="mfa-tool-page-header-cta-btn">Add Mosque</a>
+					<a href="/add-mosque" class="mfa-tool-page-header-cta-btn">Add Your Mosque</a>
 				</div>
 			</div>
 		</header>
@@ -72,8 +71,7 @@ function mfa_business_page_shortcode() {
 				</div>
 				<div class="mfa-tool-page-header-cta">
 					<h2>Your business is not listed?</h2>
-					<p>Add your business now</p>
-					<a href="/add-business" class="mfa-tool-page-header-cta-btn">Add Business</a>
+					<a href="/add-business" class="mfa-tool-page-header-cta-btn">Add Your Business</a>
 				</div>
 			</div>
 		</header>
@@ -106,8 +104,7 @@ function mfa_web_page_shortcode() {
 				</div>
 				<div class="mfa-tool-page-header-cta">
 					<h2>Your website is not listed?</h2>
-					<p>Add your website now</p>
-					<a href="/add-website" class="mfa-tool-page-header-cta-btn">Add Website</a>
+					<a href="/add-website" class="mfa-tool-page-header-cta-btn">Add Your Website</a>
 				</div>
 			</div>
 		</header>

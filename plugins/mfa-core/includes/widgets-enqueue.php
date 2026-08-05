@@ -61,5 +61,6 @@ add_filter( 'litespeed_optimize_css_excludes', 'mfa_core_litespeed_css_excludes'
 function mfa_core_litespeed_css_excludes( $excludes ) {
 	$excludes[] = 'mfa-core/assets/css/prayer-times.css';
 	$excludes[] = 'mfa-core/assets/css/qibla.css';
+	$excludes[] = 'mfa-core/assets/css/homepage.css';
 	return $excludes;
 }

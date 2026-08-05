@@ -9,7 +9,7 @@
 .mfa-legal-page-body {
   max-width: 760px;
   margin: 0 auto;
-  padding: 40px 20px 64px;
+  padding: 40px 20px 140px;
 }
 @media (min-width: 783px) {
   .mfa-legal-page-body { padding: 48px 24px 72px; }

@@ -75,24 +75,24 @@ function mfa_core_enqueue_widget_assets() {
 
 	$is_tool_page = $post && in_array( $post->post_name, array( 'prayer-times', 'qibla-finder' ), true );
 	if ( $is_tool_page ) {
-		$css = MFA_CORE_PATH . 'assets/css/tool-page.css';
-		wp_enqueue_style( 'mfa-core-tool-page', MFA_CORE_URL . 'assets/css/tool-page.css', array(), $get_version( $css ) );
+		$css = MFA_CORE_PATH . 'assets/css/tool-page-v2.css';
+		wp_enqueue_style( 'mfa-core-tool-page', MFA_CORE_URL . 'assets/css/tool-page-v2.css', array(), $get_version( $css ) );
 	}
 
 	$is_brand_page = $post && in_array( $post->post_name, array( 'about-us', 'contact-us' ), true );
 	if ( $is_brand_page ) {
-		$header_css = MFA_CORE_PATH . 'assets/css/tool-page.css';
-		wp_enqueue_style( 'mfa-core-tool-page', MFA_CORE_URL . 'assets/css/tool-page.css', array(), $get_version( $header_css ) );
-		$css = MFA_CORE_PATH . 'assets/css/brand-page-v2.css';
-		wp_enqueue_style( 'mfa-core-brand-page', MFA_CORE_URL . 'assets/css/brand-page-v2.css', array(), $get_version( $css ) );
+		$header_css = MFA_CORE_PATH . 'assets/css/tool-page-v2.css';
+		wp_enqueue_style( 'mfa-core-tool-page', MFA_CORE_URL . 'assets/css/tool-page-v2.css', array(), $get_version( $header_css ) );
+		$css = MFA_CORE_PATH . 'assets/css/brand-page-v3.css';
+		wp_enqueue_style( 'mfa-core-brand-page', MFA_CORE_URL . 'assets/css/brand-page-v3.css', array(), $get_version( $css ) );
 	}
 
 	$is_legal_page = $post && in_array( $post->post_name, array( 'privacy-policy', 'terms-of-service' ), true );
 	if ( $is_legal_page ) {
-		$header_css = MFA_CORE_PATH . 'assets/css/tool-page.css';
-		wp_enqueue_style( 'mfa-core-tool-page', MFA_CORE_URL . 'assets/css/tool-page.css', array(), $get_version( $header_css ) );
-		$css = MFA_CORE_PATH . 'assets/css/legal-page.css';
-		wp_enqueue_style( 'mfa-core-legal-page', MFA_CORE_URL . 'assets/css/legal-page.css', array(), $get_version( $css ) );
+		$header_css = MFA_CORE_PATH . 'assets/css/tool-page-v2.css';
+		wp_enqueue_style( 'mfa-core-tool-page', MFA_CORE_URL . 'assets/css/tool-page-v2.css', array(), $get_version( $header_css ) );
+		$css = MFA_CORE_PATH . 'assets/css/legal-page-v2.css';
+		wp_enqueue_style( 'mfa-core-legal-page', MFA_CORE_URL . 'assets/css/legal-page-v2.css', array(), $get_version( $css ) );
 	}
 }
 
@@ -103,9 +103,9 @@ function mfa_core_litespeed_css_excludes( $excludes ) {
 	$excludes[] = 'mfa-core/assets/css/homepage-v8.css';
 	$excludes[] = 'mfa-core/assets/css/page-layout-v2.css';
 	$excludes[] = 'mfa-core/assets/css/quran-page-v7.css';
-	$excludes[] = 'mfa-core/assets/css/tool-page.css';
-	$excludes[] = 'mfa-core/assets/css/brand-page-v2.css';
-	$excludes[] = 'mfa-core/assets/css/legal-page.css';
+	$excludes[] = 'mfa-core/assets/css/tool-page-v2.css';
+	$excludes[] = 'mfa-core/assets/css/brand-page-v3.css';
+	$excludes[] = 'mfa-core/assets/css/legal-page-v2.css';
 	$excludes[] = 'mfa-core/assets/css/share-button-v12.css';
 	return $excludes;
 }

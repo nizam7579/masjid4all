@@ -4,7 +4,7 @@
    files are always enqueued together on these pages). */
 
 .mfa-brand-page { font-family: Lato, sans-serif; max-width: 900px; margin: 0 auto; }
-.mfa-brand-page-body { padding: 0 20px 64px; }
+.mfa-brand-page-body { padding: 0 20px 140px; }
 @media (min-width: 783px) {
   .mfa-brand-page-body { padding: 0 24px 72px; }
 }

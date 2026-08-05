@@ -1,0 +1,106 @@
+/* mfa-core quran-page.css — styling for [mfa_quran_page], the /quran/
+   landing page. Plain HTML, no Kadence blocks, so no !important needed
+   anywhere here (nothing else generates competing CSS for these classes).
+   Reuses the mfa-page-row/col naming convention from page-layout-v2.css,
+   but this is a self-contained implementation (flex, not grid, and no
+   dependency on Kadence's .kt-row-column-wrap/.kt-inside-inner-col) —
+   the intended template for refactoring the other pages the same way. */
+
+.mfa-quran-page { font-family: Lato, sans-serif; }
+
+.mfa-quran-header {
+  text-align: center;
+  padding: 48px 24px 36px;
+  background: linear-gradient(150deg, #12181f 0%, #0d4d47 100%);
+  color: #f4faf9;
+  border-radius: 16px;
+  margin-bottom: 32px;
+}
+.mfa-quran-header h1 {
+  font-size: clamp(28px, 4vw, 40px);
+  font-weight: 800;
+  margin: 0 0 14px;
+  color: #ffffff;
+}
+.mfa-quran-tagline {
+  max-width: 640px;
+  margin: 0 auto 14px;
+  font-size: 16px;
+  line-height: 1.6;
+  color: #cfe3e0;
+}
+.mfa-quran-steps {
+  font-size: 18px;
+  color: #5cfce8;
+  margin: 0;
+}
+
+/* ---------- Reusable row/col (Kadence-independent) ---------- */
+.mfa-page-row {
+  display: flex;
+  gap: 8px;
+}
+.mfa-page-col-content { flex: 1 1 70%; min-width: 0; }
+.mfa-page-col-ad { flex: 1 1 30%; min-width: 0; }
+@media (max-width: 900px) {
+  .mfa-page-row { flex-direction: column; }
+}
+@media (min-width: 901px) {
+  .mfa-page-row { align-items: flex-start; }
+}
+
+.mfa-page-col-content,
+.mfa-page-col-ad {
+  padding: 0 20px;
+}
+@media (min-width: 783px) {
+  .mfa-page-col-content,
+  .mfa-page-col-ad {
+    padding: 0 24px;
+  }
+}
+
+/* ---------- Surah selector (centered within its column) ---------- */
+.mfa-quran-page .m4a-surah-selector-wrapper {
+  margin: 0 auto 32px;
+}
+
+/* ---------- Article ---------- */
+.mfa-quran-article h2 {
+  font-size: 21px;
+  font-weight: 800;
+  color: #12181f;
+  margin: 28px 0 12px;
+}
+.mfa-quran-article p {
+  font-size: 15.5px;
+  line-height: 1.75;
+  color: #3d4a45;
+  margin: 0 0 14px;
+}
+.mfa-quran-article ul {
+  margin: 0 0 14px;
+  padding-left: 20px;
+}
+.mfa-quran-article li {
+  font-size: 15.5px;
+  line-height: 1.75;
+  color: #3d4a45;
+  margin-bottom: 6px;
+}
+.mfa-quran-article strong { color: #12181f; }
+.mfa-quran-article hr {
+  border: none;
+  border-top: 1px solid #e7efed;
+  margin: 28px 0;
+}
+
+/* ---------- Ad column ---------- */
+.mfa-quran-ad-heading {
+  text-align: center;
+  font-size: 14.5px;
+  font-style: italic;
+  font-weight: 600;
+  color: #56655f;
+  margin: 0 0 16px;
+}

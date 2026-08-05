@@ -60,6 +60,11 @@ function mfa_core_enqueue_widget_assets() {
 		$css = MFA_CORE_PATH . 'assets/css/homepage-v8.css';
 		wp_enqueue_style( 'mfa-core-homepage', MFA_CORE_URL . 'assets/css/homepage-v8.css', array(), $get_version( $css ) );
 	}
+
+	if ( $post && 'quran' === $post->post_name ) {
+		$css = MFA_CORE_PATH . 'assets/css/quran-page-v2.css';
+		wp_enqueue_style( 'mfa-core-quran-page', MFA_CORE_URL . 'assets/css/quran-page-v2.css', array(), $get_version( $css ) );
+	}
 }
 
 add_filter( 'litespeed_optimize_css_excludes', 'mfa_core_litespeed_css_excludes' );
@@ -68,5 +73,6 @@ function mfa_core_litespeed_css_excludes( $excludes ) {
 	$excludes[] = 'mfa-core/assets/css/qibla.css';
 	$excludes[] = 'mfa-core/assets/css/homepage-v8.css';
 	$excludes[] = 'mfa-core/assets/css/page-layout-v2.css';
+	$excludes[] = 'mfa-core/assets/css/quran-page-v2.css';
 	return $excludes;
 }

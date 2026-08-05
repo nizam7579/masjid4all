@@ -27,6 +27,10 @@ function mfa_quran_single_shortcode() {
 			<div class="mfa-page-col-content">
 				<?php echo do_shortcode( '[quran_surah_selector]' ); ?>
 				<?php echo do_shortcode( '[daily_quran]' ); ?>
+
+				<article class="mfa-quran-article mfa-quran-article-post">
+					<?php echo apply_filters( 'the_content', get_the_content() ); ?>
+				</article>
 			</div>
 
 			<div class="mfa-page-col-ad">

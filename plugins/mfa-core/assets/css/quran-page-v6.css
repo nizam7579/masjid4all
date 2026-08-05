@@ -76,6 +76,21 @@
 }
 
 /* ---------- Article ---------- */
+.mfa-quran-article-post {
+  border-top: 1px solid #e7efed;
+  padding-top: 28px;
+  margin-top: 28px;
+}
+.mfa-quran-article h1 {
+  font-size: 24px;
+  font-weight: 800;
+  color: #12181f;
+  margin: 0 0 16px;
+}
+.mfa-quran-article a {
+  color: #25988b;
+  text-decoration: underline;
+}
 .mfa-quran-article h2 {
   font-size: 21px;
   font-weight: 800;

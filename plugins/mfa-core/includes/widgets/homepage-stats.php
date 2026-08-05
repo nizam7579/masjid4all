@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * [mfa_homepage_stats] and [mfa_impact_feature] - live directory counts
+ * [mfa_homepage_stats] - live directory counts
  * pulled from the JetEngine CCT tables (the actual directory data store;
  * the masjid/business/web post types are not what the directory listing
  * UI writes to), cached 6h so the homepage doesn't run raw COUNT(*)
@@ -54,25 +54,6 @@ function mfa_homepage_stats_shortcode() {
 			</div>
 		<?php endforeach; ?>
 	</div>
-	<?php
-	return ob_get_clean();
-}
-
-add_shortcode( 'mfa_impact_feature', 'mfa_impact_feature_shortcode' );
-function mfa_impact_feature_shortcode() {
-	$counts    = mfa_homepage_live_counts();
-	$listed    = $counts['mosque'];
-	$remaining = max( 0, 1000000 - $listed );
-	// Round down to a clean thousand so the "to go" figure doesn't imply
-	// false precision (e.g. "899,713" reads as fake-precise; "899,000" reads
-	// as the honest round number it is).
-	$remaining_rounded = floor( $remaining / 1000 ) * 1000;
-
-	ob_start();
-	?>
-	<span class="mfa-impact-number"><?php echo esc_html( mfa_format_count_rounded( $listed ) ); ?></span>
-	<h3>Mosques listed, <?php echo esc_html( number_format( $remaining_rounded ) ); ?> to go</h3>
-	<p>Help us build the world's largest mosque directory by adding mosques you know that aren't listed yet.</p>
 	<?php
 	return ob_get_clean();
 }

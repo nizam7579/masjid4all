@@ -30,9 +30,18 @@ function mfa_masjid_page_shortcode() {
 	ob_start();
 	?>
 	<div class="mfa-tool-page">
-		<header class="mfa-tool-page-header">
-			<h1>Mosque Directory</h1>
-			<p class="mfa-tool-page-tagline">Find your nearest mosque and explore.</p>
+		<header class="mfa-tool-page-header mfa-tool-page-header--split">
+			<div class="mfa-tool-page-header-inner">
+				<div class="mfa-tool-page-header-main">
+					<h1>Mosque Directory</h1>
+					<p class="mfa-tool-page-tagline">Find your nearest mosque and explore.</p>
+				</div>
+				<div class="mfa-tool-page-header-cta">
+					<h2>Your mosque is not listed?</h2>
+					<p>Add your mosque now</p>
+					<a href="/add-mosque" class="mfa-tool-page-header-cta-btn">Add Mosque</a>
+				</div>
+			</div>
 		</header>
 
 		<div class="mfa-page-row">

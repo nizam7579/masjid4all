@@ -304,17 +304,11 @@ function niz_mfa_nearest_mosque_shortcode($atts) {
             </div>
             <div class="niz-input-group">
                 <label for="niz-country-select">Country</label>
-                <div style="display: flex; gap: 10px; align-items: center;">
-                    <select id="niz-country-select" style="flex: 1;">
-                        <?php foreach ($country_list as $c_name): ?>
-                            <option value="<?php echo esc_attr($c_name); ?>"><?php echo esc_html($c_name); ?></option>
-                        <?php endforeach; ?>
-                    </select>
-
-                    <a href="/add-mosque" style="background-color: #006B3E; color: white; text-decoration: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; font-size: 14px; white-space: nowrap; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                        + Add Mosque
-                    </a>
-                </div>
+                <select id="niz-country-select">
+                    <?php foreach ($country_list as $c_name): ?>
+                        <option value="<?php echo esc_attr($c_name); ?>"><?php echo esc_html($c_name); ?></option>
+                    <?php endforeach; ?>
+                </select>
             </div>
         </div>
         

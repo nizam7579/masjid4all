@@ -29,6 +29,7 @@ $mfa_core_includes = array(
 	'includes/widgets/user-logout.php',
 	'includes/widgets/homepage-stats.php',
 	'includes/widgets/quran-page.php',
+	'includes/widgets/quran-single.php',
 	'includes/widgets-enqueue.php',
 );
 

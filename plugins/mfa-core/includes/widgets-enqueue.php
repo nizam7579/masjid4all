@@ -37,7 +37,8 @@ function mfa_core_enqueue_widget_assets() {
 		wp_enqueue_script( 'mfa-core-qibla', MFA_CORE_URL . 'assets/js/qibla.js', array(), $get_version( $js ), true );
 	}
 
-	if ( has_shortcode( $content, 'daily_quran' ) || has_shortcode( $content, 'quran_surah_selector' ) ) {
+	$is_quran_page = $post && ( 'quran' === $post->post_name || 'quran' === $post->post_type );
+	if ( has_shortcode( $content, 'daily_quran' ) || has_shortcode( $content, 'quran_surah_selector' ) || $is_quran_page ) {
 		$css = MFA_CORE_PATH . 'assets/css/quran.css';
 		$js  = MFA_CORE_PATH . 'assets/js/quran.js';
 		wp_enqueue_style( 'mfa-core-quran', MFA_CORE_URL . 'assets/css/quran.css', array(), $get_version( $css ) );
@@ -61,7 +62,7 @@ function mfa_core_enqueue_widget_assets() {
 		wp_enqueue_style( 'mfa-core-homepage', MFA_CORE_URL . 'assets/css/homepage-v8.css', array(), $get_version( $css ) );
 	}
 
-	if ( $post && 'quran' === $post->post_name ) {
+	if ( $is_quran_page ) {
 		$css = MFA_CORE_PATH . 'assets/css/quran-page-v5.css';
 		wp_enqueue_style( 'mfa-core-quran-page', MFA_CORE_URL . 'assets/css/quran-page-v5.css', array(), $get_version( $css ) );
 	}

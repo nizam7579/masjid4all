@@ -18,19 +18,25 @@ function mfa_core_enqueue_widget_assets() {
 
 	$post = get_post();
 	$content = $post ? $post->post_content : '';
+	$post_name = $post ? $post->post_name : '';
 
 	$get_version = function ( $path ) {
 		return file_exists( $path ) ? filemtime( $path ) : MFA_CORE_VERSION;
 	};
 
-	if ( has_shortcode( $content, 'niz_mfa_prayer_times' ) ) {
+	// The post_content check alone misses pages that embed the widget via
+	// a PHP-wrapped page shortcode (e.g. [mfa_prayer_times_page]) rather
+	// than the raw [niz_mfa_prayer_times] text — has_shortcode() only sees
+	// literal post_content, not shortcodes nested inside another
+	// shortcode's PHP callback. Same class of bug fixed for /quran/ earlier.
+	if ( has_shortcode( $content, 'niz_mfa_prayer_times' ) || 'prayer-times' === $post_name ) {
 		$css = MFA_CORE_PATH . 'assets/css/prayer-times.css';
 		$js  = MFA_CORE_PATH . 'assets/js/prayer-times.js';
 		wp_enqueue_style( 'mfa-core-prayer-times', MFA_CORE_URL . 'assets/css/prayer-times.css', array(), $get_version( $css ) );
 		wp_enqueue_script( 'mfa-core-prayer-times', MFA_CORE_URL . 'assets/js/prayer-times.js', array(), $get_version( $js ), true );
 	}
 
-	if ( has_shortcode( $content, 'niz_mfa_qibla' ) ) {
+	if ( has_shortcode( $content, 'niz_mfa_qibla' ) || 'qibla-finder' === $post_name ) {
 		$css = MFA_CORE_PATH . 'assets/css/qibla.css';
 		$js  = MFA_CORE_PATH . 'assets/js/qibla.js';
 		wp_enqueue_style( 'mfa-core-qibla', MFA_CORE_URL . 'assets/css/qibla.css', array(), $get_version( $css ) );
@@ -66,6 +72,12 @@ function mfa_core_enqueue_widget_assets() {
 		$css = MFA_CORE_PATH . 'assets/css/quran-page-v7.css';
 		wp_enqueue_style( 'mfa-core-quran-page', MFA_CORE_URL . 'assets/css/quran-page-v7.css', array(), $get_version( $css ) );
 	}
+
+	$is_tool_page = $post && in_array( $post->post_name, array( 'prayer-times', 'qibla-finder' ), true );
+	if ( $is_tool_page ) {
+		$css = MFA_CORE_PATH . 'assets/css/tool-page.css';
+		wp_enqueue_style( 'mfa-core-tool-page', MFA_CORE_URL . 'assets/css/tool-page.css', array(), $get_version( $css ) );
+	}
 }
 
 add_filter( 'litespeed_optimize_css_excludes', 'mfa_core_litespeed_css_excludes' );
@@ -75,6 +87,7 @@ function mfa_core_litespeed_css_excludes( $excludes ) {
 	$excludes[] = 'mfa-core/assets/css/homepage-v8.css';
 	$excludes[] = 'mfa-core/assets/css/page-layout-v2.css';
 	$excludes[] = 'mfa-core/assets/css/quran-page-v7.css';
+	$excludes[] = 'mfa-core/assets/css/tool-page.css';
 	$excludes[] = 'mfa-core/assets/css/share-button-v12.css';
 	return $excludes;
 }

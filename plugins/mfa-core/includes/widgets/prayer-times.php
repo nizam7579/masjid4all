@@ -16,7 +16,7 @@ function niz_mfa_prayer_times_shortcode() {
          class="niz-mfa-prayer-times-wrapper"
          data-prayers='{}'>
 
-        <div class="niz-prayer-location-header" style="text-align: center; margin-bottom: 15px; font-size: 14px; font-weight: 600; color: #334155;">
+        <div class="niz-prayer-location-header">
             📍 <span class="js-niz-prayer-geo">Detecting location...</span>
         </div>
 

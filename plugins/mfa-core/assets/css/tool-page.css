@@ -1,0 +1,103 @@
+/* mfa-core tool-page.css — shared styling for [mfa_prayer_times_page] and
+   [mfa_qibla_page] (/prayer-times/ and /qibla-finder/). Plain HTML, no
+   Kadence blocks. Follows the same self-contained template established by
+   quran-page-v7.css (header gradient, mfa-page-row/col grid, its own copy
+   of the .mfa-faq-list component so this file has no cross-file
+   dependency on homepage-v8.css). */
+
+.mfa-tool-page { font-family: Lato, sans-serif; max-width: 1290px; margin: 0 auto; }
+
+.mfa-tool-page-header {
+  text-align: center;
+  padding: 48px 24px 36px;
+  background: linear-gradient(150deg, #12181f 0%, #0d4d47 100%);
+  color: #f4faf9;
+  margin-bottom: 32px;
+}
+@media (min-width: 901px) {
+  .mfa-tool-page-header { border-radius: 16px; }
+}
+.mfa-tool-page-header h1 {
+  font-size: clamp(28px, 4vw, 40px);
+  font-weight: 800;
+  margin: 0 0 14px;
+  color: #ffffff;
+}
+.mfa-tool-page-tagline {
+  max-width: 560px;
+  margin: 0 auto;
+  font-size: 16px;
+  line-height: 1.6;
+  color: #cfe3e0;
+}
+
+/* ---------- Reusable row/col (Kadence-independent) ---------- */
+.mfa-page-row {
+  display: flex;
+  gap: 8px;
+}
+.mfa-page-col-content { flex: 1 1 70%; min-width: 0; }
+.mfa-page-col-ad { flex: 1 1 30%; min-width: 0; }
+@media (max-width: 900px) {
+  .mfa-page-row { flex-direction: column; }
+}
+@media (min-width: 901px) {
+  .mfa-page-row { align-items: flex-start; }
+}
+.mfa-page-col-content,
+.mfa-page-col-ad {
+  padding: 0 20px;
+}
+@media (min-width: 783px) {
+  .mfa-page-col-content,
+  .mfa-page-col-ad {
+    padding: 0 24px;
+  }
+}
+@media (max-width: 900px) {
+  .mfa-page-col-ad {
+    margin-top: 50px;
+    padding: 24px 20px;
+    background-color: #eef2f1;
+  }
+}
+
+/* ---------- Tool card ---------- */
+.mfa-tool-page-card {
+  background: #ffffff;
+  border: 1px solid #e7efed;
+  border-radius: 18px;
+  padding: 32px 24px;
+  margin: 0 auto 32px;
+  max-width: 460px;
+}
+
+.mfa-tool-page-ad-heading {
+  text-align: center;
+  font-size: 14.5px;
+  font-style: italic;
+  font-weight: 600;
+  color: #56655f;
+  margin: 0 0 16px;
+}
+
+/* ---------- FAQ (core/details) ---------- */
+.mfa-tool-page .mfa-faq-list {
+  max-width: 620px;
+  margin: 8px auto 0;
+}
+.mfa-faq-list details {
+  border-bottom: 1px solid #e7efed;
+  padding: 18px 0;
+}
+.mfa-faq-list summary {
+  font-size: 16px;
+  font-weight: 700;
+  color: #12181f;
+  cursor: pointer;
+  list-style: none;
+}
+.mfa-faq-list summary::-webkit-details-marker { display: none; }
+.mfa-faq-list summary::after { content: '+'; float: right; font-weight: 400; color: #25988b; }
+.mfa-faq-list details[open] summary::after { content: '−'; }
+.mfa-faq-list details p { font-size: 14.5px; color: #56655f; line-height: 1.65; margin: 10px 0 0; }

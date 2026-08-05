@@ -167,14 +167,14 @@
                 if (this.statusBox) {
                     if (deviation < 4) {
                         this.statusBox.textContent = "✅ Locked on Qibla";
-                        this.statusBox.style.background = "#006B3E";
+                        this.statusBox.style.background = "#25988b";
                         this.statusBox.style.color = "#ffffff";
                     } else {
                         const currentRoundedDev = Math.round(deviation);
                         if (currentRoundedDev !== this._lastRenderedDeviation) {
                             this.statusBox.textContent = `🧭 ${deviation.toFixed(1)}° away - Rotate device`;
-                            this.statusBox.style.background = "#e8f5e9";
-                            this.statusBox.style.color = "#333333";
+                            this.statusBox.style.background = "#f4faf9";
+                            this.statusBox.style.color = "#12181f";
                             this._lastRenderedDeviation = currentRoundedDev;
                         }
                     }
@@ -246,8 +246,8 @@
             } else {
                 if (this.statusBox) {
                     this.statusBox.textContent = "🧭 Sensors active - rotate device";
-                    this.statusBox.style.background = "#e8f5e9";
-                    this.statusBox.style.color = "#333333";
+                    this.statusBox.style.background = "#f4faf9";
+                    this.statusBox.style.color = "#12181f";
                 }
             }
 

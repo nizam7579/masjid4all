@@ -1,0 +1,115 @@
+/* qibla.css — [niz_mfa_qibla] widget. Embedded both on its own
+   /qibla-finder/ page and inside a .mfa-tool-card on the homepage.
+   Retinted from ad-hoc green/red to the site's brand teal palette, and
+   the compass arrow is now drawn purely in CSS (no inline styles in the
+   PHP template) so it stays themeable from one place. */
+
+.niz-qibla-app {
+    text-align: center;
+    font-family: inherit;
+    max-width: 300px;
+    margin: 0 auto;
+    padding: 0;
+}
+
+.niz-status-box {
+    text-align: center;
+    margin-bottom: 18px;
+    font-size: 13.5px;
+    font-weight: 600;
+    padding: 10px 14px;
+    background: #f4faf9;
+    border-radius: 20px;
+    color: #12181f;
+    border: 1px solid #e7efed;
+    min-height: 20px;
+    transition: background 0.25s ease, color 0.25s ease;
+}
+
+.niz-compass-container {
+    position: relative;
+    width: 250px;
+    height: 250px;
+    margin: 0 auto;
+}
+
+.niz-circle {
+    width: 100%;
+    height: 100%;
+    border: 4px solid #25988b;
+    border-radius: 50%;
+    position: absolute;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f4faf9;
+    box-shadow: 0 8px 20px -8px rgba(13, 77, 71, 0.35);
+}
+
+.niz-circle-kaaba {
+    font-size: 24px;
+    opacity: 0.35;
+}
+
+.niz-arrow-container {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    z-index: 2;
+    top: 0;
+    left: 0;
+    transform-origin: center center;
+}
+
+.niz-arrow {
+    width: 6px;
+    height: 120px;
+    background: #0d4d47;
+    margin: 0 auto;
+    position: relative;
+    top: 5px;
+    border-radius: 4px 4px 0 0;
+}
+
+.niz-arrow-head {
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-bottom: 20px solid #0d4d47;
+    position: absolute;
+    top: -15px;
+    left: -7px;
+}
+
+.niz-button-wrap {
+    text-align: center;
+    margin-top: 22px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 50px;
+}
+
+.niz-btn {
+    padding: 12px 28px;
+    background: #25988b;
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 14px;
+    box-shadow: 0 8px 18px -6px rgba(37, 152, 139, 0.5);
+    transition: filter 0.15s ease, transform 0.1s ease;
+}
+
+.niz-btn:hover {
+    filter: brightness(1.08);
+}
+
+.niz-btn:active {
+    transform: scale(0.97);
+}

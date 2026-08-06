@@ -7,14 +7,9 @@
 
 .mfa-tool-page { font-family: Lato, sans-serif; max-width: 1290px; margin: 0 auto; }
 
-/* Mobile footer nav bar (see share-button CSS) sits in normal document
-   flow, but the fixed share/Sofia buttons float over the bottom-right
-   corner - this clearance keeps the last bit of page content from
-   sitting underneath them. Matches the footer nav's own visibility
-   breakpoint (782px) so it only applies while that bar is shown. */
-@media (max-width: 782px) {
-  .mfa-tool-page { padding-bottom: 90px; }
-}
+/* Bottom clearance for the fixed footer nav bar + floating button stack
+   moved sitewide (see share-button-v15.css's "Sitewide bottom clearance"
+   section) so every page template gets it, not just this one. */
 
 .mfa-tool-page-header {
   text-align: center;

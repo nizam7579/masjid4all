@@ -60,9 +60,9 @@ function mfa_core_enqueue_widget_assets() {
 
 	// Floating footer share button — sitewide, since the Kadence Theme
 	// Builder footer isn't part of any specific page's post_content.
-	$share_btn_css = MFA_CORE_PATH . 'assets/css/share-button-v14.css';
+	$share_btn_css = MFA_CORE_PATH . 'assets/css/share-button-v15.css';
 	$share_btn_js  = MFA_CORE_PATH . 'assets/js/share-button-v13.js';
-	wp_enqueue_style( 'mfa-core-share-button', MFA_CORE_URL . 'assets/css/share-button-v14.css', array(), $get_version( $share_btn_css ) );
+	wp_enqueue_style( 'mfa-core-share-button', MFA_CORE_URL . 'assets/css/share-button-v15.css', array(), $get_version( $share_btn_css ) );
 	wp_enqueue_script( 'mfa-core-share-button', MFA_CORE_URL . 'assets/js/share-button-v13.js', array(), $get_version( $share_btn_js ), true );
 
 	// Floating "Sofia" WhatsApp chat button — sitewide, same reasoning as
@@ -95,14 +95,14 @@ function mfa_core_enqueue_widget_assets() {
 
 	$is_tool_page = $post && in_array( $post->post_name, array( 'prayer-times', 'qibla-finder', 'masjid', 'business', 'web', 'knowledge-hub' ), true );
 	if ( $is_tool_page ) {
-		$css = MFA_CORE_PATH . 'assets/css/tool-page-v7.css';
-		wp_enqueue_style( 'mfa-core-tool-page', MFA_CORE_URL . 'assets/css/tool-page-v7.css', array(), $get_version( $css ) );
+		$css = MFA_CORE_PATH . 'assets/css/tool-page-v8.css';
+		wp_enqueue_style( 'mfa-core-tool-page', MFA_CORE_URL . 'assets/css/tool-page-v8.css', array(), $get_version( $css ) );
 	}
 
 	$is_brand_page = $post && in_array( $post->post_name, array( 'about-us', 'contact-us' ), true );
 	if ( $is_brand_page ) {
-		$header_css = MFA_CORE_PATH . 'assets/css/tool-page-v7.css';
-		wp_enqueue_style( 'mfa-core-tool-page', MFA_CORE_URL . 'assets/css/tool-page-v7.css', array(), $get_version( $header_css ) );
+		$header_css = MFA_CORE_PATH . 'assets/css/tool-page-v8.css';
+		wp_enqueue_style( 'mfa-core-tool-page', MFA_CORE_URL . 'assets/css/tool-page-v8.css', array(), $get_version( $header_css ) );
 		$css = MFA_CORE_PATH . 'assets/css/brand-page-v4.css';
 		wp_enqueue_style( 'mfa-core-brand-page', MFA_CORE_URL . 'assets/css/brand-page-v4.css', array(), $get_version( $css ) );
 	}
@@ -114,8 +114,8 @@ function mfa_core_enqueue_widget_assets() {
 
 	$is_legal_page = $post && in_array( $post->post_name, array( 'privacy-policy', 'terms-of-service' ), true );
 	if ( $is_legal_page ) {
-		$header_css = MFA_CORE_PATH . 'assets/css/tool-page-v7.css';
-		wp_enqueue_style( 'mfa-core-tool-page', MFA_CORE_URL . 'assets/css/tool-page-v7.css', array(), $get_version( $header_css ) );
+		$header_css = MFA_CORE_PATH . 'assets/css/tool-page-v8.css';
+		wp_enqueue_style( 'mfa-core-tool-page', MFA_CORE_URL . 'assets/css/tool-page-v8.css', array(), $get_version( $header_css ) );
 		$css = MFA_CORE_PATH . 'assets/css/legal-page-v2.css';
 		wp_enqueue_style( 'mfa-core-legal-page', MFA_CORE_URL . 'assets/css/legal-page-v2.css', array(), $get_version( $css ) );
 	}
@@ -195,10 +195,10 @@ function mfa_core_litespeed_css_excludes( $excludes ) {
 	$excludes[] = 'mfa-core/assets/css/homepage-v9.css';
 	$excludes[] = 'mfa-core/assets/css/page-layout-v2.css';
 	$excludes[] = 'mfa-core/assets/css/quran-page-v7.css';
-	$excludes[] = 'mfa-core/assets/css/tool-page-v7.css';
+	$excludes[] = 'mfa-core/assets/css/tool-page-v8.css';
 	$excludes[] = 'mfa-core/assets/css/brand-page-v4.css';
 	$excludes[] = 'mfa-core/assets/css/legal-page-v2.css';
-	$excludes[] = 'mfa-core/assets/css/share-button-v14.css';
+	$excludes[] = 'mfa-core/assets/css/share-button-v15.css';
 	$excludes[] = 'mfa-core/assets/css/sofia-button-v1.css';
 	$excludes[] = 'mfa-core/assets/css/business-single-v4.css';
 	$excludes[] = 'mfa-core/assets/css/mosque-single-v1.css';

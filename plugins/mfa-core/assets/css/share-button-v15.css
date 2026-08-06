@@ -73,6 +73,32 @@
   opacity: 1;
 }
 
+/* ---------- Sitewide bottom clearance ---------- */
+/* The footer nav bar (mobile only, see below) and the sofia/share/
+   scroll-up button stack are all position:fixed, so none of them reserve
+   layout space - without this, every page's last bit of content sits
+   underneath them once scrolled to the bottom (confirmed on the homepage
+   FAQ and the masjid directory's ad column). Same body-padding technique
+   as the fixed header (see header-v6.css), and the same
+   body.wp-theme-kadence-qualified selector - a bare `body {}` rule gets
+   silently dropped by LiteSpeed's CSS processing (confirmed elsewhere in
+   this project). Sitewide here (not per-template) since the button stack
+   is sitewide too - a previous per-template version of this only lived in
+   tool-page-v7.css and missed the homepage and single-post templates.
+
+   Desktop clears the tallest button (scroll-up, bottom:160px + ~26px
+   tall = 186px) with margin. Mobile clears scroll-up's mobile position
+   (bottom:210px + ~26px = 236px) with margin, which is already taller
+   than the footer nav bar (~63px + safe-area) it also needs to clear. */
+body.wp-theme-kadence {
+  padding-bottom: 200px;
+}
+@media (max-width: 782px) {
+  body.wp-theme-kadence {
+    padding-bottom: 260px;
+  }
+}
+
 /* ---------- Footer nav bar ---------- */
 /* Root cause of everything below: the Kadence Theme Builder "Footer Menu"
    fixed element (post 83) doesn't run do_blocks() on its content, so any

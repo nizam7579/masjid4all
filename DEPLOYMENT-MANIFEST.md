@@ -191,14 +191,18 @@ idempotently. `mfa-core` creates no custom tables at all.
 - [x] Live push executed (Full Sync) and verified — homepage, all
       login/register pages, live Business/Mosque/Website listings, and
       Sofia removal all confirmed correct on masjid4all.com.
-- [ ] **niz-wa's live-side state is still unresolved.** Full Sync would have
-      deployed `niz-wa`'s code to live, but whether the plugin is *activated*
-      there, and which domain's webhook URL is registered in Meta's App
-      Dashboard (staging vs. live), was never confirmed. niz-wa auto-creates
-      `prospect` WordPress users for any unrecognized WhatsApp number via
-      `nwa_resolve_user_id` → `niz_user_create_prospect()`
-      ([niz-wa-integration.php:15-35](plugins/mfa-core/includes/niz-wa-integration.php)) —
-      worth checking Meta's dashboard before assuming this is inactive on live.
+- [x] **niz-wa's live-side state — resolved 2026-08-06.** Confirmed via
+      Meta's App Dashboard that the WhatsApp webhook is pointed at
+      **staging only**, never live — so real WhatsApp traffic has only ever
+      reached staging. Separately, `niz_wa_resolve_user_id()`
+      ([niz-wa-integration.php](plugins/mfa-core/includes/niz-wa-integration.php))
+      no longer auto-creates WordPress `prospect` users for unrecognized
+      numbers — it does a read-only lookup for already-existing members only;
+      new numbers now fall through to niz-wa's own standalone
+      `wp_nwa_contacts` table. Verified on staging: an unrecognized test
+      number resolved with zero new WP users created (94 before/after).
+      This fix is staging-only so far (not yet pushed to live) since it
+      doesn't affect live's behavior while the webhook points elsewhere.
 - [x] Mosque template post 875/`mosque-2-2` — confirmed still correctly
       matched and rendering on live (`/masjid/masjid-samakom-islam-.../`
       verified with Review tab hidden as expected).

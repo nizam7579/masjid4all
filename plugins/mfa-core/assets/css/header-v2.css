@@ -1,0 +1,181 @@
+/* header.css - [mfa_site_header], replaces the Kadence Theme Builder
+   "Header" element. Plain HTML/CSS, no Kadence. Fixed to the top of the
+   viewport, matching the original's fixed_above_header hook. */
+
+/* Body gets top padding matching the header's fixed height, since a
+   position:fixed element reserves no space of its own - without this the
+   header overlaps whatever's underneath it. Mobile gets a shorter value
+   (smaller logo, no visible nav row). */
+/* Specific selector (not a bare `body`) on purpose: LiteSpeed's CSS
+   optimizer was observed silently dropping a plain `body { ... }` rule
+   from this file in the browser's parsed stylesheet (confirmed present in
+   the raw file, absent from document.styleSheets after LiteSpeed's
+   processing) - a bare low-specificity element selector rule apparently
+   doesn't survive its pipeline here, class-based rules do. Also needs
+   !important: Kadence's own theme.json global-styles-inline-css sets
+   `body { padding: 0px; }`. */
+body.wp-theme-kadence { padding-top: 64px !important; }
+
+.mfa-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 99998;
+  background: linear-gradient(135deg, #014a97 0%, #0c3d1d 99%);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+}
+.mfa-header-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 10px 24px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  font-family: Lato, sans-serif;
+}
+
+.mfa-header-logo { flex-shrink: 0; display: flex; align-items: center; }
+/* Fixed height (not height:auto) - the logo is lazy-loaded, and before the
+   real image finishes loading the browser has only the 1x1 placeholder's
+   1:1 aspect ratio to go on, which combined with height:auto rendered a
+   160x160 square instead of the actual ~44px-tall logo, throwing off the
+   whole header's height and the body padding-top above. */
+.mfa-header-logo img { max-width: 160px; height: 44px; width: auto; display: block; }
+
+.mfa-header-nav { display: none; flex: 1; align-items: center; gap: 28px; }
+.mfa-header-nav-link {
+  color: #f4faf9;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 15px;
+  padding-bottom: 4px;
+  border-bottom: 2px solid transparent;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.mfa-header-nav-link:hover { color: #5cfce8; }
+.mfa-header-nav-link.is-active {
+  color: #5cfce8;
+  border-bottom-color: #5cfce8;
+}
+
+.mfa-header-actions { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+
+.mfa-header-account-btn {
+  display: none;
+  align-items: center;
+  padding: 8px 18px;
+  border-radius: 20px;
+  background: #ffffff;
+  color: #0c3d1d;
+  font-weight: 700;
+  font-size: 12px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.mfa-header-account-btn:hover { background: #e7efed; color: #0c3d1d; }
+
+.mfa-header-burger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(255,255,255,0.12);
+  color: #f4faf9;
+  cursor: pointer;
+  padding: 0;
+}
+.mfa-header-burger svg { width: 20px; height: 20px; }
+
+@media (min-width: 900px) {
+  .mfa-header-nav { display: flex; }
+  .mfa-header-account-btn { display: inline-flex; }
+  .mfa-header-burger { display: none; }
+}
+
+/* ---------- Mobile slide-out menu ---------- */
+.mfa-header-mobile-menu {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(320px, 85vw);
+  background: #ffffff;
+  box-shadow: -8px 0 30px rgba(0,0,0,0.2);
+  z-index: 99999;
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+  overflow-y: auto;
+  font-family: Lato, sans-serif;
+}
+.mfa-header-mobile-menu.is-open { transform: translateX(0); }
+.mfa-header-mobile-inner { padding: 20px; }
+
+.mfa-header-mobile-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: #f4faf9;
+  color: #12181f;
+  cursor: pointer;
+  margin-bottom: 16px;
+}
+.mfa-header-mobile-close svg { width: 18px; height: 18px; }
+
+.mfa-header-mobile-account {
+  display: block;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #f4faf9;
+  color: #0d4d47;
+  font-weight: 700;
+  font-size: 14px;
+  text-decoration: none;
+  margin-bottom: 16px;
+}
+
+.mfa-header-mobile-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e7efed;
+  margin-bottom: 12px;
+}
+.mfa-header-mobile-link {
+  padding: 8px 4px;
+  color: #333;
+  text-decoration: none;
+  font-size: 15px;
+}
+.mfa-header-mobile-link:hover { color: #25988b; }
+.mfa-header-mobile-link.is-active { color: #25988b; font-weight: 700; }
+
+.mfa-header-mobile-heading {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #9aa5a2;
+  margin: 0 0 6px;
+}
+
+.mfa-header-mobile-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 99998;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+.mfa-header-mobile-overlay.is-open { opacity: 1; pointer-events: auto; }
+
+body.mfa-header-menu-open { overflow: hidden; }

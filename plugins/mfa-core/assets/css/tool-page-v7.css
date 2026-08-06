@@ -174,6 +174,26 @@
   margin: 0 auto 32px;
   max-width: 460px;
 }
+/* Desktop: prayer times' 6-column grid needs real room to breathe (it was
+   cramming into the same 460px card as qibla's much narrower compass
+   widget); qibla gets a smaller bump just to feel less pinched next to
+   its bigger desktop compass (see qibla.css). */
+@media (min-width: 901px) {
+  .mfa-tool-page-card--prayer { max-width: 720px; }
+  .mfa-tool-page-card--qibla { max-width: 520px; }
+}
+
+/* Mobile: the FAQ list has no horizontal padding of its own (its details/
+   summary elements only pad top/bottom), and .mfa-page-col-content is
+   deliberately full-bleed with zero padding here (see the note above on
+   directory widgets owning their own inset) - so on narrow viewports FAQ
+   text runs edge-to-edge with no gutter. Give it one directly instead of
+   touching the shared .mfa-page-col-content rule other pages depend on. */
+@media (max-width: 900px) {
+  .mfa-tool-page .mfa-faq-list {
+    padding: 0 20px;
+  }
+}
 
 .mfa-tool-page-ad-heading {
   text-align: center;

@@ -31,6 +31,36 @@
     width: 250px;
     height: 250px;
     margin: 0 auto;
+    aspect-ratio: 1;
+}
+
+/* Desktop: bigger compass in the wider card (see .mfa-tool-page-card--qibla
+   in tool-page.css). Width/height stay locked together (plus aspect-ratio
+   above as a belt-and-suspenders guard) so it can never render as an oval -
+   arrow proportions scaled by the same 300/250 factor as the circle. */
+@media (min-width: 901px) {
+    .niz-qibla-app {
+        max-width: 340px;
+    }
+    .niz-compass-container {
+        width: 300px;
+        height: 300px;
+    }
+    .niz-arrow {
+        height: 144px;
+        width: 7px;
+        top: 6px;
+    }
+    .niz-arrow-head {
+        border-left-width: 12px;
+        border-right-width: 12px;
+        border-bottom-width: 24px;
+        top: -18px;
+        left: -8px;
+    }
+    .niz-circle-kaaba {
+        font-size: 29px;
+    }
 }
 
 .niz-circle {

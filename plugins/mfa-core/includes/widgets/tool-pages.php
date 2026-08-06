@@ -25,7 +25,7 @@ function mfa_prayer_times_page_shortcode() {
 
 		<div class="mfa-page-row">
 			<div class="mfa-page-col-content">
-				<div class="mfa-tool-page-card">
+				<div class="mfa-tool-page-card mfa-tool-page-card--prayer">
 					<?php echo do_shortcode( '[niz_mfa_prayer_times]' ); ?>
 				</div>
 
@@ -67,7 +67,7 @@ function mfa_qibla_page_shortcode() {
 
 		<div class="mfa-page-row">
 			<div class="mfa-page-col-content">
-				<div class="mfa-tool-page-card">
+				<div class="mfa-tool-page-card mfa-tool-page-card--qibla">
 					<?php echo do_shortcode( '[niz_mfa_qibla]' ); ?>
 				</div>
 

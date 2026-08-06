@@ -19,19 +19,18 @@ function niz_wa_resolve_user_id( $user_id, $wa_number, $contact_name ) {
 		return $user_id; // Identity core not loaded — fall back to niz-wa's own default resolver.
 	}
 
+	// Read-only: link to an already-existing WordPress member if this
+	// WhatsApp number is recognized. Does not create anything.
 	$existing = niz_user_check( $wa_number );
 	if ( $existing ) {
 		return $existing;
 	}
 
-	if ( function_exists( 'niz_user_create_prospect' ) ) {
-		$prospect_id = niz_user_create_prospect( $wa_number, $contact_name ?: '' );
-		if ( $prospect_id && ! is_wp_error( $prospect_id ) ) {
-			return $prospect_id;
-		}
-	}
-
-	return $user_id; // last resort — niz-wa's own contacts-table fallback.
+	// No auto-creating new WordPress users ("prospects") for unrecognized
+	// numbers anymore — niz-wa falls back to its own standalone
+	// wp_nwa_contacts table instead (NWA_DB::get_or_create_contact()),
+	// same as running with no site-integration hook at all.
+	return $user_id;
 }
 
 /* ---------------- Action callbacks ---------------- */

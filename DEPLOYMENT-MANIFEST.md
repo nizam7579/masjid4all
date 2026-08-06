@@ -33,6 +33,15 @@ setting on live, not a content/code change.
 
 New shared shortcode: [`[mfa_coming_soon]`](plugins/mfa-core/includes/widgets/coming-soon.php) (+ [coming-soon-v1.css](plugins/mfa-core/assets/css/coming-soon-v1.css)), enqueued sitewide since it appears inside Theme Builder template content that `has_shortcode()` can't detect from the front-end post being viewed.
 
+**Found by a sitewide sweep (not on the original list), also fixed:**
+
+| Page | Staging post ID | What changed |
+|------|-----------------|---------------|
+| `/test/` | 68195 | "Not LoggedIn" section (near-duplicate of the /member/ dashboard, ~111KB) — `[niz_login]` + marketing panel replaced with `[mfa_coming_soon]`. `publish` status, not linked from any menu, reachable by direct URL only. |
+| `/member/premium/` | 229729 | Same treatment as /test/ — same near-duplicate structure. `publish` status, not linked from any menu. |
+
+⚠ Two **draft** Theme Builder duplicates also still contain the old `[niz_login]` pattern — `230538` "Mosque (Copy)" and `230539` "Business (Copy)". Left untouched since draft status means they're not active/served templates, but worth deleting or fixing before the live push if they could ever be accidentally published.
+
 ## How to use this doc
 
 1. **Code changes** (plugin files under `plugins/mfa-core/`, etc.) — safe to

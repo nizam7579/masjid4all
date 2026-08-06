@@ -38,6 +38,7 @@ $mfa_core_includes = array(
 	'includes/widgets/mosque-single.php',
 	'includes/widgets/website-single.php',
 	'includes/widgets/member-logged-out.php',
+	'includes/widgets/coming-soon.php',
 	'includes/widgets-enqueue.php',
 );
 

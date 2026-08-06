@@ -63,6 +63,12 @@ function mfa_core_enqueue_widget_assets() {
 	$page_layout_css = MFA_CORE_PATH . 'assets/css/page-layout-v2.css';
 	wp_enqueue_style( 'mfa-core-page-layout', MFA_CORE_URL . 'assets/css/page-layout-v2.css', array(), $get_version( $page_layout_css ) );
 
+	// [mfa_coming_soon] badge — sitewide, since it's used inside Theme
+	// Builder template content (Review/Claim tabs) that has_shortcode()
+	// can't see from the front-end post being viewed.
+	$coming_soon_css = MFA_CORE_PATH . 'assets/css/coming-soon-v1.css';
+	wp_enqueue_style( 'mfa-core-coming-soon', MFA_CORE_URL . 'assets/css/coming-soon-v1.css', array(), $get_version( $coming_soon_css ) );
+
 	if ( $post && 'homepage' === $post->post_name ) {
 		$css = MFA_CORE_PATH . 'assets/css/homepage-v8.css';
 		wp_enqueue_style( 'mfa-core-homepage', MFA_CORE_URL . 'assets/css/homepage-v8.css', array(), $get_version( $css ) );
@@ -173,5 +179,6 @@ function mfa_core_litespeed_css_excludes( $excludes ) {
 	$excludes[] = 'mfa-core/assets/css/business-single-v4.css';
 	$excludes[] = 'mfa-core/assets/css/mosque-single-v1.css';
 	$excludes[] = 'mfa-core/assets/css/website-single-v1.css';
+	$excludes[] = 'mfa-core/assets/css/coming-soon-v1.css';
 	return $excludes;
 }

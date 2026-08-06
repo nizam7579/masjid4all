@@ -43,7 +43,7 @@ body.wp-theme-kadence { padding-top: 64px !important; }
    whole header's height and the body padding-top above. */
 .mfa-header-logo img { max-width: 160px; height: 44px; width: auto; display: block; }
 
-.mfa-header-nav { display: none; flex: 1; align-items: center; gap: 28px; }
+.mfa-header-nav { display: none; flex: 1; align-items: center; justify-content: center; gap: 28px; }
 .mfa-header-nav-link {
   color: #0d4d47;
   text-decoration: none;
@@ -90,7 +90,7 @@ body.wp-theme-kadence { padding-top: 64px !important; }
 }
 .mfa-header-burger svg { width: 20px; height: 20px; }
 
-@media (min-width: 900px) {
+@media (min-width: 820px) {
   .mfa-header-nav { display: flex; }
   .mfa-header-account-btn { display: inline-flex; }
   .mfa-header-burger { display: none; }

@@ -53,9 +53,9 @@ function mfa_core_enqueue_widget_assets() {
 
 	// Sitewide header — same reasoning as the floating share button below:
 	// not tied to any specific page's post_content.
-	$header_css_path = MFA_CORE_PATH . 'assets/css/header-v4.css';
+	$header_css_path = MFA_CORE_PATH . 'assets/css/header-v5.css';
 	$header_js_path  = MFA_CORE_PATH . 'assets/js/header-v1.js';
-	wp_enqueue_style( 'mfa-core-header', MFA_CORE_URL . 'assets/css/header-v4.css', array(), $get_version( $header_css_path ) );
+	wp_enqueue_style( 'mfa-core-header', MFA_CORE_URL . 'assets/css/header-v5.css', array(), $get_version( $header_css_path ) );
 	wp_enqueue_script( 'mfa-core-header', MFA_CORE_URL . 'assets/js/header-v1.js', array(), $get_version( $header_js_path ), true );
 
 	// Floating footer share button — sitewide, since the Kadence Theme
@@ -187,6 +187,6 @@ function mfa_core_litespeed_css_excludes( $excludes ) {
 	$excludes[] = 'mfa-core/assets/css/mosque-single-v1.css';
 	$excludes[] = 'mfa-core/assets/css/website-single-v1.css';
 	$excludes[] = 'mfa-core/assets/css/coming-soon-v1.css';
-	$excludes[] = 'mfa-core/assets/css/header-v4.css';
+	$excludes[] = 'mfa-core/assets/css/header-v5.css';
 	return $excludes;
 }

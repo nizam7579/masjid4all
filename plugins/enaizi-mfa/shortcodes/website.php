@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) exit;
 // WEBSITE HEADER 
 add_shortcode('mfa_website_header', function($atts) {
     // 1. Define the fallback default image
-    $default_url = "https://cdn.staging.masjid4all.com/web/website-owner.webp";
+    $default_url = "https://cdn.masjid4all.com/web/website-owner.webp";
     
     // 2. Check if the current post/page has a featured image
     if ( has_post_thumbnail() ) {
@@ -190,12 +190,8 @@ add_shortcode('mfa_website_info', function() {
             $content .= 'Country : ' . $country . '<br>';
         }
         $content .= '<h3>Status : <b>New</b></h3>';
-        $content .= '<p>If you are the owner, please Claim Your Website after updating <br>';
-        $content .= '<b>Click the button below to update the content.</b></p>';
+        $content .= '<p>If you are the owner, please Claim Your Website after updating </p>';
 
-        // ✅ ADD SHORTCODE HERE (NOT echo)
-        $content .= do_shortcode('[mfa_website_update]');
-        
     }else{
         // If Approved
         //$biz_status  = mfa_get_web_field($item_id, 'status');

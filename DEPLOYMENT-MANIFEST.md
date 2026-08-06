@@ -10,7 +10,26 @@ Staging was cloned from live on **2026-07-30** and has never been published.
 Anything on live created/changed on or after that date is live-only and must
 not be overwritten by anything below.
 
-Last updated: 2026-08-06 (after Knowledge Hub post 193845 round).
+Last updated: 2026-08-06 (after /member/ logged-out section round).
+
+## Phase 2: login/register module removal (in progress)
+
+Separate from the page-refactor content in Sections B/C below — this batch
+hides the login/register UI across the pages that have it, ahead of the
+live push. `users_can_register` was also flipped to `0` on staging
+(Settings → General → Membership) — a plain option value, replay the same
+setting on live, not a content/code change.
+
+| Page | Staging post ID | What changed |
+|------|-----------------|---------------|
+| `/member/` | 70180 | "Not LoggedIn" (logged-out) Kadence section rebuilt off Kadence via new `[mfa_member_logged_out]` shortcode ([member-logged-out.php](plugins/mfa-core/includes/widgets/member-logged-out.php)); `[niz_login]` form removed. Logged-in member dashboard untouched. |
+| `/register/` (37828) | — | pending |
+| `/add-mosque/` (225511) | — | pending |
+| `/add-business/` (225426) | — | pending |
+| `/add-website/` (223630) | — | pending |
+| Mosque post Review tab (875) | — | pending |
+| Business post Review + Claim tabs (9151) | — | pending |
+| Website post Review + Claim tabs (220902) | — | pending |
 
 ## How to use this doc
 

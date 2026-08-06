@@ -19,7 +19,7 @@ if (!defined('ABSPATH')) exit;
 // ============================================
 add_shortcode('niz_business_header', function($atts) {
     // 1. Define the fallback default image
-    $default_url = "https://cdn.staging.masjid4all.com/business/business-owner.webp";
+    $default_url = "https://cdn.masjid4all.com/business/business-owner.webp";
     
     // 2. Check if the current post/page has a featured image
     if ( has_post_thumbnail() ) {

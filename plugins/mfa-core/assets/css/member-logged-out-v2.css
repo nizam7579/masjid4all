@@ -5,7 +5,24 @@
   font-family: Lato, sans-serif;
   max-width: 900px;
   margin: 0 auto;
-  padding: 20px 0 40px;
+  padding: 20px 24px 40px;
+}
+/* Slightly tighter on mobile - the parent template gives this page zero
+   side padding of its own, so this is the only gutter the content has. */
+@media (max-width: 782px) {
+  .mfa-member-out { padding: 20px 20px 40px; }
+}
+
+/* This page's Kadence Theme Builder column (post 70180) carries its own
+   -10px margin-left on top of an already-correctly-full-bleed ancestor
+   column, pushing content 10px past the left edge and eating into the
+   padding above - net visible gutter was only 10px instead of 20px.
+   Unique block ID, scoped to just this page's template. */
+@media (max-width: 782px) {
+  .kadence-column70180_f43d33-4c {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
 }
 
 .mfa-member-out-notice {

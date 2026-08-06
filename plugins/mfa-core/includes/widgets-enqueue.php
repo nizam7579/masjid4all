@@ -108,8 +108,8 @@ function mfa_core_enqueue_widget_assets() {
 	}
 
 	if ( $post && 'member' === $post->post_name ) {
-		$css = MFA_CORE_PATH . 'assets/css/member-logged-out-v1.css';
-		wp_enqueue_style( 'mfa-core-member-logged-out', MFA_CORE_URL . 'assets/css/member-logged-out-v1.css', array(), $get_version( $css ) );
+		$css = MFA_CORE_PATH . 'assets/css/member-logged-out-v2.css';
+		wp_enqueue_style( 'mfa-core-member-logged-out', MFA_CORE_URL . 'assets/css/member-logged-out-v2.css', array(), $get_version( $css ) );
 	}
 
 	$is_legal_page = $post && in_array( $post->post_name, array( 'privacy-policy', 'terms-of-service' ), true );
@@ -193,6 +193,12 @@ function mfa_core_litespeed_css_excludes( $excludes ) {
 	$excludes[] = 'mfa-core/assets/css/prayer-times-v2.css';
 	$excludes[] = 'mfa-core/assets/css/qibla-v3.css';
 	$excludes[] = 'mfa-core/assets/css/homepage-v11.css';
+	// Newly excluded 2026-08-07: a rule targeting this page's unique
+	// Kadence column ID was silently dropped when this file went through
+	// LiteSpeed's combine/minify pipeline (confirmed present in the raw
+	// file, absent from the served combined bundle) - same class of bug
+	// documented elsewhere in this project for other files.
+	$excludes[] = 'mfa-core/assets/css/member-logged-out-v2.css';
 	$excludes[] = 'mfa-core/assets/css/page-layout-v2.css';
 	$excludes[] = 'mfa-core/assets/css/quran-page-v7.css';
 	$excludes[] = 'mfa-core/assets/css/tool-page-v8.css';

@@ -15,6 +15,11 @@
    !important: Kadence's own theme.json global-styles-inline-css sets
    `body { padding: 0px; }`. */
 body.wp-theme-kadence { padding-top: 64px !important; }
+/* Mobile header is shorter (smaller logo, same vertical padding) - see
+   the mobile logo-height override below. 10px*2 padding + 32px logo = 52px. */
+@media (max-width: 819px) {
+  body.wp-theme-kadence { padding-top: 52px !important; }
+}
 
 .mfa-header {
   position: fixed;
@@ -34,6 +39,9 @@ body.wp-theme-kadence { padding-top: 64px !important; }
   gap: 24px;
   font-family: Lato, sans-serif;
 }
+@media (max-width: 819px) {
+  .mfa-header-inner { padding-left: 12px; padding-right: 12px; gap: 10px; }
+}
 
 .mfa-header-logo { flex-shrink: 0; display: flex; align-items: center; }
 /* Fixed height (not height:auto) - the logo is lazy-loaded, and before the
@@ -42,6 +50,9 @@ body.wp-theme-kadence { padding-top: 64px !important; }
    160x160 square instead of the actual ~44px-tall logo, throwing off the
    whole header's height and the body padding-top above. */
 .mfa-header-logo img { max-width: 160px; height: 44px; width: auto; display: block; }
+@media (max-width: 819px) {
+  .mfa-header-logo img { max-width: 120px; height: 32px; }
+}
 
 .mfa-header-nav { display: none; flex: 1; align-items: center; justify-content: center; gap: 28px; }
 .mfa-header-nav-link {
@@ -85,6 +96,20 @@ body.wp-theme-kadence { padding-top: 64px !important; }
   white-space: nowrap;
 }
 .mfa-header-account-btn:hover { background: #1f7d72; color: #ffffff; }
+/* Mobile: shown (desktop hides the burger instead, see the >=820px block
+   below) as a white-pill/teal-text variant sitting before the burger -
+   the solid teal fill above is desktop-only. */
+@media (max-width: 819px) {
+  .mfa-header-account-btn {
+    display: inline-flex;
+    background: #ffffff;
+    color: #25988b;
+    border: 1.5px solid #25988b;
+    padding: 7px 14px;
+    font-size: 11.5px;
+  }
+  .mfa-header-account-btn:hover { background: #f4faf9; color: #1f7d72; }
+}
 
 .mfa-header-burger {
   display: flex;
@@ -108,6 +133,10 @@ body.wp-theme-kadence { padding-top: 64px !important; }
 }
 
 /* ---------- Mobile slide-out menu ---------- */
+/* z-index above the floating sofia/share/scroll-up button stack
+   (100000-100001, see share-button-v15.css / sofia-button-v1.css) so the
+   popup and its overlay sit above them while open, instead of the
+   buttons showing through on top of the menu. */
 .mfa-header-mobile-menu {
   position: fixed;
   top: 0;
@@ -116,7 +145,7 @@ body.wp-theme-kadence { padding-top: 64px !important; }
   width: min(320px, 85vw);
   background: #ffffff;
   box-shadow: -8px 0 30px rgba(0,0,0,0.2);
-  z-index: 99999;
+  z-index: 100011;
   transform: translateX(100%);
   transition: transform 0.25s ease;
   overflow-y: auto;
@@ -124,6 +153,14 @@ body.wp-theme-kadence { padding-top: 64px !important; }
 }
 .mfa-header-mobile-menu.is-open { transform: translateX(0); }
 .mfa-header-mobile-inner { padding: 20px; }
+
+.mfa-header-mobile-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.mfa-header-mobile-logo img { height: 28px; width: auto; display: block; }
 
 .mfa-header-mobile-close {
   display: flex;
@@ -136,7 +173,7 @@ body.wp-theme-kadence { padding-top: 64px !important; }
   background: #f4faf9;
   color: #12181f;
   cursor: pointer;
-  margin-bottom: 16px;
+  flex-shrink: 0;
 }
 .mfa-header-mobile-close svg { width: 18px; height: 18px; }
 
@@ -156,33 +193,57 @@ body.wp-theme-kadence { padding-top: 64px !important; }
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding-bottom: 12px;
+  padding-bottom: 10px;
   border-bottom: 1px solid #e7efed;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
+}
+/* TOOLS / INFORMATION - 2 columns instead of 1 so the popup fits without
+   scrolling on most phones (matches live's reference layout). */
+.mfa-header-mobile-group--grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 10px;
 }
 .mfa-header-mobile-link {
-  padding: 8px 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 4px;
   color: #333;
   text-decoration: none;
-  font-size: 15px;
+  font-size: 14px;
+}
+.mfa-header-mobile-link svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: #25988b;
 }
 .mfa-header-mobile-link:hover { color: #25988b; }
 .mfa-header-mobile-link.is-active { color: #25988b; font-weight: 700; }
 
 .mfa-header-mobile-heading {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: #9aa5a2;
-  margin: 0 0 6px;
+  margin: 0 0 4px;
 }
 
+.mfa-header-mobile-geo {
+  margin-top: 4px;
+  border-radius: 12px;
+  background: #f4faf9;
+}
+
+/* z-index above the floating button stack, same reasoning as the menu
+   panel above. */
 .mfa-header-mobile-overlay {
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.4);
-  z-index: 99998;
+  z-index: 100010;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.25s ease;

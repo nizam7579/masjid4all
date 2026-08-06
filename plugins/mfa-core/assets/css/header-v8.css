@@ -21,6 +21,21 @@ body.wp-theme-kadence { padding-top: 64px !important; }
   body.wp-theme-kadence { padding-top: 52px !important; }
 }
 
+/* The mobile popup's own z-index (100011, see .mfa-header-mobile-menu
+   below) only wins comparisons *inside* the header's own stacking
+   context. The header and footer are each wrapped in their own Kadence
+   Theme Builder "fixed item" div (.kadence-pro-fixed-header-item /
+   -footer-item), and both of THOSE wrappers share the same z-index
+   (1200, Kadence's default) - a tie that falls back to DOM order, and
+   the footer wrapper (containing the sofia/share/scroll-up buttons)
+   comes later in the DOM, so it was painting on top of the open popup
+   regardless of any z-index set inside the header wrapper. Bumping the
+   header wrapper itself above the footer wrapper's 1200 fixes this at
+   the level where the comparison actually happens. Doesn't affect the
+   closed state - the two wrappers don't overlap on screen unless the
+   popup is open and extends over the bottom-right corner. */
+.kadence-pro-fixed-header-item { z-index: 1300 !important; }
+
 .mfa-header {
   position: fixed;
   top: 0;
@@ -152,7 +167,10 @@ body.wp-theme-kadence { padding-top: 64px !important; }
   font-family: Lato, sans-serif;
 }
 .mfa-header-mobile-menu.is-open { transform: translateX(0); }
-.mfa-header-mobile-inner { padding: 20px; }
+/* Extra bottom padding (beyond the uniform 20px) so the geo widget - the
+   last item - has real breathing room above the panel's bottom edge,
+   including safe-area-inset-bottom for notched/gesture-nav phones. */
+.mfa-header-mobile-inner { padding: 20px 20px calc(40px + env(safe-area-inset-bottom, 0px)); }
 
 .mfa-header-mobile-topbar {
   display: flex;

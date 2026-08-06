@@ -104,7 +104,7 @@
 .mfa-stat-value { display: block; font-size: 28px; font-weight: 800; color: #12181f; }
 .mfa-stat-label { display: block; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #64837e; margin-top: 4px; }
 @media (max-width: 700px) {
-  .mfa-stats-strip { grid-template-columns: repeat(2, 1fr); margin-top: -40px; border-radius: 16px; }
+  .mfa-stats-strip { grid-template-columns: repeat(2, 1fr); margin-top: -40px; margin-bottom: 24px; border-radius: 16px; padding-bottom: 18px; border-bottom: 2px solid #e2e8e6; }
   .mfa-stat-item:nth-child(2) { border-right: none; }
   .mfa-stat-item { border-bottom: 1px solid #edf2f1; }
   .mfa-stat-value { font-size: 22px; }
@@ -174,6 +174,8 @@
 .mfa-impact-card h3 { font-size: 15.5px; font-weight: 700; color: #12181f; margin: 0 0 6px; }
 .mfa-impact-card p { font-size: 13.5px; color: #5b6b66; line-height: 1.5; margin: 0; }
 .mfa-impact-card .mfa-impact-icon { font-size: 20px; margin-bottom: 10px; display: block; }
+.mfa-impact-card a { display: inline-block; margin-top: 10px; font-size: 13px; font-weight: 700; color: #25988b; text-decoration: none; }
+.mfa-impact-card a:hover { text-decoration: underline; }
 
 /* ---------- Tools showcase ---------- */
 .mfa-tools-section { background: #f4faf9; }
@@ -193,6 +195,7 @@
 .mfa-tool-card.mfa-tool-wide h3 { justify-content: center; }
 .mfa-tool-card .m4a-quran-container { border: none; box-shadow: none; padding: 0; margin: 0 auto; min-height: auto; }
 .mfa-tool-card.mfa-tool-wide .m4a-quran-loaded-content > div:first-child { justify-content: center !important; }
+.mfa-tool-cta { display: block; text-align: center; margin-top: 18px; }
 
 /* ---------- Mission / Who we are ---------- */
 .mfa-mission { background: #12181f; color: #eef5f3; }

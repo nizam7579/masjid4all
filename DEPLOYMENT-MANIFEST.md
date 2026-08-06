@@ -40,7 +40,13 @@ New shared shortcode: [`[mfa_coming_soon]`](plugins/mfa-core/includes/widgets/co
 | `/test/` | 68195 | "Not LoggedIn" section (near-duplicate of the /member/ dashboard, ~111KB) — `[niz_login]` + marketing panel replaced with `[mfa_coming_soon]`. `publish` status, not linked from any menu, reachable by direct URL only. |
 | `/member/premium/` | 229729 | Same treatment as /test/ — same near-duplicate structure. `publish` status, not linked from any menu. |
 
-⚠ Two **draft** Theme Builder duplicates also still contain the old `[niz_login]` pattern — `230538` "Mosque (Copy)" and `230539` "Business (Copy)". Left untouched since draft status means they're not active/served templates, but worth deleting or fixing before the live push if they could ever be accidentally published.
+⚠ Two **draft** Theme Builder duplicates also still contain the old `[niz_login]` pattern — `230538` "Mosque (Copy)" and `230539` "Business (Copy)". **Deleted** on 2026-08-06 (permanently — `kadence_element` doesn't support WP's trash status, so `wp_delete_post()` hard-deleted them despite requesting trash).
+
+## Sitewide footer: Sofia chat button removed
+
+| Page | Staging post ID | What changed |
+|------|-----------------|---------------|
+| Sitewide footer ("Footer Menu" template) | 83 | Removed the "Sofia" column entirely (floating chat-launcher image + its `#chatbot` modal, ~34KB of markup). Note: `blockVisibility:{"hideBlock":true}` was tried first and did NOT take effect here — footer/Theme-Builder rendering apparently doesn't run the same visibility filter that normal page content does (confirmed via fresh `x-litespeed-cache: miss` server response, so it wasn't a caching issue). Had to remove the block markup outright instead. Worth remembering for any other footer/header-level `blockVisibility` hides. |
 
 ## How to use this doc
 

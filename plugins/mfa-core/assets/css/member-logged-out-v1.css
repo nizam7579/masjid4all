@@ -1,0 +1,51 @@
+/* member-logged-out.css - [mfa_member_logged_out] on the /member/ page
+   (post 70180) logged-out visitor panel. Plain HTML/CSS, no Kadence. */
+
+.mfa-member-out {
+  font-family: Lato, sans-serif;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px 0 40px;
+}
+
+.mfa-member-out-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #12181f;
+  margin: 0 0 12px;
+}
+
+.mfa-member-out-lead {
+  font-size: 16px;
+  color: #12181f;
+  line-height: 1.6;
+  margin: 0 0 24px;
+}
+
+.mfa-member-out-subhead {
+  font-size: 20px;
+  font-weight: 700;
+  color: #12181f;
+  margin: 0 0 16px;
+}
+
+.mfa-member-out-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+@media (max-width: 782px) {
+  .mfa-member-out-cards { grid-template-columns: 1fr; }
+}
+
+.mfa-member-out-card {
+  background: #f4faf9;
+  border-top: 1px solid #239084;
+  border-radius: 10px;
+  padding: 16px;
+}
+.mfa-member-out-card p {
+  margin: 0;
+  color: #12181f;
+  line-height: 1.6;
+}

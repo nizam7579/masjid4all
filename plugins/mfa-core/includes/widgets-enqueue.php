@@ -87,6 +87,11 @@ function mfa_core_enqueue_widget_assets() {
 		wp_enqueue_style( 'mfa-core-brand-page', MFA_CORE_URL . 'assets/css/brand-page-v3.css', array(), $get_version( $css ) );
 	}
 
+	if ( $post && 'member' === $post->post_name ) {
+		$css = MFA_CORE_PATH . 'assets/css/member-logged-out-v1.css';
+		wp_enqueue_style( 'mfa-core-member-logged-out', MFA_CORE_URL . 'assets/css/member-logged-out-v1.css', array(), $get_version( $css ) );
+	}
+
 	$is_legal_page = $post && in_array( $post->post_name, array( 'privacy-policy', 'terms-of-service' ), true );
 	if ( $is_legal_page ) {
 		$header_css = MFA_CORE_PATH . 'assets/css/tool-page-v6.css';

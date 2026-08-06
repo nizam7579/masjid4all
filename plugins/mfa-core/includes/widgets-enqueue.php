@@ -53,10 +53,10 @@ function mfa_core_enqueue_widget_assets() {
 
 	// Floating footer share button — sitewide, since the Kadence Theme
 	// Builder footer isn't part of any specific page's post_content.
-	$share_btn_css = MFA_CORE_PATH . 'assets/css/share-button-v12.css';
-	$share_btn_js  = MFA_CORE_PATH . 'assets/js/share-button-v12.js';
-	wp_enqueue_style( 'mfa-core-share-button', MFA_CORE_URL . 'assets/css/share-button-v12.css', array(), $get_version( $share_btn_css ) );
-	wp_enqueue_script( 'mfa-core-share-button', MFA_CORE_URL . 'assets/js/share-button-v12.js', array(), $get_version( $share_btn_js ), true );
+	$share_btn_css = MFA_CORE_PATH . 'assets/css/share-button-v13.css';
+	$share_btn_js  = MFA_CORE_PATH . 'assets/js/share-button-v13.js';
+	wp_enqueue_style( 'mfa-core-share-button', MFA_CORE_URL . 'assets/css/share-button-v13.css', array(), $get_version( $share_btn_css ) );
+	wp_enqueue_script( 'mfa-core-share-button', MFA_CORE_URL . 'assets/js/share-button-v13.js', array(), $get_version( $share_btn_js ), true );
 
 	// Reusable content/ad two-column layout utility — sitewide, not tied
 	// to a specific page or shortcode. See page-layout-v2.css for usage.
@@ -175,7 +175,7 @@ function mfa_core_litespeed_css_excludes( $excludes ) {
 	$excludes[] = 'mfa-core/assets/css/tool-page-v6.css';
 	$excludes[] = 'mfa-core/assets/css/brand-page-v3.css';
 	$excludes[] = 'mfa-core/assets/css/legal-page-v2.css';
-	$excludes[] = 'mfa-core/assets/css/share-button-v12.css';
+	$excludes[] = 'mfa-core/assets/css/share-button-v13.css';
 	$excludes[] = 'mfa-core/assets/css/business-single-v4.css';
 	$excludes[] = 'mfa-core/assets/css/mosque-single-v1.css';
 	$excludes[] = 'mfa-core/assets/css/website-single-v1.css';

@@ -94,6 +94,37 @@ function mfa_core_enqueue_widget_assets() {
 		$css = MFA_CORE_PATH . 'assets/css/legal-page-v2.css';
 		wp_enqueue_style( 'mfa-core-legal-page', MFA_CORE_URL . 'assets/css/legal-page-v2.css', array(), $get_version( $css ) );
 	}
+
+	// Single business post (Kadence Theme Builder "Business" template,
+	// [mfa_business_home_tab]). Not detectable via has_shortcode() since it
+	// renders through the CPT template, not literal post_content — checked
+	// by post_type instead, same pattern as $is_quran_page above.
+	if ( $post && 'business' === $post->post_type ) {
+		$css = MFA_CORE_PATH . 'assets/css/business-single-v2.css';
+		wp_enqueue_style( 'mfa-core-business-single', MFA_CORE_URL . 'assets/css/business-single-v2.css', array(), $get_version( $css ) );
+
+		// Explicit safety-net enqueue: the modal markup relies on Kadence
+		// Blocks Pro's own kt-modal-init.min.js (MicroModal, handle
+		// "kadence-blocks-pro-modal"), which that plugin only auto-enqueues
+		// when it detects a literal wp:kadence/modal block in parsed page
+		// content — there isn't one here, only matching DOM/attributes, so
+		// force it in rather than relying on that detection firing.
+		if ( wp_script_is( 'kadence-blocks-pro-modal', 'registered' ) ) {
+			wp_enqueue_script( 'kadence-blocks-pro-modal' );
+
+			// Failsafe: confirmed on staging that MicroModal's close handler
+			// (awaitCloseAnimation) never removes .is-open here — it waits for
+			// an `animationend` event that never fires (reproduced identically
+			// on pre-existing, untouched Kadence modals like #TanyaAlya, so
+			// this is a site-wide Kadence/LiteSpeed CSS issue, not something
+			// caused by this markup). Without this, clicking the close button
+			// on Update Info/Upload Image/Share leaves aria-hidden correctly
+			// set to "true" but the modal still visually open (display:block).
+			// Scoped to just .mfa-biz-modal-wrap so it can't affect any other
+			// Kadence modal on the site (Sofia popup, chatbot, etc).
+			wp_add_inline_script( 'kadence-blocks-pro-modal', "document.addEventListener('click',function(e){var c=e.target.closest('.mfa-biz-modal-wrap [data-modal-close]');if(!c)return;var m=c.closest('.kadence-block-pro-modal');if(!m)return;setTimeout(function(){m.classList.remove('is-open');},350);});" );
+		}
+	}
 }
 
 add_filter( 'litespeed_optimize_css_excludes', 'mfa_core_litespeed_css_excludes' );
@@ -107,5 +138,6 @@ function mfa_core_litespeed_css_excludes( $excludes ) {
 	$excludes[] = 'mfa-core/assets/css/brand-page-v3.css';
 	$excludes[] = 'mfa-core/assets/css/legal-page-v2.css';
 	$excludes[] = 'mfa-core/assets/css/share-button-v12.css';
+	$excludes[] = 'mfa-core/assets/css/business-single-v2.css';
 	return $excludes;
 }

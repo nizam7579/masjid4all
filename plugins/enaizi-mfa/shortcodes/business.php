@@ -117,11 +117,8 @@ add_shortcode('niz_mfa_business_info', function() {
         $content .= $address . '<br>City : ' . $city . '<br>Country : ' . $country . '<br>';
         $content .= '<h3>Status : <b>New</b></h3>';
         $content .= '<p>If you are the owner, please Claim Your Business after updating </p>';
-        $content .= '<p>Please click the button below to update the content.</p>';
 
-        // ✅ ADD SHORTCODE HERE (NOT echo)
-        $content .= do_shortcode('[niz_business_ai_updater]');
-        
+
     }else{
         // If Approved
         $biz_status  = mfa_get_business_field($item_id, 'business_status');

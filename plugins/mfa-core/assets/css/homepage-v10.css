@@ -171,11 +171,38 @@
 .mfa-impact-card.mfa-impact-feature p { color: #cfe3e0; font-size: 14.5px; line-height: 1.6; margin: 0; }
 .mfa-impact-card.mfa-impact-feature .mfa-impact-number { font-size: 40px; font-weight: 800; color: #5cfce8; line-height: 1; margin-bottom: 10px; }
 .mfa-impact-card.mfa-impact-feature .mfa-btn { margin-top: 16px; margin-bottom: 4px; }
+/* .mfa-impact-card a below (styling the small cards' plain text links like
+   "Join as Member ->") was also catching this .mfa-btn-primary CTA - same
+   element, and ".mfa-impact-card a" outranks ".mfa-btn-primary" on
+   specificity (0,1,1 vs 0,1,0), so its teal text color was winning over
+   the button's intended white, rendering white-on-white... err teal-on-
+   teal text invisible against the button's own teal background. Scoped
+   override, one class more specific than the plain-link rule. */
+.mfa-impact-card .mfa-btn { color: #ffffff; }
+.mfa-impact-card .mfa-btn:hover { color: #ffffff; }
 .mfa-impact-card h3 { font-size: 15.5px; font-weight: 700; color: #12181f; margin: 0 0 6px; }
 .mfa-impact-card p { font-size: 13.5px; color: #5b6b66; line-height: 1.5; margin: 0; }
 .mfa-impact-card .mfa-impact-icon { font-size: 20px; margin-bottom: 10px; display: block; }
 .mfa-impact-card a { display: inline-block; margin-top: 10px; font-size: 13px; font-weight: 700; color: #25988b; text-decoration: none; }
 .mfa-impact-card a:hover { text-decoration: underline; }
+
+/* Icon + title on the same line for the 4 small cards (not the big
+   .mfa-impact-feature card, which keeps its own stacked layout above) -
+   shortens the section's overall height. Both go inline-block so they
+   flow side by side without forcing full width; .mfa-impact-card p right
+   after is still a real block element so it still starts on its own new
+   line regardless. */
+.mfa-impact-card:not(.mfa-impact-feature) .mfa-impact-icon {
+  display: inline-block;
+  vertical-align: middle;
+  margin-bottom: 8px;
+  margin-right: 8px;
+}
+.mfa-impact-card:not(.mfa-impact-feature) h3 {
+  display: inline-block;
+  vertical-align: middle;
+  margin: 0 0 8px;
+}
 
 /* ---------- Tools showcase ---------- */
 .mfa-tools-section { background: #f4faf9; }

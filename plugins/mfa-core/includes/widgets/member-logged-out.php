@@ -21,6 +21,8 @@ function mfa_member_logged_out_shortcode() {
 	ob_start();
 	?>
 	<div class="mfa-member-out">
+		<p class="mfa-member-out-notice">Registration and login will be available soon.</p>
+
 		<h2 class="mfa-member-out-title">One Ummah. One Platform. Endless Possibilities.</h2>
 		<p class="mfa-member-out-lead">Masjid4All is powered by the community. Every mosque you add, every business you list, every website you recommend, and every friend you invite helps create a trusted platform that benefits Muslims around the world.</p>
 

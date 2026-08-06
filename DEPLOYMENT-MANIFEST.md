@@ -1,18 +1,33 @@
 # Staging → Live Deployment Manifest
 
-Tracks exactly what changed on staging.masjid4all.com during the "refactor all
-public pages" phase, so it can be safely replayed on live (masjid4all.com)
-without touching Hostinger's Database/Full publish (which would overwrite
-live's real users, listings, and WhatsApp history — see the staging/live
-sync discussion in this project's chat history for why).
+**Status: PUSHED TO LIVE on 2026-08-06** via Hostinger Full Sync, after a
+fresh live backup. Live had only 3 new users and no new listings since the
+2026-07-30 clone, so the risk was accepted rather than doing the
+selective-replay approach originally planned below. Post-push verification
+(browsing masjid4all.com directly) confirmed: homepage, `/member/`,
+`/register/`, `/add-mosque/`, `/add-business/`, `/add-website/`, `/test/`,
+`/member/premium/`, live Business/Mosque/Website listings (Home tab content,
+Review/Claim tabs), and the Sofia button removal all landed correctly. A
+batch of console errors on the Knowledge Hub page was checked against
+staging and confirmed pre-existing, not a regression from the push.
 
-Staging was cloned from live on **2026-07-30** and has never been published.
-Anything on live created/changed on or after that date is live-only and must
-not be overwritten by anything below.
+The sections below are now a historical record of what was pushed, not a
+still-pending replay plan.
 
-Last updated: 2026-08-06 (after /member/ logged-out section round).
+---
 
-## Phase 2: login/register module removal (in progress)
+Originally: tracks exactly what changed on staging.masjid4all.com during the
+"refactor all public pages" phase, so it could be safely replayed on live
+(masjid4all.com) without touching Hostinger's Database/Full publish (which
+would overwrite live's real users, listings, and WhatsApp history — see the
+staging/live sync discussion in this project's chat history for why). In the
+end, a Full Sync was used instead, once the live-data risk was confirmed low.
+
+Staging was cloned from live on **2026-07-30**.
+
+Last updated: 2026-08-06 (after live push + verification).
+
+## Phase 2: login/register module removal (complete, pushed to live)
 
 Separate from the page-refactor content in Sections B/C below — this batch
 hides the login/register UI across the pages that have it, ahead of the
@@ -163,22 +178,27 @@ idempotently. `mfa-core` creates no custom tables at all.
   `enaizi_wa`? niz-wa not deployed at all? already migrated?) is unknown
   from here and untouched by this project's public-pages work. Don't assume
   it should move with this push — confirm with the user first.
-- **Login/registration hiding** — planned as a pre-push step (Phase 2 of the
-  user's stated plan), not yet done. Track separately; it's a UI/visibility
-  change, not a content migration concern.
+- **Login/registration hiding** — done, see Phase 2 above. Pushed to live.
 - **enaizi-identity / enaizi-user / enaizi-mfa consolidation** — explicitly
   marked "not started" in CLAUDE.md, unrelated to this push.
 
 ---
 
-## Open TODOs before any live push
+## Post-push status (2026-08-06)
 
-- [ ] Verify mosque template post 875/`mosque-2-2` is still correctly
-      matched via `singular|masjid` conditional (see ⚠ in Section B).
-- [ ] Decide what to do about niz-wa's live-side state (Section F).
-- [ ] Confirm final page count once "refactor all public pages" is fully done
-      — this manifest currently reflects Business/Mosque/Website/Knowledge +
-      the 7 standalone pages; more pages may still be in flight.
-- [ ] Hide login/registration UI (Phase 2) before the live push.
-- [ ] Take a fresh Hostinger backup of live immediately before pushing
-      anything, regardless of how careful the above is.
+- [x] Hide login/registration UI (Phase 2) — done, verified live.
+- [x] Take a fresh Hostinger backup of live before pushing — done.
+- [x] Live push executed (Full Sync) and verified — homepage, all
+      login/register pages, live Business/Mosque/Website listings, and
+      Sofia removal all confirmed correct on masjid4all.com.
+- [ ] **niz-wa's live-side state is still unresolved.** Full Sync would have
+      deployed `niz-wa`'s code to live, but whether the plugin is *activated*
+      there, and which domain's webhook URL is registered in Meta's App
+      Dashboard (staging vs. live), was never confirmed. niz-wa auto-creates
+      `prospect` WordPress users for any unrecognized WhatsApp number via
+      `nwa_resolve_user_id` → `niz_user_create_prospect()`
+      ([niz-wa-integration.php:15-35](plugins/mfa-core/includes/niz-wa-integration.php)) —
+      worth checking Meta's dashboard before assuming this is inactive on live.
+- [x] Mosque template post 875/`mosque-2-2` — confirmed still correctly
+      matched and rendering on live (`/masjid/masjid-samakom-islam-.../`
+      verified with Review tab hidden as expected).

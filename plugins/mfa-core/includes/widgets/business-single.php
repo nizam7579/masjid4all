@@ -139,20 +139,24 @@ function mfa_business_nearby_mosques_tab_shortcode() {
 }
 
 /**
- * [mfa_business_sidebar_mosques] - right-column "Nearby Mosques" widget on
- * the single business post template, replacing the "Business Directory"
- * widget that previously occupied that column. Reuses the same
- * [niz_mfa_local_mosques] widget as the tab above - it already generates a
- * unique wrapper ID per instance (wp_generate_password), so two copies on
- * one page load independently.
+ * [mfa_business_sidebar_directory] - right-column "Business Directory"
+ * widget on the single business post template. Plain HTML heading wrapping
+ * the existing [niz_mfa_nearest_business columns="1"] widget (search box +
+ * country select + business grid) - the same widget the original Kadence
+ * template used here, and the same one used on the business directory page
+ * itself, just not a Kadence block so no rebuilding needed.
+ *
+ * A [mfa_business_sidebar_mosques] widget briefly occupied this column
+ * (reusing [niz_mfa_local_mosques]), but that duplicated the mosque list
+ * already shown in the "Nearby Mosques" tab - reverted in favor of this.
  */
-add_shortcode( 'mfa_business_sidebar_mosques', 'mfa_business_sidebar_mosques_shortcode' );
-function mfa_business_sidebar_mosques_shortcode() {
+add_shortcode( 'mfa_business_sidebar_directory', 'mfa_business_sidebar_directory_shortcode' );
+function mfa_business_sidebar_directory_shortcode() {
 	ob_start();
 	?>
-	<div class="mfa-biz-sidebar-mosques">
-		<h2 class="mfa-biz-sidebar-title">Nearby Mosques</h2>
-		<?php echo do_shortcode( '[niz_mfa_local_mosques]' ); ?>
+	<div class="mfa-biz-sidebar-directory">
+		<h2 class="mfa-biz-sidebar-title">Business Directory</h2>
+		<?php echo do_shortcode( '[niz_mfa_nearest_business columns="1"]' ); ?>
 	</div>
 	<?php
 	return ob_get_clean();

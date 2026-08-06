@@ -100,8 +100,8 @@ function mfa_core_enqueue_widget_assets() {
 	// renders through the CPT template, not literal post_content — checked
 	// by post_type instead, same pattern as $is_quran_page above.
 	if ( $post && 'business' === $post->post_type ) {
-		$css = MFA_CORE_PATH . 'assets/css/business-single-v3.css';
-		wp_enqueue_style( 'mfa-core-business-single', MFA_CORE_URL . 'assets/css/business-single-v3.css', array(), $get_version( $css ) );
+		$css = MFA_CORE_PATH . 'assets/css/business-single-v4.css';
+		wp_enqueue_style( 'mfa-core-business-single', MFA_CORE_URL . 'assets/css/business-single-v4.css', array(), $get_version( $css ) );
 
 		// Explicit safety-net enqueue: the modal markup relies on Kadence
 		// Blocks Pro's own kt-modal-init.min.js (MicroModal, handle
@@ -138,6 +138,6 @@ function mfa_core_litespeed_css_excludes( $excludes ) {
 	$excludes[] = 'mfa-core/assets/css/brand-page-v3.css';
 	$excludes[] = 'mfa-core/assets/css/legal-page-v2.css';
 	$excludes[] = 'mfa-core/assets/css/share-button-v12.css';
-	$excludes[] = 'mfa-core/assets/css/business-single-v3.css';
+	$excludes[] = 'mfa-core/assets/css/business-single-v4.css';
 	return $excludes;
 }

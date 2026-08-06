@@ -85,11 +85,8 @@
   }
 }
 
-/* ---------- Right-column "Nearby Mosques" sidebar widget ---------- */
-.mfa-biz-sidebar-mosques { font-family: Lato, sans-serif; }
-.mfa-biz-sidebar-mosques .niz-grid-canvas {
-  grid-template-columns: 1fr;
-}
+/* ---------- Right-column "Business Directory" sidebar widget ---------- */
+.mfa-biz-sidebar-directory { font-family: Lato, sans-serif; }
 .mfa-biz-sidebar-title {
   font-size: 18px;
   font-weight: 700;

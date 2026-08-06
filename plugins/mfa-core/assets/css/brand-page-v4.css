@@ -114,6 +114,16 @@
   border-radius: 18px;
   padding: 28px;
 }
+/* Mobile: this card's own 28px padding stacks on top of
+   .mfa-brand-page-body's 20px, squeezing form fields into ~230px of
+   usable width on a 375px screen. Trim the card's own padding here -
+   the body padding + this smaller inset still reads as a clear gutter
+   without cramping the inputs. */
+@media (max-width: 782px) {
+  .mfa-contact-form-col {
+    padding: 16px;
+  }
+}
 .mfa-contact-form-col .ff-el-form-control,
 .mfa-contact-form-col textarea {
   border-radius: 10px !important;

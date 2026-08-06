@@ -1,15 +1,20 @@
 # Staging → Live Deployment Manifest
 
-**Status: PUSHED TO LIVE on 2026-08-06** via Hostinger Full Sync, after a
-fresh live backup. Live had only 3 new users and no new listings since the
-2026-07-30 clone, so the risk was accepted rather than doing the
-selective-replay approach originally planned below. Post-push verification
-(browsing masjid4all.com directly) confirmed: homepage, `/member/`,
-`/register/`, `/add-mosque/`, `/add-business/`, `/add-website/`, `/test/`,
-`/member/premium/`, live Business/Mosque/Website listings (Home tab content,
-Review/Claim tabs), and the Sofia button removal all landed correctly. A
-batch of console errors on the Knowledge Hub page was checked against
-staging and confirmed pre-existing, not a regression from the push.
+**Status: PUSHED TO LIVE on 2026-08-06, and again on 2026-08-07** (both via
+Hostinger Full Sync). See "Post-push status (2026-08-07)" below for what the
+second push covered — the summary immediately below is the original
+2026-08-06 push record, left as-is for history.
+
+Original 2026-08-06 push: after a fresh live backup, with live having only 3
+new users and no new listings since the 2026-07-30 clone, so the risk was
+accepted rather than doing the selective-replay approach originally planned
+below. Post-push verification (browsing masjid4all.com directly) confirmed:
+homepage, `/member/`, `/register/`, `/add-mosque/`, `/add-business/`,
+`/add-website/`, `/test/`, `/member/premium/`, live Business/Mosque/Website
+listings (Home tab content, Review/Claim tabs), and the Sofia button removal
+all landed correctly. A batch of console errors on the Knowledge Hub page was
+checked against staging and confirmed pre-existing, not a regression from the
+push.
 
 The sections below are now a historical record of what was pushed, not a
 still-pending replay plan.
@@ -216,3 +221,36 @@ idempotently. `mfa-core` creates no custom tables at all.
 - [x] Mosque template post 875/`mosque-2-2` — confirmed still correctly
       matched and rendering on live (`/masjid/masjid-samakom-islam-.../`
       verified with Review tab hidden as expected).
+
+---
+
+## Post-push status (2026-08-07)
+
+Second live push (Hostinger Full Sync), covering everything built on staging
+since the 2026-08-06 push:
+
+- Header rebuild follow-ups: desktop "Tools" trigger opening the mobile
+  popup, mobile logo/padding/Login-Register-pill redesign, richer popup
+  content (icons, 2-column TOOLS/INFORMATION grid, location widget), and the
+  popup/overlay z-index + bottom-padding fixes so it correctly covers the
+  floating button stack.
+- Sofia floating WhatsApp button restored (as `[mfa_sofia_button]`, a plain
+  shortcode + custom modal rather than the old Kadence block), repositioned
+  into a 3-button stack with Share and Kadence's native scroll-to-top.
+- Sitewide bottom clearance for the floating button stack (`body`-level
+  padding, replacing the old per-template version that missed several
+  pages).
+- Gutter/spacing fixes: Prayer Times (desktop column width + mobile FAQ
+  gutter), Qibla Finder (desktop compass size + mobile FAQ gutter),
+  Knowledge Hub single-post mobile overflow, Contact Us form mobile
+  padding, `/member/` logged-out panel mobile gutter.
+- Mosque/Business sidebar "nearby" listings no longer include the listing
+  being viewed.
+- Homepage: invisible "Add a Mosque" button text fixed (was a CSS
+  specificity bug rendering teal-on-teal), button font size increased,
+  and the 4 small impact cards' icon+title moved onto one line.
+
+**Not independently verified by me post-push this time** — the user executed
+the Hostinger sync directly and confirmed completion, but I haven't browsed
+masjid4all.com myself to re-check these landed correctly (unlike the
+2026-08-06 push above). Worth a spot-check on live if anything looks off.

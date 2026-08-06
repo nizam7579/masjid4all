@@ -1,0 +1,148 @@
+/* mosque-single.css — [mfa_mosque_home_tab] / [mfa_mosque_local_business_tab]
+   on the single mosque post template (Kadence Theme Builder "Mosque"
+   element, post 875). Plain HTML/CSS, no Kadence blocks for these two
+   tabs' own content; the outer 4-tab nav (Home / Community / Local
+   Business / Review) and the right-column Mosque Directory sidebar stay
+   Kadence for now.
+
+   The modal chrome/animation rules below are copied verbatim from
+   business-single-v4.css (same Kadence Blocks Pro modal DOM contract,
+   same MicroModal close-animation failsafe requirement - see that
+   file's comments for the full explanation) rather than shared via a
+   dependency, matching this codebase's existing per-page-type
+   self-contained CSS convention. */
+
+.mfa-mosque-home { font-family: Lato, sans-serif; }
+
+.mfa-mosque-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-bottom: 20px;
+}
+
+.mfa-mosque-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid #d7e4e1;
+  color: #12181f;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: filter 0.15s ease, background 0.15s ease;
+}
+.mfa-mosque-action-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+.mfa-mosque-action-btn:hover { background: #f4faf9; color: #12181f; }
+
+/* ---------- Local Business tab ---------- */
+.mfa-mosque-local { font-family: Lato, sans-serif; }
+.mfa-mosque-local-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #12181f;
+  margin: 0 0 8px;
+}
+.mfa-mosque-local-sub {
+  font-size: 15px;
+  color: #56655f;
+  line-height: 1.6;
+  margin: 0 0 16px;
+}
+/* [niz_mfa_local_business]'s own .niz-grid-canvas grid is 1-column by
+   default (its 3-col media query lives in business-v2.css, which isn't
+   necessarily enqueued on this page) - force 3 columns on desktop,
+   matching the Nearby Mosques tab treatment on the business single page. */
+@media (min-width: 900px) {
+  .mfa-mosque-local .niz-grid-canvas {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+}
+
+/* ---------- Modal chrome (mirrors Kadence Blocks Pro's own modal CSS) ---------- */
+.kadence-block-pro-modal { display: none; }
+.kadence-block-pro-modal.is-open { display: block; }
+
+/* MicroModal (kt-modal-init.min.js) waits for an `animationend` event on the
+   outer modal div before it removes `.is-open` on close (awaitCloseAnimation).
+   Without an actual CSS animation bound to the aria-hidden flip, that event
+   never fires and the modal is stuck visually open (display:block) forever
+   after clicking close, even though aria-hidden correctly becomes "true".
+   These two rules give both open and close a real animation so MicroModal's
+   own close cleanup runs. pointer-events:none during close keeps the fading
+   overlay from swallowing clicks on the page underneath. */
+@keyframes kt-modal-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes kt-modal-fade-out { from { opacity: 1; } to { opacity: 0; } }
+.kadence-block-pro-modal.is-open[aria-hidden="false"] {
+  animation: kt-modal-fade-in 0.2s ease;
+}
+.kadence-block-pro-modal.is-open[aria-hidden="true"] {
+  animation: kt-modal-fade-out 0.2s ease forwards;
+  pointer-events: none;
+}
+
+.kadence-block-pro-modal .kt-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 99999;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.kadence-block-pro-modal .kt-modal-container {
+  position: relative;
+  background: #ffffff;
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 30px;
+  box-sizing: border-box;
+  border-radius: 8px;
+}
+.kadence-block-pro-modal .kt-modal-container.kt-modal-height-full {
+  max-height: 90vh;
+}
+
+.kadence-block-pro-modal .kt-modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f4faf9;
+  border: none;
+  border-radius: 50%;
+  color: #12181f;
+  cursor: pointer;
+  padding: 0;
+}
+.kadence-block-pro-modal .kt-modal-close svg { width: 18px; height: 18px; pointer-events: none; }
+
+.kadence-block-pro-modal .kt-modal-content h2,
+.kadence-block-pro-modal .kt-modal-content h3 {
+  margin-top: 0;
+  color: #12181f;
+}
+.kadence-block-pro-modal .kt-modal-content p {
+  color: #56655f;
+  line-height: 1.6;
+}
+
+body.kt-modal-open { overflow: hidden; }

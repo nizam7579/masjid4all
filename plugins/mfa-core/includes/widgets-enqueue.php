@@ -125,6 +125,20 @@ function mfa_core_enqueue_widget_assets() {
 			wp_add_inline_script( 'kadence-blocks-pro-modal', "document.addEventListener('click',function(e){var c=e.target.closest('.mfa-biz-modal-wrap [data-modal-close]');if(!c)return;var m=c.closest('.kadence-block-pro-modal');if(!m)return;setTimeout(function(){m.classList.remove('is-open');},350);});" );
 		}
 	}
+
+	// Single mosque post (Kadence Theme Builder "Mosque" template,
+	// [mfa_mosque_home_tab] / [mfa_mosque_local_business_tab]). Same
+	// post_type-based detection and modal safety-net pattern as the
+	// business post block above.
+	if ( $post && 'masjid' === $post->post_type ) {
+		$css = MFA_CORE_PATH . 'assets/css/mosque-single-v1.css';
+		wp_enqueue_style( 'mfa-core-mosque-single', MFA_CORE_URL . 'assets/css/mosque-single-v1.css', array(), $get_version( $css ) );
+
+		if ( wp_script_is( 'kadence-blocks-pro-modal', 'registered' ) ) {
+			wp_enqueue_script( 'kadence-blocks-pro-modal' );
+			wp_add_inline_script( 'kadence-blocks-pro-modal', "document.addEventListener('click',function(e){var c=e.target.closest('.mfa-mosque-modal-wrap [data-modal-close]');if(!c)return;var m=c.closest('.kadence-block-pro-modal');if(!m)return;setTimeout(function(){m.classList.remove('is-open');},350);});" );
+		}
+	}
 }
 
 add_filter( 'litespeed_optimize_css_excludes', 'mfa_core_litespeed_css_excludes' );
@@ -139,5 +153,6 @@ function mfa_core_litespeed_css_excludes( $excludes ) {
 	$excludes[] = 'mfa-core/assets/css/legal-page-v2.css';
 	$excludes[] = 'mfa-core/assets/css/share-button-v12.css';
 	$excludes[] = 'mfa-core/assets/css/business-single-v4.css';
+	$excludes[] = 'mfa-core/assets/css/mosque-single-v1.css';
 	return $excludes;
 }

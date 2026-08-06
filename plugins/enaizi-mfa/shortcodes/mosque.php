@@ -16,7 +16,7 @@ if (!defined('ABSPATH')) exit;
 // ============================================
 add_shortcode('niz_mfa_masjid_header', function($atts) {
     // 1. Define the fallback default image
-    $default_url = "https://cdn.staging.masjid4all.com/mosque/join-community.webp";
+    $default_url = "https://cdn.masjid4all.com/mosque/join-community.webp";
     
     // 2. Check if the current post/page has a featured image
     if ( has_post_thumbnail() ) {
@@ -520,7 +520,7 @@ function niz_mfa_load_local_mosques_handler() {
     foreach ($slice as $m) {
         $km = floatval($m['distance']);
         $m_post_id = intval($m['cct_single_post_id'] ?? 0);
-        $m_img = ($m_post_id ? get_the_post_thumbnail_url($m_post_id, 'medium') : '') ?: 'https://cdn.staging.masjid4all.com/mosque/join-community.webp';
+        $m_img = ($m_post_id ? get_the_post_thumbnail_url($m_post_id, 'medium') : '') ?: 'https://cdn.masjid4all.com/mosque/join-community.webp';
         ?>
         <!-- CHANGED: Outputting Business Cards instead of Mosque Cards -->
         <a href="<?php echo esc_url($m['page_url'] ?? '#'); ?>" class="business-card-link">

@@ -22,14 +22,16 @@ setting on live, not a content/code change.
 
 | Page | Staging post ID | What changed |
 |------|-----------------|---------------|
-| `/member/` | 70180 | "Not LoggedIn" (logged-out) Kadence section rebuilt off Kadence via new `[mfa_member_logged_out]` shortcode ([member-logged-out.php](plugins/mfa-core/includes/widgets/member-logged-out.php)); `[niz_login]` form removed. Logged-in member dashboard untouched. |
-| `/register/` (37828) | — | pending |
-| `/add-mosque/` (225511) | — | pending |
-| `/add-business/` (225426) | — | pending |
-| `/add-website/` (223630) | — | pending |
-| Mosque post Review tab (875) | — | pending |
-| Business post Review + Claim tabs (9151) | — | pending |
-| Website post Review + Claim tabs (220902) | — | pending |
+| `/member/` | 70180 | "Not LoggedIn" (logged-out) Kadence section rebuilt off Kadence via new `[mfa_member_logged_out]` shortcode ([member-logged-out.php](plugins/mfa-core/includes/widgets/member-logged-out.php)); `[niz_login]` form removed, "Registration and login will be available soon." notice added. Logged-in member dashboard untouched. |
+| `/register/` | 37828 | `[niz_register]` + `[mfa_member_register]` replaced with `[mfa_coming_soon message="Registration will be available soon."]`. |
+| `/add-mosque/` | 225511 | "LogedOut" column's heading + `[niz_login]` replaced with `[mfa_coming_soon]`. Note: logged-in view already showed "Coming Soon" with the real form (`[niz_mfa_add_mosque]`) already hidden — pre-existing, not something this round changed. |
+| `/add-business/` | 225426 | Same "LogedOut" column treatment as add-mosque. |
+| `/add-website/` | 223630 | Same "LogedOut" column treatment as add-mosque. |
+| Mosque post Review tab | 875 | "LoggedOut" column (heading + `[niz_login]`) replaced with `[mfa_coming_soon]`. Sibling "LoggedIn" column (`[niz_review]`) untouched. |
+| Business post Review + Claim tabs | 9151 | Both "LoggedOut" (Review) and "Not LoggedIn" (Claim) columns replaced with `[mfa_coming_soon]`. |
+| Website post Review + Claim tabs | 220902 | Same as Business — both Review and Claim login columns replaced with `[mfa_coming_soon]`. |
+
+New shared shortcode: [`[mfa_coming_soon]`](plugins/mfa-core/includes/widgets/coming-soon.php) (+ [coming-soon-v1.css](plugins/mfa-core/assets/css/coming-soon-v1.css)), enqueued sitewide since it appears inside Theme Builder template content that `has_shortcode()` can't detect from the front-end post being viewed.
 
 ## How to use this doc
 

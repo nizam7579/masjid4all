@@ -58,6 +58,17 @@ body.wp-theme-kadence { padding-top: 64px !important; }
   color: #25988b;
   border-bottom-color: #25988b;
 }
+/* This one's a <button>, not an <a> - reset browser button chrome so it
+   matches the plain nav links around it. Opens the same slide-out panel
+   the mobile burger opens (Tools/Prayer Time/Qibla Finder/etc.) - desktop
+   gets an inline nav item for this instead of a hamburger icon. */
+.mfa-header-more-trigger {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-family: inherit;
+  cursor: pointer;
+}
 
 .mfa-header-actions { display: flex; align-items: center; gap: 10px; margin-left: auto; }
 

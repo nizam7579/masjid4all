@@ -55,6 +55,7 @@ function mfa_site_header_shortcode() {
 				<?php foreach ( $main_nav as $item ) : ?>
 					<a href="<?php echo esc_url( $item[0] ); ?>" class="mfa-header-nav-link"><?php echo esc_html( $item[1] ); ?></a>
 				<?php endforeach; ?>
+				<button type="button" class="mfa-header-nav-link mfa-header-more-trigger" id="mfa-header-more-trigger" aria-haspopup="true" aria-controls="mfa-header-mobile-menu">Tools</button>
 			</nav>
 
 			<div class="mfa-header-actions">

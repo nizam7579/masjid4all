@@ -178,7 +178,7 @@
    the button's intended white, rendering white-on-white... err teal-on-
    teal text invisible against the button's own teal background. Scoped
    override, one class more specific than the plain-link rule. */
-.mfa-impact-card .mfa-btn { color: #ffffff; }
+.mfa-impact-card .mfa-btn { color: #ffffff; font-size: 16px; }
 .mfa-impact-card .mfa-btn:hover { color: #ffffff; }
 .mfa-impact-card h3 { font-size: 15.5px; font-weight: 700; color: #12181f; margin: 0 0 6px; }
 .mfa-impact-card p { font-size: 13.5px; color: #5b6b66; line-height: 1.5; margin: 0; }

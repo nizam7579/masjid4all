@@ -341,9 +341,15 @@ function niz_mfa_load_more_mosques_handler() {
     $search    = isset($_POST['search']) ? sanitize_text_field($_POST['search']) : '';
     $offset    = isset($_POST['offset']) ? intval($_POST['offset']) : 0;
     $limit     = isset($_POST['limit']) ? intval($_POST['limit']) : 9;
+    $exclude   = isset($_POST['current_mosque_id']) ? intval($_POST['current_mosque_id']) : 0;
 
     $where_clauses = ["country = %s"];
     $params = [$country];
+
+    if ($exclude > 0) {
+        $where_clauses[] = "_ID != %d";
+        $params[] = $exclude;
+    }
 
     if (!empty($search)) {
         $where_clauses[] = "(name LIKE %s OR address LIKE %s)";

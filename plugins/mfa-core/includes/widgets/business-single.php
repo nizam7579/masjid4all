@@ -7,8 +7,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * [mfa_business_home_tab] - the "Home" tab content on the single business
  * post template (Kadence Theme Builder "Business" element, post 9151).
  * Plain HTML, no Kadence blocks - replaces that tab's action-button row
- * (Update Info / Upload Image / Share, each a Kadence modal block) and
- * its [niz_mfa_business_info] content column. The outer 4-tab structure
+ * (Update Info / Upload Image, each a Kadence modal block) and its
+ * [niz_mfa_business_info] content column. The outer 4-tab structure
  * (Home / Nearby Mosques / Review / Claim) stays Kadence for now; only
  * this tab's own content is rebuilt.
  *
@@ -22,7 +22,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * The old "Update Image" modal is dropped: its Kadence block content was
  * a bare `<!-- wp:shortcode /-->` with no shortcode text, so it always
- * opened to an empty modal - dead, not a real feature.
+ * opened to an empty modal - dead, not a real feature. The original
+ * "Share" action button/modal is also dropped - redundant with the
+ * sitewide floating share button (share-button-v12.js) already present
+ * on every page.
  */
 add_shortcode( 'mfa_business_home_tab', 'mfa_business_home_tab_shortcode' );
 function mfa_business_home_tab_shortcode() {
@@ -97,31 +100,59 @@ function mfa_business_home_tab_shortcode() {
 					</button>
 				</div>
 			<?php endif; ?>
-
-			<div class="mfa-biz-modal-wrap">
-				<div id="mfa-biz-modal-share-<?php echo esc_attr( $post_id ); ?>" class="kadence-block-pro-modal kt-m-animate-in-fadeup kt-m-animate-out-fadeout" aria-hidden="true">
-					<div class="kt-modal-overlay" tabindex="-1" data-modal-close="true">
-						<div class="kt-modal-container kt-modal-height-fittocontent kt-close-position-inside" role="dialog" aria-modal="true">
-							<button class="kt-modal-close" aria-label="Close Modal" data-modal-close="true">
-								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-							</button>
-							<div class="kt-modal-content">
-								<h3>Help This Business Reach More People</h3>
-								<p>Support local businesses by sharing this page with your family, friends, and community members. Every share helps more people discover the products and services offered by this business.</p>
-								<p>Share this page today and help connect this business with more customers in your community.</p>
-								<?php echo do_shortcode( '[niz_user_share]' ); ?>
-							</div>
-						</div>
-					</div>
-				</div>
-				<button type="button" class="mfa-biz-action-btn mfa-biz-action-btn--accent" data-modal-open="mfa-biz-modal-share-<?php echo esc_attr( $post_id ); ?>">
-					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
-					Share
-				</button>
-			</div>
 		</div>
 
 		<?php echo do_shortcode( '[niz_mfa_business_info]' ); ?>
+	</div>
+	<?php
+	return ob_get_clean();
+}
+
+/**
+ * [mfa_business_nearby_mosques_tab] - the "Nearby Mosques" tab content on
+ * the single business post template (Kadence Theme Builder "Business"
+ * element, post 9151). Plain HTML, no Kadence blocks - replaces that tab's
+ * "Add Mosque" button, heading, and subheading; keeps reusing the existing
+ * [niz_mfa_local_mosques] shortcode (enaizi-mfa/shortcodes/mosque.php) for
+ * the actual mosque list/AJAX loading, unchanged - that widget was already
+ * a plain shortcode, not a Kadence block, so it didn't need rebuilding.
+ */
+add_shortcode( 'mfa_business_nearby_mosques_tab', 'mfa_business_nearby_mosques_tab_shortcode' );
+function mfa_business_nearby_mosques_tab_shortcode() {
+	$name = get_the_title( get_the_ID() );
+
+	ob_start();
+	?>
+	<div class="mfa-biz-nearby">
+		<div class="mfa-biz-nearby-header">
+			<h1 class="mfa-biz-nearby-title">Mosques near <?php echo esc_html( $name ); ?></h1>
+			<a href="/add-mosque/" class="mfa-biz-action-btn">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+				Add Mosque
+			</a>
+		</div>
+		<p class="mfa-biz-nearby-sub">We&rsquo;ve listed the closest mosques to this business to help you maintain your prayers while on the go. May Allah accept your ibadah.</p>
+		<?php echo do_shortcode( '[niz_mfa_local_mosques]' ); ?>
+	</div>
+	<?php
+	return ob_get_clean();
+}
+
+/**
+ * [mfa_business_sidebar_mosques] - right-column "Nearby Mosques" widget on
+ * the single business post template, replacing the "Business Directory"
+ * widget that previously occupied that column. Reuses the same
+ * [niz_mfa_local_mosques] widget as the tab above - it already generates a
+ * unique wrapper ID per instance (wp_generate_password), so two copies on
+ * one page load independently.
+ */
+add_shortcode( 'mfa_business_sidebar_mosques', 'mfa_business_sidebar_mosques_shortcode' );
+function mfa_business_sidebar_mosques_shortcode() {
+	ob_start();
+	?>
+	<div class="mfa-biz-sidebar-mosques">
+		<h2 class="mfa-biz-sidebar-title">Nearby Mosques</h2>
+		<?php echo do_shortcode( '[niz_mfa_local_mosques]' ); ?>
 	</div>
 	<?php
 	return ob_get_clean();

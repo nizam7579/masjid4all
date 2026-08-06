@@ -36,17 +36,43 @@
   font-weight: 700;
   font-size: 14px;
   cursor: pointer;
+  text-decoration: none;
   transition: filter 0.15s ease, background 0.15s ease;
 }
 .mfa-biz-action-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
-.mfa-biz-action-btn:hover { background: #f4faf9; }
+.mfa-biz-action-btn:hover { background: #f4faf9; color: #12181f; }
 
-.mfa-biz-action-btn--accent {
-  background: #25988b;
-  border-color: #25988b;
-  color: #ffffff;
+/* ---------- Nearby Mosques tab ---------- */
+.mfa-biz-nearby { font-family: Lato, sans-serif; }
+.mfa-biz-nearby-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
 }
-.mfa-biz-action-btn--accent:hover { filter: brightness(1.08); }
+.mfa-biz-nearby-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #12181f;
+  margin: 0;
+}
+.mfa-biz-nearby-sub {
+  font-size: 15px;
+  color: #56655f;
+  line-height: 1.6;
+  margin: 0 0 16px;
+}
+
+/* ---------- Right-column "Nearby Mosques" sidebar widget ---------- */
+.mfa-biz-sidebar-mosques { font-family: Lato, sans-serif; }
+.mfa-biz-sidebar-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #12181f;
+  margin: 0 0 14px;
+}
 
 /* ---------- Modal chrome (mirrors Kadence Blocks Pro's own modal CSS) ---------- */
 .kadence-block-pro-modal { display: none; }

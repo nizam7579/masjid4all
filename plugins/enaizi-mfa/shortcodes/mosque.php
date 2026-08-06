@@ -505,7 +505,7 @@ function niz_mfa_load_local_mosques_handler() {
 
     // SQL Haversine Formula for Local Search
     $sql = $wpdb->prepare("
-        SELECT _ID, name, address, page_url,
+        SELECT _ID, cct_single_post_id, name, address, page_url,
         ( 6371 * acos( cos( radians(%f) ) * cos( radians( latitude ) ) * cos( radians( longitude ) - radians(%f) ) + sin( radians(%f) ) * sin( radians( latitude ) ) ) ) AS distance
         FROM {$table}
         WHERE {$where_sql}
@@ -519,10 +519,15 @@ function niz_mfa_load_local_mosques_handler() {
 
     foreach ($slice as $m) {
         $km = floatval($m['distance']);
+        $m_post_id = intval($m['cct_single_post_id'] ?? 0);
+        $m_img = ($m_post_id ? get_the_post_thumbnail_url($m_post_id, 'medium') : '') ?: 'https://cdn.staging.masjid4all.com/mosque/join-community.webp';
         ?>
         <!-- CHANGED: Outputting Business Cards instead of Mosque Cards -->
         <a href="<?php echo esc_url($m['page_url'] ?? '#'); ?>" class="business-card-link">
             <div class="business-card">
+                <div class="web-card-img-box">
+                    <img src="<?php echo esc_url($m_img); ?>" loading="lazy" alt="<?php echo esc_attr($m['name'] ?? 'Mosque'); ?>">
+                </div>
                 <div class="business-card-content">
                     <div class="business-meta-body">
                         <h3 class="business-name"><?php echo esc_html($m['name'] ?? 'Business Name'); ?></h3>

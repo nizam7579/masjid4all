@@ -1,0 +1,21 @@
+/* knowledge-single.css — single "knowledge" post (Kadence Theme Builder
+   template, post 193845). Kadence's theme-wide .alignwide rule
+   (.content-style-boxed .entry-content .alignwide) intentionally pulls
+   wide blocks out of the normal content column via a negative margin so
+   desktop rows can breathe - but on mobile, where the parent is already
+   full viewport width with zero padding, that same negative margin pushes
+   the content/sidebar row's text past the screen edge instead of just
+   removing the gutter. Scoped to this template's own row ID (stable
+   across every "knowledge" post since they all share template 193845)
+   rather than touching the shared .alignwide rule other pages rely on. */
+@media (max-width: 782px) {
+  .kb-row-layout-id193845_a84099-cd.alignwide {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+    box-sizing: border-box !important;
+  }
+}

@@ -170,6 +170,15 @@ function mfa_core_enqueue_widget_assets() {
 			wp_add_inline_script( 'kadence-blocks-pro-modal', "document.addEventListener('click',function(e){var c=e.target.closest('.mfa-web-modal-wrap [data-modal-close]');if(!c)return;var m=c.closest('.kadence-block-pro-modal');if(!m)return;setTimeout(function(){m.classList.remove('is-open');},350);});" );
 		}
 	}
+
+	// Single knowledge post (Kadence Theme Builder "Knowledge" template,
+	// post 193845 - still raw Kadence blocks, not yet rebuilt off Kadence
+	// like mosque/business/website). Only fixes the mobile content-row
+	// overflow described in knowledge-single.css; no modal on this template.
+	if ( $post && 'knowledge' === $post->post_type ) {
+		$css = MFA_CORE_PATH . 'assets/css/knowledge-single-v1.css';
+		wp_enqueue_style( 'mfa-core-knowledge-single', MFA_CORE_URL . 'assets/css/knowledge-single-v1.css', array(), $get_version( $css ) );
+	}
 }
 
 add_filter( 'litespeed_optimize_css_excludes', 'mfa_core_litespeed_css_excludes' );
@@ -187,6 +196,7 @@ function mfa_core_litespeed_css_excludes( $excludes ) {
 	$excludes[] = 'mfa-core/assets/css/mosque-single-v1.css';
 	$excludes[] = 'mfa-core/assets/css/website-single-v1.css';
 	$excludes[] = 'mfa-core/assets/css/coming-soon-v1.css';
+	$excludes[] = 'mfa-core/assets/css/knowledge-single-v1.css';
 	$excludes[] = 'mfa-core/assets/css/header-v6.css';
 	return $excludes;
 }

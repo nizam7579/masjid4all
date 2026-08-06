@@ -57,11 +57,21 @@ New shared shortcode: [`[mfa_coming_soon]`](plugins/mfa-core/includes/widgets/co
 
 ⚠ Two **draft** Theme Builder duplicates also still contain the old `[niz_login]` pattern — `230538` "Mosque (Copy)" and `230539` "Business (Copy)". **Deleted** on 2026-08-06 (permanently — `kadence_element` doesn't support WP's trash status, so `wp_delete_post()` hard-deleted them despite requesting trash).
 
-## Sitewide footer: Sofia chat button removed
+## Sitewide footer: Sofia chat button removed (2026-08-06), then restored (2026-08-07)
 
 | Page | Staging post ID | What changed |
 |------|-----------------|---------------|
 | Sitewide footer ("Footer Menu" template) | 83 | Removed the "Sofia" column entirely (floating chat-launcher image + its `#chatbot` modal, ~34KB of markup). Note: `blockVisibility:{"hideBlock":true}` was tried first and did NOT take effect here — footer/Theme-Builder rendering apparently doesn't run the same visibility filter that normal page content does (confirmed via fresh `x-litespeed-cache: miss` server response, so it wasn't a caching issue). Had to remove the block markup outright instead. Worth remembering for any other footer/header-level `blockVisibility` hides. |
+
+**Restored 2026-08-07** now that niz-wa is confirmed standalone: rebuilt as a plain
+`[mfa_sofia_button]` shortcode (`plugins/mfa-core/includes/widgets/sofia-button.php`)
+instead of a Kadence block/modal, matching `[mfa_share_button]`'s pattern. Same
+WhatsApp click-to-chat link and copy as the original (recovered from post 83
+revision 230563: `https://api.whatsapp.com/send?phone=60189897579&text=I+have+a+question`,
+"Hi, I'm Sofia, your friendly AI assistant..."). Embedded in post 83 right next to
+`[mfa_share_button]`. Floating buttons now stack bottom-to-top: sofia (24px/90px
+mobile) → share (88px/154px, moved up from its old 24px/90px) → Kadence's native
+`#kt-scroll-up` (160px/210px, unchanged).
 
 ## How to use this doc
 

@@ -1,0 +1,130 @@
+/* mfa-core sofia-button.css - floating WhatsApp chat-launcher button +
+   popup. Stacks directly above the share button (see share-button-v14.css)
+   which itself stacks above Kadence's native #kt-scroll-up ("scroll to
+   top") button - all three share the same right-edge center so they read
+   as one column: scroll-up (top) > share (middle) > sofia (bottom).
+   #kt-scroll-up sits at bottom:160px/right:17px desktop, bottom:210px
+   mobile (Customizer: scroll_up_bottom_offset/scroll_up_side_offset). */
+
+.mfa-sofia-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 100px;
+  border: 2px solid #edf2f7;
+  box-shadow: 0 0 14px 0 rgba(0, 0, 0, 0.2);
+  background: #25988b;
+  overflow: hidden;
+  cursor: pointer;
+  padding: 0;
+  position: fixed !important;
+  right: 9.8px; /* centers on #kt-scroll-up's horizontal center - see share-button-v14.css */
+  bottom: 24px !important;
+  top: auto !important;
+  margin: 0 !important;
+  z-index: 100000;
+}
+@media (max-width: 782px) {
+  .mfa-sofia-btn { bottom: calc(90px + env(safe-area-inset-bottom, 0px)) !important; }
+}
+.mfa-sofia-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mfa-sofia-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 100000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.mfa-sofia-overlay.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.mfa-sofia-modal {
+  position: fixed;
+  right: 12px;
+  bottom: 80px;
+  width: min(300px, calc(100vw - 24px));
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+  padding: 28px 20px 20px;
+  z-index: 100001;
+  text-align: center;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(12px);
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+}
+@media (max-width: 782px) {
+  .mfa-sofia-modal { bottom: calc(146px + env(safe-area-inset-bottom, 0px)); }
+}
+.mfa-sofia-modal.is-open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.mfa-sofia-modal-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: #f4faf9;
+  color: #12181f;
+  cursor: pointer;
+  padding: 0;
+}
+.mfa-sofia-modal-close svg {
+  width: 16px;
+  height: 16px;
+}
+
+.mfa-sofia-modal-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #edf2f7;
+  margin: 0 auto 14px;
+  display: block;
+}
+.mfa-sofia-modal-text {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #33475b;
+  margin: 0 0 18px;
+}
+.mfa-sofia-modal-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 24px;
+  border-radius: 999px;
+  background: #25988b;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 14px;
+  text-decoration: none;
+  box-shadow: 0 8px 18px -6px rgba(37, 152, 139, 0.5);
+  transition: filter 0.15s ease;
+}
+.mfa-sofia-modal-cta:hover {
+  filter: brightness(1.08);
+  color: #ffffff;
+}

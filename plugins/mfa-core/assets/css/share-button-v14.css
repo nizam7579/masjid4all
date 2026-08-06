@@ -10,9 +10,15 @@
    used to track #kt-scroll-up's live position so it could stack above
    it, but that made the button visibly jump/move during scroll instead
    of staying put. A fixed position is what "stay put" requires: no
-   runtime recalculation, so nothing to visibly shift. Mobile gets its
-   own `bottom` override to clear the fixed footer nav bar (~63px tall
-   plus safe-area inset) - see the "Footer nav bar" section below. */
+   runtime recalculation, so nothing to visibly shift.
+
+   Stacks in the middle of a 3-button column now that Sofia is back
+   (sofia-button-v1.css): scroll-up (bottom:160px/210px, native Kadence,
+   see Customizer scroll_up_bottom_offset) > share (here) > sofia
+   (bottom:24px/90px, share's old position). Each step up is +64px
+   (button height 40px + ~24px gap). Mobile gets its own `bottom`
+   override to clear the fixed footer nav bar (~63px tall plus
+   safe-area inset) - see the "Footer nav bar" section below. */
 .mfa-share-btn {
   display: flex;
   align-items: center;
@@ -33,13 +39,13 @@
      right edge; offsetting this 40px-wide button by 29.8 - 40/2 = 9.8px
      lands its own center at the same point. */
   right: 9.8px;
-  bottom: 24px !important;
+  bottom: 88px !important;
   top: auto !important;
   margin: 0 !important;
   z-index: 100000;
 }
 @media (max-width: 782px) {
-  .mfa-share-btn { bottom: calc(90px + env(safe-area-inset-bottom, 0px)) !important; }
+  .mfa-share-btn { bottom: calc(154px + env(safe-area-inset-bottom, 0px)) !important; }
 }
 .mfa-share-btn svg {
   width: 20px;
@@ -52,7 +58,7 @@
 .mfa-share-toast {
   position: fixed;
   right: 20px;
-  bottom: 90px;
+  bottom: 154px; /* stays ~26px above the share button - see its new bottom:88px above */
   background: #12181f;
   color: #f4faf9;
   font-size: 13px;

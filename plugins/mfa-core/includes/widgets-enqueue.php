@@ -60,10 +60,17 @@ function mfa_core_enqueue_widget_assets() {
 
 	// Floating footer share button — sitewide, since the Kadence Theme
 	// Builder footer isn't part of any specific page's post_content.
-	$share_btn_css = MFA_CORE_PATH . 'assets/css/share-button-v13.css';
+	$share_btn_css = MFA_CORE_PATH . 'assets/css/share-button-v14.css';
 	$share_btn_js  = MFA_CORE_PATH . 'assets/js/share-button-v13.js';
-	wp_enqueue_style( 'mfa-core-share-button', MFA_CORE_URL . 'assets/css/share-button-v13.css', array(), $get_version( $share_btn_css ) );
+	wp_enqueue_style( 'mfa-core-share-button', MFA_CORE_URL . 'assets/css/share-button-v14.css', array(), $get_version( $share_btn_css ) );
 	wp_enqueue_script( 'mfa-core-share-button', MFA_CORE_URL . 'assets/js/share-button-v13.js', array(), $get_version( $share_btn_js ), true );
+
+	// Floating "Sofia" WhatsApp chat button — sitewide, same reasoning as
+	// the share button above (embedded in post 83 alongside it).
+	$sofia_btn_css = MFA_CORE_PATH . 'assets/css/sofia-button-v1.css';
+	$sofia_btn_js  = MFA_CORE_PATH . 'assets/js/sofia-button-v1.js';
+	wp_enqueue_style( 'mfa-core-sofia-button', MFA_CORE_URL . 'assets/css/sofia-button-v1.css', array(), $get_version( $sofia_btn_css ) );
+	wp_enqueue_script( 'mfa-core-sofia-button', MFA_CORE_URL . 'assets/js/sofia-button-v1.js', array(), $get_version( $sofia_btn_js ), true );
 
 	// Reusable content/ad two-column layout utility — sitewide, not tied
 	// to a specific page or shortcode. See page-layout-v2.css for usage.
@@ -191,7 +198,8 @@ function mfa_core_litespeed_css_excludes( $excludes ) {
 	$excludes[] = 'mfa-core/assets/css/tool-page-v7.css';
 	$excludes[] = 'mfa-core/assets/css/brand-page-v4.css';
 	$excludes[] = 'mfa-core/assets/css/legal-page-v2.css';
-	$excludes[] = 'mfa-core/assets/css/share-button-v13.css';
+	$excludes[] = 'mfa-core/assets/css/share-button-v14.css';
+	$excludes[] = 'mfa-core/assets/css/sofia-button-v1.css';
 	$excludes[] = 'mfa-core/assets/css/business-single-v4.css';
 	$excludes[] = 'mfa-core/assets/css/mosque-single-v1.css';
 	$excludes[] = 'mfa-core/assets/css/website-single-v1.css';

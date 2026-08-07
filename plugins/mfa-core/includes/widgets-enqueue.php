@@ -57,26 +57,37 @@ function mfa_core_enqueue_widget_assets() {
 	$global_css_path = MFA_CORE_PATH . 'assets/css/global-v1.css';
 	wp_enqueue_style( 'mfa-core-global', MFA_CORE_URL . 'assets/css/global-v1.css', array(), $get_version( $global_css_path ) );
 
-	// Sitewide header — same reasoning as the floating share button below:
-	// not tied to any specific page's post_content.
-	$header_css_path = MFA_CORE_PATH . 'assets/css/header-v11.css';
-	$header_js_path  = MFA_CORE_PATH . 'assets/js/header-v3.js';
-	wp_enqueue_style( 'mfa-core-header', MFA_CORE_URL . 'assets/css/header-v11.css', array(), $get_version( $header_css_path ) );
-	wp_enqueue_script( 'mfa-core-header', MFA_CORE_URL . 'assets/js/header-v3.js', array(), $get_version( $header_js_path ), true );
+	// /member/* has its own custom header/footer shell (see
+	// includes/member-template.php) that bypasses the public site's chrome
+	// entirely - the sitewide header and floating buttons below belong to
+	// that public chrome, so they're skipped here rather than loaded unused.
+	$is_member_area = function_exists( 'mfa_is_member_area' ) && mfa_is_member_area();
 
-	// Floating footer share button — sitewide, since the Kadence Theme
-	// Builder footer isn't part of any specific page's post_content.
-	$share_btn_css = MFA_CORE_PATH . 'assets/css/share-button-v15.css';
-	$share_btn_js  = MFA_CORE_PATH . 'assets/js/share-button-v13.js';
-	wp_enqueue_style( 'mfa-core-share-button', MFA_CORE_URL . 'assets/css/share-button-v15.css', array(), $get_version( $share_btn_css ) );
-	wp_enqueue_script( 'mfa-core-share-button', MFA_CORE_URL . 'assets/js/share-button-v13.js', array(), $get_version( $share_btn_js ), true );
+	if ( ! $is_member_area ) {
+		// Sitewide header — same reasoning as the floating share button below:
+		// not tied to any specific page's post_content.
+		$header_css_path = MFA_CORE_PATH . 'assets/css/header-v11.css';
+		$header_js_path  = MFA_CORE_PATH . 'assets/js/header-v3.js';
+		wp_enqueue_style( 'mfa-core-header', MFA_CORE_URL . 'assets/css/header-v11.css', array(), $get_version( $header_css_path ) );
+		wp_enqueue_script( 'mfa-core-header', MFA_CORE_URL . 'assets/js/header-v3.js', array(), $get_version( $header_js_path ), true );
 
-	// Floating "Sofia" WhatsApp chat button — sitewide, same reasoning as
-	// the share button above (embedded in post 83 alongside it).
-	$sofia_btn_css = MFA_CORE_PATH . 'assets/css/sofia-button-v1.css';
-	$sofia_btn_js  = MFA_CORE_PATH . 'assets/js/sofia-button-v1.js';
-	wp_enqueue_style( 'mfa-core-sofia-button', MFA_CORE_URL . 'assets/css/sofia-button-v1.css', array(), $get_version( $sofia_btn_css ) );
-	wp_enqueue_script( 'mfa-core-sofia-button', MFA_CORE_URL . 'assets/js/sofia-button-v1.js', array(), $get_version( $sofia_btn_js ), true );
+		// Floating footer share button — sitewide, since the Kadence Theme
+		// Builder footer isn't part of any specific page's post_content.
+		$share_btn_css = MFA_CORE_PATH . 'assets/css/share-button-v15.css';
+		$share_btn_js  = MFA_CORE_PATH . 'assets/js/share-button-v13.js';
+		wp_enqueue_style( 'mfa-core-share-button', MFA_CORE_URL . 'assets/css/share-button-v15.css', array(), $get_version( $share_btn_css ) );
+		wp_enqueue_script( 'mfa-core-share-button', MFA_CORE_URL . 'assets/js/share-button-v13.js', array(), $get_version( $share_btn_js ), true );
+
+		// Floating "Sofia" WhatsApp chat button — sitewide, same reasoning as
+		// the share button above (embedded in post 83 alongside it).
+		$sofia_btn_css = MFA_CORE_PATH . 'assets/css/sofia-button-v1.css';
+		$sofia_btn_js  = MFA_CORE_PATH . 'assets/js/sofia-button-v1.js';
+		wp_enqueue_style( 'mfa-core-sofia-button', MFA_CORE_URL . 'assets/css/sofia-button-v1.css', array(), $get_version( $sofia_btn_css ) );
+		wp_enqueue_script( 'mfa-core-sofia-button', MFA_CORE_URL . 'assets/js/sofia-button-v1.js', array(), $get_version( $sofia_btn_js ), true );
+	} else {
+		$member_shell_css = MFA_CORE_PATH . 'assets/css/member-shell-v1.css';
+		wp_enqueue_style( 'mfa-core-member-shell', MFA_CORE_URL . 'assets/css/member-shell-v1.css', array( 'mfa-core-global' ), $get_version( $member_shell_css ) );
+	}
 
 	// Reusable content/ad two-column layout utility — sitewide, not tied
 	// to a specific page or shortcode. See page-layout-v2.css for usage.
@@ -218,5 +229,6 @@ function mfa_core_litespeed_css_excludes( $excludes ) {
 	$excludes[] = 'mfa-core/assets/css/coming-soon-v1.css';
 	$excludes[] = 'mfa-core/assets/css/knowledge-single-v1.css';
 	$excludes[] = 'mfa-core/assets/css/header-v11.css';
+	$excludes[] = 'mfa-core/assets/css/member-shell-v1.css';
 	return $excludes;
 }

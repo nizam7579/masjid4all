@@ -1,0 +1,135 @@
+/* mfa-core member-shell.css — the custom /member/* chrome (header + footer
+   + main container) that replaces Kadence entirely on this area. See
+   includes/member-template.php and includes/widgets/member-header-footer.php.
+   Builds on global-v1.css tokens (loaded first, see widgets-enqueue.php). */
+
+body.mfa-member-area {
+  background: var(--mfa-mint-bg);
+  margin: 0;
+}
+
+/* ---------- Header ---------- */
+
+.mfa-member-header {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-header);
+  background: var(--mfa-white);
+  border-bottom: 1px solid var(--mfa-border);
+}
+
+.mfa-member-header-inner {
+  max-width: var(--mfa-container-max);
+  margin: 0 auto;
+  padding: var(--mfa-space-4) var(--mfa-space-5);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mfa-space-4);
+}
+
+.mfa-member-header-back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--mfa-space-2);
+  color: var(--mfa-green-dark);
+  font-weight: 700;
+  font-size: 15px;
+  text-decoration: none;
+}
+.mfa-member-header-back svg { width: 18px; height: 18px; flex-shrink: 0; }
+.mfa-member-header-back:hover { color: var(--mfa-teal-dark); }
+
+.mfa-member-header-account {
+  display: flex;
+  align-items: center;
+  gap: var(--mfa-space-3);
+}
+
+.mfa-member-header-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--mfa-teal);
+  color: var(--mfa-white);
+  font-weight: 700;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+.mfa-member-header-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--mfa-ink);
+  display: none;
+}
+@media (min-width: 601px) {
+  .mfa-member-header-name { display: inline; }
+}
+
+.mfa-member-header-account .niz-user-logout-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--mfa-border);
+  background: transparent;
+  color: var(--mfa-muted);
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.mfa-member-header-account .niz-user-logout-btn:hover {
+  background: var(--mfa-mint-bg);
+  color: var(--mfa-teal-dark);
+}
+
+/* ---------- Main ---------- */
+
+.mfa-member-main {
+  max-width: var(--mfa-container-max);
+  margin: 0 auto;
+  padding: var(--mfa-space-6) var(--mfa-space-5) var(--mfa-space-9);
+  min-height: 60vh;
+}
+
+/* ---------- Footer ---------- */
+
+.mfa-member-footer {
+  border-top: 1px solid var(--mfa-border);
+  background: var(--mfa-white);
+}
+
+.mfa-member-footer-inner {
+  max-width: var(--mfa-container-max);
+  margin: 0 auto;
+  padding: var(--mfa-space-5);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mfa-space-3);
+}
+
+.mfa-member-footer-copy {
+  font-size: 13px;
+  color: var(--mfa-muted);
+}
+
+.mfa-member-footer-links {
+  display: flex;
+  gap: var(--mfa-space-5);
+}
+.mfa-member-footer-links a {
+  font-size: 13px;
+  color: var(--mfa-muted);
+  text-decoration: none;
+}
+.mfa-member-footer-links a:hover {
+  color: var(--mfa-teal-dark);
+}

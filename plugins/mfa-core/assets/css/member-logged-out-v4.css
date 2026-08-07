@@ -13,30 +13,6 @@
   .mfa-member-out { padding: 20px 20px 40px; }
 }
 
-/* This page's Kadence Theme Builder column (post 70180) carries its own
-   -10px margin-left on top of an already-correctly-full-bleed ancestor
-   column, pushing content 10px past the left edge and eating into the
-   padding above - net visible gutter was only 10px instead of 20px.
-   Unique block ID, scoped to just this page's template. */
-@media (max-width: 782px) {
-  .kadence-column70180_f43d33-4c {
-    margin-left: 0 !important;
-    width: 100% !important;
-  }
-}
-
-.mfa-member-out-notice {
-  display: inline-block;
-  background: #fff4e5;
-  border: 1px solid #f0b849;
-  color: #6b4a05;
-  font-size: 14px;
-  font-weight: 700;
-  border-radius: 999px;
-  padding: 8px 16px;
-  margin: 0 0 16px;
-}
-
 .mfa-member-out-title {
   font-size: 24px;
   font-weight: 700;
@@ -77,4 +53,42 @@
   margin: 0;
   color: var(--mfa-ink);
   line-height: 1.6;
+}
+
+/* ---------- Login / Register tab toggle ---------- */
+
+.mfa-member-auth {
+  max-width: 480px;
+  margin: 0 auto 32px;
+  padding: 20px 24px 0;
+}
+@media (max-width: 782px) {
+  .mfa-member-auth { padding: 20px 20px 0; }
+}
+
+.mfa-member-auth-tabs {
+  display: flex;
+  gap: var(--mfa-space-2);
+  border-bottom: 1px solid var(--mfa-border);
+  margin-bottom: var(--mfa-space-5);
+}
+
+.mfa-member-auth-tab {
+  flex: 1;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 10px 0 12px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--mfa-muted);
+  cursor: pointer;
+}
+.mfa-member-auth-tab.is-active {
+  color: var(--mfa-teal-dark);
+  border-bottom-color: var(--mfa-teal);
+}
+
+.mfa-member-auth-panel[hidden] {
+  display: none;
 }

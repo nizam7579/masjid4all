@@ -1,14 +1,14 @@
 /* mfa-core homepage.css — /homepage/ page-specific styling.
-   Design tokens: accent #25988b, dark hero gradient toward rgb(13,77,71),
+   Design tokens: accent var(--mfa-teal), dark hero gradient toward rgb(13,77,71),
    mint-to-white headline gradient rgb(92,252,232), Lato (site default). */
 
 .mfa-home { overflow-x: hidden; }
-.mfa-home .mfa-section { padding: 72px 24px; }
-.mfa-home .mfa-section-inner { max-width: 1290px; margin: 0 auto; }
+.mfa-home .mfa-section { padding: 72px var(--mfa-space-6); }
+.mfa-home .mfa-section-inner { max-width: var(--mfa-container-max); margin: 0 auto; }
 .mfa-home .mfa-section-narrow .mfa-section-inner { max-width: 820px; }
 
 @media (max-width: 782px) {
-  .mfa-home .mfa-section { padding: 48px 20px; }
+  .mfa-home .mfa-section { padding: var(--mfa-space-9) var(--mfa-space-5); }
   .mfa-home .mfa-hero { padding-left: 0; padding-right: 0; }
   .mfa-home .mfa-hero-inner { padding-left: 20px; padding-right: 20px; }
 }
@@ -23,15 +23,15 @@
   color: #5cfce8;
   margin-bottom: 12px;
 }
-.mfa-eyebrow.mfa-eyebrow-dark { color: #25988b; }
+.mfa-eyebrow.mfa-eyebrow-dark { color: var(--mfa-teal); }
 
 /* ---------- Hero ---------- */
 .mfa-hero {
   position: relative;
   padding: 56px 24px 96px;
-  background: linear-gradient(150deg, #12181f 0%, #0d4d47 100%);
+  background: linear-gradient(150deg, var(--mfa-ink) 0%, var(--mfa-green-dark) 100%);
   text-align: center;
-  color: #f4faf9;
+  color: var(--mfa-mint-bg);
   overflow: hidden;
 }
 .mfa-hero::before {
@@ -49,10 +49,10 @@
   line-height: 1.08;
   font-weight: 800;
   margin: 0 0 20px;
-  color: #ffffff;
+  color: var(--mfa-white);
 }
 .mfa-hero h1 .mfa-text-gradient {
-  background: linear-gradient(90deg, #5cfce8 0%, #ffffff 100%);
+  background: linear-gradient(90deg, #5cfce8 0%, var(--mfa-white) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -75,7 +75,7 @@
   z-index: 2;
   max-width: 1000px;
   margin: -56px auto 0;
-  background: #ffffff;
+  background: var(--mfa-white);
   border-radius: 20px;
   box-shadow: 0 20px 45px -18px rgba(15,30,28,0.35);
   display: grid;
@@ -84,10 +84,10 @@
 }
 .mfa-stat-item { text-align: center; padding: 10px; border-right: 1px solid #edf2f1; }
 .mfa-stat-item:last-child { border-right: none; }
-.mfa-stat-value { display: block; font-size: 28px; font-weight: 800; color: #12181f; }
+.mfa-stat-value { display: block; font-size: 28px; font-weight: 800; color: var(--mfa-ink); }
 .mfa-stat-label { display: block; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #64837e; margin-top: 4px; }
 @media (max-width: 700px) {
-  .mfa-stats-strip { grid-template-columns: repeat(2, 1fr); margin-top: -40px; margin-bottom: 24px; border-radius: 16px; padding-bottom: 18px; border-bottom: 2px solid #e2e8e6; }
+  .mfa-stats-strip { grid-template-columns: repeat(2, 1fr); margin-top: -40px; margin-bottom: 24px; border-radius: var(--mfa-radius-md); padding-bottom: 18px; border-bottom: 2px solid #e2e8e6; }
   .mfa-stat-item:nth-child(2) { border-right: none; }
   .mfa-stat-item { border-bottom: 1px solid #edf2f1; }
   .mfa-stat-value { font-size: 22px; }
@@ -95,7 +95,7 @@
 
 /* ---------- Section headers ---------- */
 .mfa-section-head { text-align: center; max-width: 640px; margin: 0 auto 44px; }
-.mfa-section-head h2 { font-size: clamp(26px, 3.4vw, 36px); font-weight: 800; color: #12181f; margin: 0 0 14px; line-height: 1.2; }
+.mfa-section-head h2 { font-size: clamp(26px, 3.4vw, 36px); font-weight: 800; color: var(--mfa-ink); margin: 0 0 14px; line-height: 1.2; }
 .mfa-section-head p { font-size: 16px; color: #56655f; line-height: 1.6; margin: 0; }
 
 /* ---------- Directory cards ---------- */
@@ -108,22 +108,22 @@
 @media (max-width: 560px) { .mfa-directory-grid { grid-template-columns: 1fr; } }
 
 .mfa-directory-card {
-  background: #ffffff;
-  border: 1px solid #e7efed;
-  border-radius: 16px;
+  background: var(--mfa-white);
+  border: 1px solid var(--mfa-border);
+  border-radius: var(--mfa-radius-md);
   padding: 28px 22px;
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
 }
-.mfa-directory-card:hover { transform: translateY(-4px); box-shadow: 0 16px 30px -14px rgba(18,24,31,0.18); border-color: #25988b; }
+.mfa-directory-card:hover { transform: translateY(-4px); box-shadow: 0 16px 30px -14px rgba(18,24,31,0.18); border-color: var(--mfa-teal); }
 .mfa-directory-icon {
   width: 46px; height: 46px; border-radius: 12px;
-  background: rgba(37,152,139,0.12); color: #25988b;
+  background: rgba(37,152,139,0.12); color: var(--mfa-teal);
   display: flex; align-items: center; justify-content: center;
   font-size: 22px; margin-bottom: 16px;
 }
-.mfa-directory-card h3 { font-size: 18px; font-weight: 700; color: #12181f; margin: 0 0 8px; }
-.mfa-directory-card p { font-size: 14px; color: #5b6b66; line-height: 1.55; margin: 0 0 16px; }
-.mfa-directory-card a { font-size: 14px; font-weight: 700; color: #25988b; text-decoration: none; }
+.mfa-directory-card h3 { font-size: 18px; font-weight: 700; color: var(--mfa-ink); margin: 0 0 8px; }
+.mfa-directory-card p { font-size: 14px; color: var(--mfa-muted); line-height: 1.55; margin: 0 0 16px; }
+.mfa-directory-card a { font-size: 14px; font-weight: 700; color: var(--mfa-teal); text-decoration: none; }
 .mfa-directory-card a:hover { text-decoration: underline; }
 
 /* ---------- Impact: asymmetric bento (not 6 identical boxes) ---------- */
@@ -138,19 +138,19 @@
 @media (max-width: 560px) { .mfa-impact-bento { grid-template-columns: 1fr; } .mfa-impact-bento .mfa-impact-feature { grid-column: auto; } }
 
 .mfa-impact-card {
-  border-radius: 16px;
+  border-radius: var(--mfa-radius-md);
   padding: 24px;
-  background: #ffffff;
-  border: 1px solid #e7efed;
+  background: var(--mfa-white);
+  border: 1px solid var(--mfa-border);
 }
 .mfa-impact-card.mfa-impact-feature {
-  background: linear-gradient(160deg, #0d4d47 0%, #12181f 100%);
-  color: #fff;
+  background: linear-gradient(160deg, var(--mfa-green-dark) 0%, var(--mfa-ink) 100%);
+  color: var(--mfa-white);
   display: flex;
   flex-direction: column;
   justify-content: center;
 }
-.mfa-impact-card.mfa-impact-feature h3 { color: #fff; font-size: 22px; margin: 0 0 10px; }
+.mfa-impact-card.mfa-impact-feature h3 { color: var(--mfa-white); font-size: 22px; margin: 0 0 10px; }
 .mfa-impact-card.mfa-impact-feature p { color: #cfe3e0; font-size: 14.5px; line-height: 1.6; margin: 0; }
 .mfa-impact-card.mfa-impact-feature .mfa-impact-number { font-size: 40px; font-weight: 800; color: #5cfce8; line-height: 1; margin-bottom: 10px; }
 .mfa-impact-card.mfa-impact-feature .mfa-btn { margin-top: 16px; margin-bottom: 4px; }
@@ -161,12 +161,12 @@
    the button's intended white, rendering white-on-white... err teal-on-
    teal text invisible against the button's own teal background. Scoped
    override, one class more specific than the plain-link rule. */
-.mfa-impact-card .mfa-btn { color: #ffffff; font-size: 16px; }
-.mfa-impact-card .mfa-btn:hover { color: #ffffff; }
-.mfa-impact-card h3 { font-size: 15.5px; font-weight: 700; color: #12181f; margin: 0 0 6px; }
-.mfa-impact-card p { font-size: 13.5px; color: #5b6b66; line-height: 1.5; margin: 0; }
+.mfa-impact-card .mfa-btn { color: var(--mfa-white); font-size: 16px; }
+.mfa-impact-card .mfa-btn:hover { color: var(--mfa-white); }
+.mfa-impact-card h3 { font-size: 15.5px; font-weight: 700; color: var(--mfa-ink); margin: 0 0 6px; }
+.mfa-impact-card p { font-size: 13.5px; color: var(--mfa-muted); line-height: 1.5; margin: 0; }
 .mfa-impact-card .mfa-impact-icon { font-size: 20px; margin-bottom: 10px; display: block; }
-.mfa-impact-card a { display: inline-block; margin-top: 10px; font-size: 13px; font-weight: 700; color: #25988b; text-decoration: none; }
+.mfa-impact-card a { display: inline-block; margin-top: 10px; font-size: 13px; font-weight: 700; color: var(--mfa-teal); text-decoration: none; }
 .mfa-impact-card a:hover { text-decoration: underline; }
 
 /* Icon + title on the same line for the 4 small cards (not the big
@@ -188,7 +188,7 @@
 }
 
 /* ---------- Tools showcase ---------- */
-.mfa-tools-section { background: #f4faf9; }
+.mfa-tools-section { background: var(--mfa-mint-bg); }
 .mfa-tools-grid { display: grid; grid-template-columns: 3fr 2fr; gap: 24px; margin-bottom: 24px; }
 @media (max-width: 820px) {
   .mfa-tools-grid { grid-template-columns: 1fr; }
@@ -196,9 +196,9 @@
   .mfa-tool-card.mfa-tool-prayer > p { text-align: center; }
   .mfa-tool-card.mfa-tool-prayer h3 { justify-content: center; }
 }
-.mfa-tool-card { background: #fff; border-radius: 18px; padding: 28px; border: 1px solid #e7efed; }
-.mfa-tool-card h3 { font-size: 19px; font-weight: 700; color: #12181f; margin: 0 0 6px; display: flex; align-items: center; gap: 8px; }
-.mfa-tool-card > p { font-size: 14px; color: #5b6b66; margin: 0 0 18px; }
+.mfa-tool-card { background: var(--mfa-white); border-radius: 18px; padding: 28px; border: 1px solid var(--mfa-border); }
+.mfa-tool-card h3 { font-size: 19px; font-weight: 700; color: var(--mfa-ink); margin: 0 0 6px; display: flex; align-items: center; gap: 8px; }
+.mfa-tool-card > p { font-size: 14px; color: var(--mfa-muted); margin: 0 0 18px; }
 .mfa-tool-card.mfa-tool-wide { grid-column: 1 / -1; }
 .mfa-tool-card.mfa-tool-wide h3,
 .mfa-tool-card.mfa-tool-wide > p { text-align: center; }
@@ -208,44 +208,44 @@
 .mfa-tool-cta { display: block; text-align: center; margin-top: 18px; }
 
 /* ---------- Mission / Who we are ---------- */
-.mfa-mission { background: #12181f; color: #eef5f3; }
-.mfa-mission .mfa-section-head h2 { color: #ffffff; }
+.mfa-mission { background: var(--mfa-ink); color: #eef5f3; }
+.mfa-mission .mfa-section-head h2 { color: var(--mfa-white); }
 .mfa-mission .mfa-section-head p { color: #b9c9c5; }
 .mfa-mission-body { max-width: 720px; margin: 0 auto; text-align: center; font-size: 16px; line-height: 1.75; color: #cfe3e0; }
 .mfa-mission-body strong { color: #5cfce8; }
 
 /* ---------- CTA band ---------- */
 .mfa-cta-band {
-  background: linear-gradient(120deg, #25988b 0%, #0d4d47 100%);
+  background: linear-gradient(120deg, var(--mfa-teal) 0%, var(--mfa-green-dark) 100%);
   border-radius: 24px;
   padding: 56px 32px;
   text-align: center;
-  color: #fff;
+  color: var(--mfa-white);
 }
-.mfa-cta-band h2 { font-size: clamp(24px, 3vw, 32px); font-weight: 800; margin: 0 0 12px; color: #fff; }
+.mfa-cta-band h2 { font-size: clamp(24px, 3vw, 32px); font-weight: 800; margin: 0 0 12px; color: var(--mfa-white); }
 .mfa-cta-band p { font-size: 16px; color: #dff2ef; margin: 0 0 26px; }
 
 /* ---------- Testimonials ---------- */
 .mfa-testimonial-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
 @media (max-width: 900px) { .mfa-testimonial-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 600px) { .mfa-testimonial-grid { grid-template-columns: 1fr; } }
-.mfa-testimonial-card { background: #fff; border: 1px solid #e7efed; border-radius: 16px; padding: 24px; }
+.mfa-testimonial-card { background: var(--mfa-white); border: 1px solid var(--mfa-border); border-radius: var(--mfa-radius-md); padding: 24px; }
 .mfa-testimonial-card p.mfa-quote { font-size: 14.5px; line-height: 1.6; color: #33413d; margin: 0 0 16px; }
-.mfa-testimonial-card p.mfa-attr { font-size: 13px; font-weight: 700; color: #25988b; margin: 0; }
+.mfa-testimonial-card p.mfa-attr { font-size: 13px; font-weight: 700; color: var(--mfa-teal); margin: 0; }
 
 /* ---------- FAQ (core/details) ---------- */
 .mfa-faq-list details {
-  border-bottom: 1px solid #e7efed;
+  border-bottom: 1px solid var(--mfa-border);
   padding: 18px 0;
 }
 .mfa-faq-list summary {
   font-size: 16px;
   font-weight: 700;
-  color: #12181f;
+  color: var(--mfa-ink);
   cursor: pointer;
   list-style: none;
 }
 .mfa-faq-list summary::-webkit-details-marker { display: none; }
-.mfa-faq-list summary::after { content: '+'; float: right; font-weight: 400; color: #25988b; }
+.mfa-faq-list summary::after { content: '+'; float: right; font-weight: 400; color: var(--mfa-teal); }
 .mfa-faq-list details[open] summary::after { content: '−'; }
 .mfa-faq-list details p { font-size: 14.5px; color: #56655f; line-height: 1.65; margin: 10px 0 0; }

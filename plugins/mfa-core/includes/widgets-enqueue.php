@@ -90,8 +90,8 @@ function mfa_core_enqueue_widget_assets() {
 	wp_enqueue_style( 'mfa-core-coming-soon', MFA_CORE_URL . 'assets/css/coming-soon-v1.css', array(), $get_version( $coming_soon_css ) );
 
 	if ( $post && 'homepage' === $post->post_name ) {
-		$css = MFA_CORE_PATH . 'assets/css/homepage-v12.css';
-		wp_enqueue_style( 'mfa-core-homepage', MFA_CORE_URL . 'assets/css/homepage-v12.css', array(), $get_version( $css ) );
+		$css = MFA_CORE_PATH . 'assets/css/homepage-v13.css';
+		wp_enqueue_style( 'mfa-core-homepage', MFA_CORE_URL . 'assets/css/homepage-v13.css', array(), $get_version( $css ) );
 	}
 
 	if ( $is_quran_page ) {
@@ -198,7 +198,7 @@ add_filter( 'litespeed_optimize_css_excludes', 'mfa_core_litespeed_css_excludes'
 function mfa_core_litespeed_css_excludes( $excludes ) {
 	$excludes[] = 'mfa-core/assets/css/prayer-times-v2.css';
 	$excludes[] = 'mfa-core/assets/css/qibla-v3.css';
-	$excludes[] = 'mfa-core/assets/css/homepage-v12.css';
+	$excludes[] = 'mfa-core/assets/css/homepage-v13.css';
 	// Newly excluded 2026-08-07: a rule targeting this page's unique
 	// Kadence column ID was silently dropped when this file went through
 	// LiteSpeed's combine/minify pipeline (confirmed present in the raw

@@ -100,12 +100,13 @@ public static function init(){
         ];
         
         $user_id = wp_insert_user($user_data);
-        
-        // Check for errors
+
         if (is_wp_error($user_id)) {
-            echo "Error creating user: " . $user_id->get_error_message();
-        } else {
-            echo "User created successfully with ID: " . $user_id;
+            wp_send_json_error(
+                array(
+                    'message' => $user_id->get_error_message()
+                )
+            );
         }
         
         /*

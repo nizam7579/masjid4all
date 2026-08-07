@@ -125,7 +125,9 @@
 
 .niz-btn {
     padding: 12px 28px;
-    background: #25988b;
+    /* #25988b was 3.53:1 against white text - fails 4.5:1. var(--mfa-teal-dark)
+       clears it (~4.96:1). */
+    background: var(--mfa-teal-dark);
     color: #fff;
     border: none;
     border-radius: 999px;

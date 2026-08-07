@@ -125,7 +125,10 @@
 }
 .mfa-directory-card h3 { font-size: 18px; font-weight: 700; color: var(--mfa-ink); margin: 0 0 8px; }
 .mfa-directory-card p { font-size: 14px; color: var(--mfa-muted); line-height: 1.55; margin: 0 0 16px; }
-.mfa-directory-card a { font-size: 14px; font-weight: 700; color: var(--mfa-teal); text-decoration: none; }
+/* var(--mfa-teal) text on white is only 3.53:1 - fails 4.5:1 at this
+   size/weight. var(--mfa-teal-dark) clears it (~4.96:1). Border/icon uses
+   of var(--mfa-teal) elsewhere are fine as-is (3:1 non-text minimum). */
+.mfa-directory-card a { font-size: 14px; font-weight: 700; color: var(--mfa-teal-dark); text-decoration: none; }
 .mfa-directory-card a:hover { text-decoration: underline; }
 
 /* ---------- Impact: asymmetric bento (not 6 identical boxes) ---------- */
@@ -168,7 +171,7 @@
 .mfa-impact-card h3 { font-size: 15.5px; font-weight: 700; color: var(--mfa-ink); margin: 0 0 6px; }
 .mfa-impact-card p { font-size: 13.5px; color: var(--mfa-muted); line-height: 1.5; margin: 0; }
 .mfa-impact-card .mfa-impact-icon { font-size: 20px; margin-bottom: 10px; display: block; }
-.mfa-impact-card a { display: inline-block; margin-top: 10px; font-size: 13px; font-weight: 700; color: var(--mfa-teal); text-decoration: none; }
+.mfa-impact-card a { display: inline-block; margin-top: 10px; font-size: 13px; font-weight: 700; color: var(--mfa-teal-dark); text-decoration: none; }
 .mfa-impact-card a:hover { text-decoration: underline; }
 
 /* Icon + title on the same line for the 4 small cards (not the big
@@ -233,7 +236,7 @@
 @media (max-width: 600px) { .mfa-testimonial-grid { grid-template-columns: 1fr; } }
 .mfa-testimonial-card { background: var(--mfa-white); border: 1px solid var(--mfa-border); border-radius: var(--mfa-radius-md); padding: 24px; }
 .mfa-testimonial-card p.mfa-quote { font-size: 14.5px; line-height: 1.6; color: #33413d; margin: 0 0 16px; }
-.mfa-testimonial-card p.mfa-attr { font-size: 13px; font-weight: 700; color: var(--mfa-teal); margin: 0; }
+.mfa-testimonial-card p.mfa-attr { font-size: 13px; font-weight: 700; color: var(--mfa-teal-dark); margin: 0; }
 
 /* ---------- FAQ (core/details) ---------- */
 .mfa-faq-list details {

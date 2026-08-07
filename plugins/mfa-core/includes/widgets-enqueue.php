@@ -30,16 +30,16 @@ function mfa_core_enqueue_widget_assets() {
 	// literal post_content, not shortcodes nested inside another
 	// shortcode's PHP callback. Same class of bug fixed for /quran/ earlier.
 	if ( has_shortcode( $content, 'niz_mfa_prayer_times' ) || 'prayer-times' === $post_name ) {
-		$css = MFA_CORE_PATH . 'assets/css/prayer-times-v2.css';
+		$css = MFA_CORE_PATH . 'assets/css/prayer-times-v3.css';
 		$js  = MFA_CORE_PATH . 'assets/js/prayer-times.js';
-		wp_enqueue_style( 'mfa-core-prayer-times', MFA_CORE_URL . 'assets/css/prayer-times-v2.css', array(), $get_version( $css ) );
+		wp_enqueue_style( 'mfa-core-prayer-times', MFA_CORE_URL . 'assets/css/prayer-times-v3.css', array(), $get_version( $css ) );
 		wp_enqueue_script( 'mfa-core-prayer-times', MFA_CORE_URL . 'assets/js/prayer-times.js', array(), $get_version( $js ), true );
 	}
 
 	if ( has_shortcode( $content, 'niz_mfa_qibla' ) || 'qibla-finder' === $post_name ) {
-		$css = MFA_CORE_PATH . 'assets/css/qibla-v3.css';
+		$css = MFA_CORE_PATH . 'assets/css/qibla-v4.css';
 		$js  = MFA_CORE_PATH . 'assets/js/qibla-v2.js';
-		wp_enqueue_style( 'mfa-core-qibla', MFA_CORE_URL . 'assets/css/qibla-v3.css', array(), $get_version( $css ) );
+		wp_enqueue_style( 'mfa-core-qibla', MFA_CORE_URL . 'assets/css/qibla-v4.css', array(), $get_version( $css ) );
 		wp_enqueue_script( 'mfa-core-qibla', MFA_CORE_URL . 'assets/js/qibla-v2.js', array(), $get_version( $js ), true );
 	}
 
@@ -90,8 +90,8 @@ function mfa_core_enqueue_widget_assets() {
 	wp_enqueue_style( 'mfa-core-coming-soon', MFA_CORE_URL . 'assets/css/coming-soon-v1.css', array(), $get_version( $coming_soon_css ) );
 
 	if ( $post && 'homepage' === $post->post_name ) {
-		$css = MFA_CORE_PATH . 'assets/css/homepage-v14.css';
-		wp_enqueue_style( 'mfa-core-homepage', MFA_CORE_URL . 'assets/css/homepage-v14.css', array(), $get_version( $css ) );
+		$css = MFA_CORE_PATH . 'assets/css/homepage-v15.css';
+		wp_enqueue_style( 'mfa-core-homepage', MFA_CORE_URL . 'assets/css/homepage-v15.css', array(), $get_version( $css ) );
 	}
 
 	if ( $is_quran_page ) {
@@ -196,9 +196,9 @@ function mfa_core_enqueue_widget_assets() {
 
 add_filter( 'litespeed_optimize_css_excludes', 'mfa_core_litespeed_css_excludes' );
 function mfa_core_litespeed_css_excludes( $excludes ) {
-	$excludes[] = 'mfa-core/assets/css/prayer-times-v2.css';
-	$excludes[] = 'mfa-core/assets/css/qibla-v3.css';
-	$excludes[] = 'mfa-core/assets/css/homepage-v14.css';
+	$excludes[] = 'mfa-core/assets/css/prayer-times-v3.css';
+	$excludes[] = 'mfa-core/assets/css/qibla-v4.css';
+	$excludes[] = 'mfa-core/assets/css/homepage-v15.css';
 	// Newly excluded 2026-08-07: a rule targeting this page's unique
 	// Kadence column ID was silently dropped when this file went through
 	// LiteSpeed's combine/minify pipeline (confirmed present in the raw

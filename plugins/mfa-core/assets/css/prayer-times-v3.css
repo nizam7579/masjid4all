@@ -43,7 +43,9 @@
     font-size: 12px;
     font-weight: 600;
     margin-bottom: 6px;
-    color: #64837e;
+    /* #64837e was 4.13:1 against white - fails 4.5:1. var(--mfa-muted)
+       clears it (~5.6:1). */
+    color: var(--mfa-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
@@ -54,15 +56,22 @@
     color: #0d4d47;
 }
 
+/* #25988b was too light to host any small light text at 4.5:1 - not just
+   the 0.8-alpha label below but even fully opaque white (3.53:1). Darkened
+   to var(--mfa-teal-dark) so both the label and .niz-time-val's white text
+   clear 4.5:1. */
 .niz-prayer-item.niz-active {
-    background: #25988b !important;
-    border-color: #25988b !important;
+    background: var(--mfa-teal-dark) !important;
+    border-color: var(--mfa-teal-dark) !important;
     transform: translateY(-2px);
-    box-shadow: 0 8px 18px -6px rgba(37, 152, 139, 0.45);
+    box-shadow: 0 8px 18px -6px rgba(31, 125, 114, 0.45);
 }
 
 .niz-prayer-item.niz-active .niz-label {
-    color: rgba(255, 255, 255, 0.8) !important;
+    /* Was rgba(255,255,255,0.8) - even at full opacity, 0.8-alpha still
+       landed under 4.5:1 against the old #25988b (and still would against
+       the new darker background too) - needs full opacity here. */
+    color: #ffffff !important;
 }
 
 .niz-prayer-item.niz-active .niz-time-val {
@@ -84,7 +93,7 @@
     font-size: 12px;
     font-weight: 700;
     text-transform: uppercase;
-    color: #64837e;
+    color: var(--mfa-muted);
     letter-spacing: 1px;
 }
 

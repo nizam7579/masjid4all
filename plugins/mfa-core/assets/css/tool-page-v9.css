@@ -5,7 +5,7 @@
    of the .mfa-faq-list component so this file has no cross-file
    dependency on homepage-v8.css). */
 
-.mfa-tool-page { font-family: Lato, sans-serif; max-width: 1290px; margin: 0 auto; }
+.mfa-tool-page { font-family: Lato, sans-serif; max-width: var(--mfa-container-max); margin: 0 auto; }
 
 /* Bottom clearance for the fixed footer nav bar + floating button stack
    moved sitewide (see share-button-v15.css's "Sitewide bottom clearance"
@@ -14,8 +14,8 @@
 .mfa-tool-page-header {
   text-align: center;
   padding: 48px 24px 36px;
-  background: linear-gradient(150deg, #12181f 0%, #0d4d47 100%);
-  color: #f4faf9;
+  background: linear-gradient(150deg, var(--mfa-ink) 0%, var(--mfa-green-dark) 100%);
+  color: var(--mfa-mint-bg);
   margin-bottom: 32px;
 }
 @media (min-width: 901px) {
@@ -35,7 +35,7 @@
   font-size: clamp(28px, 4vw, 40px);
   font-weight: 800;
   margin: 0 0 14px;
-  color: #ffffff;
+  color: var(--mfa-white);
 }
 .mfa-tool-page-tagline {
   max-width: 560px;
@@ -66,17 +66,19 @@
 .mfa-tool-page-header-cta h2 {
   font-size: 16px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--mfa-white);
   margin: 0 0 16px;
 }
+/* #25988b was 3.53:1 against white text - fails 4.5:1. var(--mfa-teal-dark)
+   clears it (~4.96:1). */
 .mfa-tool-page-header-cta-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 12px 26px;
   border-radius: 999px;
-  background: #25988b;
-  color: #ffffff;
+  background: var(--mfa-teal-dark);
+  color: var(--mfa-white);
   font-weight: 700;
   font-size: 14px;
   text-decoration: none;
@@ -85,7 +87,7 @@
 }
 .mfa-tool-page-header-cta-btn:hover {
   filter: brightness(1.08);
-  color: #ffffff;
+  color: var(--mfa-white);
 }
 
 @media (min-width: 901px) {
@@ -162,8 +164,8 @@
 
 /* ---------- Tool card ---------- */
 .mfa-tool-page-card {
-  background: #ffffff;
-  border: 1px solid #e7efed;
+  background: var(--mfa-white);
+  border: 1px solid var(--mfa-border);
   border-radius: 18px;
   padding: 32px 24px;
   margin: 0 auto 32px;
@@ -205,13 +207,13 @@
   margin: 8px auto 0;
 }
 .mfa-faq-list details {
-  border-bottom: 1px solid #e7efed;
+  border-bottom: 1px solid var(--mfa-border);
   padding: 18px 0;
 }
 .mfa-faq-list summary {
   font-size: 16px;
   font-weight: 700;
-  color: #12181f;
+  color: var(--mfa-ink);
   cursor: pointer;
   list-style: none;
 }

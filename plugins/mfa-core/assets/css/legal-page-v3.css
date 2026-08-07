@@ -24,14 +24,14 @@
 .mfa-legal-article h2 {
   font-size: 20px;
   font-weight: 800;
-  color: #12181f;
+  color: var(--mfa-ink);
   margin: 32px 0 12px;
 }
 .mfa-legal-article h2:first-child { margin-top: 0; }
 .mfa-legal-article h3 {
   font-size: 16.5px;
   font-weight: 700;
-  color: #12181f;
+  color: var(--mfa-ink);
   margin: 20px 0 8px;
 }
 .mfa-legal-article p {
@@ -50,8 +50,11 @@
   color: #3d4a45;
   margin-bottom: 6px;
 }
-.mfa-legal-article strong { color: #12181f; }
+.mfa-legal-article strong { color: var(--mfa-ink); }
+/* #25988b was 3.53:1 against white - fails 4.5:1 at this size/weight
+   (regular 15px, not "large text"). var(--mfa-teal-dark) clears it
+   (~4.96:1). */
 .mfa-legal-article a {
-  color: #25988b;
+  color: var(--mfa-teal-dark);
   text-decoration: underline;
 }

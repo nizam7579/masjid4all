@@ -28,7 +28,7 @@
   color: #3d4a45;
   margin: 0 0 14px;
 }
-.mfa-about-body strong { color: #12181f; }
+.mfa-about-body strong { color: var(--mfa-ink); }
 
 .mfa-about-partner-strip {
   max-width: 100%;
@@ -48,8 +48,8 @@
   .mfa-about-recognition { grid-template-columns: 1fr; }
 }
 .mfa-recognition-block {
-  background: #ffffff;
-  border: 1px solid #e7efed;
+  background: var(--mfa-white);
+  border: 1px solid var(--mfa-border);
   border-radius: 16px;
   padding: 24px;
   text-align: center;
@@ -57,7 +57,7 @@
 .mfa-recognition-block h2 {
   font-size: 15.5px;
   font-weight: 700;
-  color: #12181f;
+  color: var(--mfa-ink);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin: 0 0 18px;
@@ -81,7 +81,7 @@
 .mfa-contact-info h2 {
   font-size: 22px;
   font-weight: 800;
-  color: #12181f;
+  color: var(--mfa-ink);
   margin: 0 0 6px;
 }
 .mfa-contact-regno {
@@ -109,8 +109,8 @@
 }
 
 .mfa-contact-form-col {
-  background: #ffffff;
-  border: 1px solid #e7efed;
+  background: var(--mfa-white);
+  border: 1px solid var(--mfa-border);
   border-radius: 18px;
   padding: 28px;
 }
@@ -128,9 +128,11 @@
 .mfa-contact-form-col textarea {
   border-radius: 10px !important;
 }
+/* #25988b was 3.53:1 against the button's white text - fails 4.5:1.
+   var(--mfa-teal-dark) clears it (~4.96:1). */
 .mfa-contact-form-col .ff-btn-submit,
 .mfa-contact-form-col button[type="submit"] {
-  background: #25988b !important;
+  background: var(--mfa-teal-dark) !important;
   border-radius: 999px !important;
   font-weight: 700 !important;
 }
@@ -143,7 +145,7 @@
   width: 100%;
   height: 100%;
   min-height: 380px;
-  border: 1px solid #e7efed;
+  border: 1px solid var(--mfa-border);
   border-radius: 18px;
   display: block;
 }

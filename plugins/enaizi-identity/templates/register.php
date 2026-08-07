@@ -104,6 +104,7 @@ Password
 type="password"
 name="password"
 id="niz_password"
+autocomplete="new-password"
 required>
 
 </div>
@@ -122,6 +123,7 @@ Confirm Password
 type="password"
 name="confirm_password"
 id="niz_confirm_password"
+autocomplete="new-password"
 required>
 
 </div>

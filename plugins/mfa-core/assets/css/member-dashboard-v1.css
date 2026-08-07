@@ -93,6 +93,13 @@
 }
 .mfa-dash-next-step-done { background: var(--mfa-teal-dark); }
 
+.mfa-dash-next-step-intro {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--mfa-gold);
+  margin: 0 0 10px;
+}
+
 .mfa-dash-next-step-title {
   font-size: 20px;
   font-weight: 800;

@@ -57,7 +57,18 @@ function mfa_member_dashboard_shortcode() {
 	// Single most urgent onboarding action - deliberately one at a time
 	// rather than a checklist of demands, per "focus user to start and
 	// enjoy the free services" (downplay everything except the one next step).
-	if ( ! $email_verified ) {
+	// Order: profile -> email -> WhatsApp (2026-08-08 - profile comes first
+	// since it's the step right after the Welcome Bonus, and gets a one-time
+	// congratulations intro since most users reach it fresh off joining).
+	if ( ! $profile_complete ) {
+		$next_step = array(
+			'intro' => "Congratulations! You've earned 50 Barakah points for joining Masjid4All as a member.",
+			'title' => 'Update your profile',
+			'body'  => 'Complete your profile to earn another 50 Barakah points.',
+			'cta'   => 'Update Profile',
+			'modal' => 'mfa-edit-profile-modal',
+		);
+	} elseif ( ! $email_verified ) {
 		$next_step = array(
 			'title' => 'Verify your email address',
 			'body'  => 'Confirm your email to secure your account and earn 25 Barakah points.',
@@ -67,16 +78,9 @@ function mfa_member_dashboard_shortcode() {
 	} elseif ( ! $wa_verified ) {
 		$next_step = array(
 			'title' => 'Verify your WhatsApp number',
-			'body'  => 'Link your WhatsApp so Sofia can reach you directly, and earn 25 Barakah points.',
+			'body'  => "Confirm your WhatsApp and earn 25 Barakah points - we'll use the number you verify with, no need to type it in separately.",
 			'cta'   => 'Verify WhatsApp',
 			'href'  => '#mfa-dash-whatsapp',
-		);
-	} elseif ( ! $profile_complete ) {
-		$next_step = array(
-			'title' => 'Complete your profile',
-			'body'  => 'A few quick details help us personalize your experience - earn 50 Barakah points.',
-			'cta'   => 'Complete Profile',
-			'modal' => 'mfa-edit-profile-modal',
 		);
 	} else {
 		$next_step = null;
@@ -103,6 +107,9 @@ function mfa_member_dashboard_shortcode() {
 		<?php if ( $next_step ) : ?>
 		<section class="mfa-dash-next-step">
 			<div>
+				<?php if ( ! empty( $next_step['intro'] ) ) : ?>
+					<p class="mfa-dash-next-step-intro"><?php echo esc_html( $next_step['intro'] ); ?></p>
+				<?php endif; ?>
 				<span class="mfa-label" style="color: rgba(255,255,255,0.7);">Your Next Step</span>
 				<h2 class="mfa-dash-next-step-title"><?php echo esc_html( $next_step['title'] ); ?></h2>
 				<p class="mfa-dash-next-step-body"><?php echo esc_html( $next_step['body'] ); ?></p>

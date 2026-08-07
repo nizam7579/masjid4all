@@ -53,16 +53,16 @@ class Niz_Assets {
         wp_enqueue_script(
 
             'niz-register',
-        
+
             NIZ_IDENTITY_URL .
-            'assets/js/register.js',
-        
+            'assets/js/register-v2.js',
+
             array('jquery'),
-        
-            NIZ_IDENTITY_VERSION,
-        
+
+            NIZ_IDENTITY_VERSION . '-2',
+
             true
-        
+
         );
 
 

@@ -32,7 +32,22 @@ class Niz_Assets {
             array(),
             NIZ_IDENTITY_VERSION
         );
-            
+
+        wp_enqueue_style(
+            'niz-password-toggle',
+            NIZ_IDENTITY_URL . 'assets/css/password-toggle.css',
+            array(),
+            NIZ_IDENTITY_VERSION . '-toggle1'
+        );
+
+        wp_enqueue_script(
+            'niz-password-toggle',
+            NIZ_IDENTITY_URL . 'assets/js/password-toggle.js',
+            array(),
+            NIZ_IDENTITY_VERSION . '-toggle1',
+            true
+        );
+
         wp_enqueue_script(
 
             'niz-login',

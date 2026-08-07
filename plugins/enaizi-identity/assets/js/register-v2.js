@@ -68,7 +68,7 @@ jQuery(document).ready(function($){
 
 
                     password:
-                    $('#niz_password').val(),
+                    $('#niz_register_password').val(),
 
 
                     confirm_password:

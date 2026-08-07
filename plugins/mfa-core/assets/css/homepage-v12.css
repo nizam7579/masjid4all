@@ -66,25 +66,8 @@
 }
 .mfa-hero-ctas { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
 
-.mfa-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 14px 30px;
-  border-radius: 999px;
-  font-weight: 700;
-  font-size: 15px;
-  text-decoration: none;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
-  border: 2px solid transparent;
-}
-.mfa-btn:hover { transform: translateY(-1px); }
-.mfa-btn-primary { background: #25988b; color: #ffffff; box-shadow: 0 10px 24px -8px rgba(37,152,139,0.6); }
-.mfa-btn-primary:hover { filter: brightness(1.08); color: #fff; }
-.mfa-btn-ghost { background: transparent; color: #ffffff; border-color: rgba(255,255,255,0.4); }
-.mfa-btn-ghost:hover { background: rgba(255,255,255,0.1); color: #fff; }
-.mfa-btn-solid-dark { background: #12181f; color: #fff; }
-.mfa-btn-solid-dark:hover { background: #1b242d; color: #fff; }
+/* .mfa-btn/.mfa-btn-primary/.mfa-btn-ghost/.mfa-btn-solid-dark moved to
+   global-v1.css (2026-08-07) - sitewide now, not homepage-only. */
 
 /* ---------- Stats strip (overlaps hero bottom edge) ---------- */
 .mfa-stats-strip {

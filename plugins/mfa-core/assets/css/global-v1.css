@@ -1,0 +1,135 @@
+/* mfa-core global.css — sitewide design tokens + reusable components.
+   Loaded on every page (see widgets-enqueue.php), before page-specific
+   CSS. Purpose: stop each page reinventing its own colors/spacing/
+   buttons, which is what caused the invisible-CTA-button and wrong-
+   font-size bugs (a page-specific ".card a" rule outranking a button's
+   own intended style, because the button had no shared, higher-level
+   definition to fall back to).
+
+   Breakpoints are a written convention, not custom properties - CSS
+   custom properties cannot be used inside @media conditions in any
+   browser today. Use:
+     - max-width: 600px  -> mobile
+     - max-width: 900px  -> tablet
+   Deviate only for a specific reason (e.g. 782px matches the fixed
+   footer nav bar's own breakpoint) and say why in a comment. */
+
+:root {
+  /* ---------- Color ---------- */
+  --mfa-teal: #25988b;        /* primary brand / CTAs / links */
+  --mfa-teal-dark: #1f7d72;   /* hover state for teal elements */
+  --mfa-green-dark: #0d4d47;  /* headings, nav text, dark accents */
+  --mfa-ink: #12181f;         /* body text, near-black */
+  --mfa-mint-bg: #f4faf9;     /* light card/section backgrounds */
+  --mfa-border: #e7efed;      /* card/divider borders */
+  --mfa-muted: #5b6b66;       /* secondary/muted body text */
+  --mfa-label: #9aa5a2;       /* uppercase labels, least emphasis */
+  --mfa-white: #ffffff;
+
+  /* ---------- Spacing scale (8px-based) ---------- */
+  --mfa-space-1: 4px;
+  --mfa-space-2: 8px;
+  --mfa-space-3: 12px;
+  --mfa-space-4: 16px;
+  --mfa-space-5: 20px;
+  --mfa-space-6: 24px;
+  --mfa-space-7: 32px;
+  --mfa-space-8: 40px;
+  --mfa-space-9: 48px;
+  --mfa-space-10: 64px;
+
+  /* ---------- Radius ---------- */
+  --mfa-radius-sm: 8px;   /* buttons, small controls */
+  --mfa-radius-md: 16px;  /* cards */
+  --mfa-radius-pill: 999px;
+
+  /* ---------- Shadow ---------- */
+  --mfa-shadow-card: 0 4px 14px -6px rgba(13, 77, 71, 0.12);
+  --mfa-shadow-float: 0 0 14px 0 rgba(0, 0, 0, 0.2);
+
+  /* ---------- Layout ---------- */
+  --mfa-container-max: 1400px;
+
+  /* ---------- Z-index ladder ----------
+     Named layers instead of arbitrary numbers - both stacking-context
+     bugs hit this session (floating buttons showing through the mobile
+     popup, and a CSS-transition debugging dead-end) traced back to
+     ad-hoc z-index values with no documented relationship to each
+     other. New fixed/floating elements should pick the matching layer
+     below rather than inventing a new number. */
+  --z-header: 1000;
+  --z-floating-buttons: 2000;
+  --z-mobile-menu: 3000;
+  --z-modal: 4000;
+  --z-toast: 5000;
+}
+
+/* ---------- Containers ---------- */
+
+/* Main container: full width, centers content up to the desktop max-width.
+   No gutter of its own - .mfa-content below owns that. */
+.mfa-container {
+  max-width: var(--mfa-container-max);
+  margin: 0 auto;
+}
+
+/* Content container: sits inside .mfa-container (or full-bleed on its
+   own), tight edge margin so cards read close to the screen edge. */
+.mfa-content {
+  padding-left: var(--mfa-space-2);
+  padding-right: var(--mfa-space-2);
+}
+
+/* Card: the standard bordered/rounded content block used throughout the
+   site (impact cards, tool cards, business cards, etc). Padding is
+   deliberately more generous than .mfa-content's outer gutter - the
+   card carries the actual reading comfort. */
+.mfa-card {
+  background: var(--mfa-white);
+  border: 1px solid var(--mfa-border);
+  border-radius: var(--mfa-radius-md);
+  padding: var(--mfa-space-5);
+}
+@media (min-width: 901px) {
+  .mfa-card { padding: var(--mfa-space-6); }
+}
+
+/* ---------- Typography ---------- */
+
+.mfa-h1 { font-size: clamp(28px, 4vw, 40px); font-weight: 800; color: var(--mfa-ink); margin: 0; }
+.mfa-h2 { font-size: 24px; font-weight: 700; color: var(--mfa-ink); margin: 0; }
+.mfa-h3 { font-size: 18px; font-weight: 700; color: var(--mfa-ink); margin: 0; }
+.mfa-body { font-size: 15px; line-height: 1.6; color: var(--mfa-ink); margin: 0; }
+.mfa-body-muted { font-size: 14px; line-height: 1.6; color: var(--mfa-muted); margin: 0; }
+.mfa-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--mfa-label);
+  margin: 0;
+}
+
+/* ---------- Buttons ---------- */
+/* Moved here from homepage-v11.css (2026-08-07) - shared sitewide instead
+   of only existing on the homepage, so any page can use these without
+   redefining them. */
+.mfa-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 30px;
+  border-radius: var(--mfa-radius-pill);
+  font-weight: 700;
+  font-size: 15px;
+  text-decoration: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+  border: 2px solid transparent;
+}
+.mfa-btn:hover { transform: translateY(-1px); }
+.mfa-btn-primary { background: var(--mfa-teal); color: var(--mfa-white); box-shadow: 0 10px 24px -8px rgba(37, 152, 139, 0.6); }
+.mfa-btn-primary:hover { filter: brightness(1.08); color: var(--mfa-white); }
+.mfa-btn-ghost { background: transparent; color: var(--mfa-white); border-color: rgba(255, 255, 255, 0.4); }
+.mfa-btn-ghost:hover { background: rgba(255, 255, 255, 0.1); color: var(--mfa-white); }
+.mfa-btn-solid-dark { background: var(--mfa-ink); color: var(--mfa-white); }
+.mfa-btn-solid-dark:hover { background: #1b242d; color: var(--mfa-white); }

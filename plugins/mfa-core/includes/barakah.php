@@ -146,25 +146,8 @@ function mfa_has_barakah_award( $user_id, $description ) {
 	return (bool) $exists;
 }
 
-/**
- * "Complete your profile" funnel step (see mfa-core.php's own docblock /
- * this repo's CLAUDE.md for the wider onboarding funnel) - awarded on
- * submission of Fluent Form 17 ("Update Member Info"), the existing real
- * profile-edit form (see enaizi-user/includes/member.php's own handler on
- * the same hook, which writes the submitted fields to jet_cct_member).
- * Added here rather than in enaizi-user per this repo's consolidation rule
- * (new functionality goes in mfa-core, not the plugins being absorbed).
- */
-add_action( 'fluentform/before_insert_submission', 'mfa_award_profile_complete_points', 20, 3 );
-function mfa_award_profile_complete_points( $insert_data, $data, $form ) {
-	if ( (int) $form->id !== 17 ) {
-		return;
-	}
-
-	$user_id = get_current_user_id();
-	if ( ! $user_id ) {
-		return;
-	}
-
-	mfa_award_points( $user_id, 'Complete Profile', 50 );
-}
+// "Complete your profile" funnel step points are now awarded directly from
+// mfa_ajax_update_profile() in includes/widgets/member-account-modals.php,
+// which replaced the dashboard's Fluent Form 17 embed 2026-08-08 (avoiding
+// a 3rd-party form-plugin dependency). No fluentform/before_insert_submission
+// hook needed here anymore.

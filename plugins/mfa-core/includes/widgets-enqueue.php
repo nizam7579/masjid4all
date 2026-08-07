@@ -90,6 +90,15 @@ function mfa_core_enqueue_widget_assets() {
 
 		$member_dashboard_css = MFA_CORE_PATH . 'assets/css/member-dashboard-v1.css';
 		wp_enqueue_style( 'mfa-core-member-dashboard', MFA_CORE_URL . 'assets/css/member-dashboard-v1.css', array( 'mfa-core-global', 'mfa-core-member-shell' ), $get_version( $member_dashboard_css ) );
+
+		$member_modals_css = MFA_CORE_PATH . 'assets/css/member-account-modals-v1.css';
+		wp_enqueue_style( 'mfa-core-member-account-modals', MFA_CORE_URL . 'assets/css/member-account-modals-v1.css', array( 'mfa-core-global' ), $get_version( $member_modals_css ) );
+
+		$member_modals_js = MFA_CORE_PATH . 'assets/js/member-account-modals-v1.js';
+		wp_enqueue_script( 'mfa-core-member-account-modals', MFA_CORE_URL . 'assets/js/member-account-modals-v1.js', array(), $get_version( $member_modals_js ), true );
+		wp_localize_script( 'mfa-core-member-account-modals', 'mfaMemberModals', array(
+			'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+		) );
 	}
 
 	// Reusable content/ad two-column layout utility — sitewide, not tied
@@ -237,6 +246,7 @@ function mfa_core_litespeed_css_excludes( $excludes ) {
 	$excludes[] = 'mfa-core/assets/css/header-v11.css';
 	$excludes[] = 'mfa-core/assets/css/member-shell-v1.css';
 	$excludes[] = 'mfa-core/assets/css/member-dashboard-v1.css';
+	$excludes[] = 'mfa-core/assets/css/member-account-modals-v1.css';
 	$excludes[] = 'mfa-core/assets/css/global-v2.css';
 	return $excludes;
 }

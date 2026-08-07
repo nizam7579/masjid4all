@@ -13,10 +13,12 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Deliberately built only around features with a real, working backend
  * (per the "only show what's real" decision): Barakah points ledger,
- * email/WhatsApp verification, the existing profile-update form (Fluent
- * Form 17), listing ownership, and the live Stripe Founding Member
- * checkout. No affiliate/referral UI here - that backend (outbound
- * referral links, commission ledger) doesn't exist yet (Phase 4).
+ * email/WhatsApp verification, a native Edit Profile / Change Password
+ * popup (member-account-modals.php - replaced the earlier Fluent Form
+ * embed 2026-08-08, avoiding a 3rd-party form-plugin dependency),
+ * listing ownership, and the live Stripe Founding Member checkout. No
+ * affiliate/referral UI here - that backend (outbound referral links,
+ * commission ledger) doesn't exist yet (Phase 4).
  */
 
 add_shortcode( 'mfa_member_dashboard', 'mfa_member_dashboard_shortcode' );
@@ -74,7 +76,7 @@ function mfa_member_dashboard_shortcode() {
 			'title' => 'Complete your profile',
 			'body'  => 'A few quick details help us personalize your experience - earn 50 Barakah points.',
 			'cta'   => 'Complete Profile',
-			'href'  => '#mfa-dash-profile',
+			'modal' => 'mfa-edit-profile-modal',
 		);
 	} else {
 		$next_step = null;
@@ -92,6 +94,10 @@ function mfa_member_dashboard_shortcode() {
 					<?php echo $is_premium ? 'Founding Member' : 'Free Member'; ?>
 				</span>
 			</div>
+			<div class="mfa-dash-profile-actions">
+				<button type="button" class="mfa-dash-link-btn" data-mfa-modal-open="mfa-edit-profile-modal">Edit Profile</button>
+				<button type="button" class="mfa-dash-link-btn" data-mfa-modal-open="mfa-change-password-modal">Change Password</button>
+			</div>
 		</section>
 
 		<?php if ( $next_step ) : ?>
@@ -101,7 +107,11 @@ function mfa_member_dashboard_shortcode() {
 				<h2 class="mfa-dash-next-step-title"><?php echo esc_html( $next_step['title'] ); ?></h2>
 				<p class="mfa-dash-next-step-body"><?php echo esc_html( $next_step['body'] ); ?></p>
 			</div>
-			<a href="<?php echo esc_url( $next_step['href'] ); ?>" class="mfa-btn mfa-btn-primary"><?php echo esc_html( $next_step['cta'] ); ?></a>
+			<?php if ( ! empty( $next_step['modal'] ) ) : ?>
+				<button type="button" class="mfa-btn mfa-btn-primary" data-mfa-modal-open="<?php echo esc_attr( $next_step['modal'] ); ?>"><?php echo esc_html( $next_step['cta'] ); ?></button>
+			<?php else : ?>
+				<a href="<?php echo esc_url( $next_step['href'] ); ?>" class="mfa-btn mfa-btn-primary"><?php echo esc_html( $next_step['cta'] ); ?></a>
+			<?php endif; ?>
 		</section>
 		<?php else : ?>
 		<section class="mfa-dash-next-step mfa-dash-next-step-done">
@@ -179,14 +189,6 @@ function mfa_member_dashboard_shortcode() {
 			</div>
 		</section>
 
-		<?php if ( ! $profile_complete ) : ?>
-		<section class="mfa-card mfa-dash-profile-card" id="mfa-dash-profile">
-			<h3 class="mfa-h3">Complete Your Profile</h3>
-			<p class="mfa-body-muted">A few quick details - earns 50 Barakah points.</p>
-			<?php echo do_shortcode( '[fluentform id="17"]' ); ?>
-		</section>
-		<?php endif; ?>
-
 		<section class="mfa-dash-tools">
 			<h2 class="mfa-h2">Explore Masjid4All</h2>
 			<div class="mfa-dash-tools-grid">
@@ -241,6 +243,8 @@ function mfa_member_dashboard_shortcode() {
 				<span class="mfa-label">Listings</span>
 			</div>
 		</section>
+
+		<?php echo do_shortcode( '[mfa_member_account_modals]' ); ?>
 
 	</div>
 	<?php

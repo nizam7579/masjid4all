@@ -16,19 +16,52 @@ halal compliance where relevant. Default language is English; Bahasa Melayu cont
 may appear alongside it — don't auto-translate without asking.
 
 ## Plugin Architecture
-Current custom plugins:
-- `enaizi-identity`
-- `enaizi-mfa`
-- `enaizi-user`
-- `enaizi_wa` — **retired, inactive** (see cutover status below)
+**Target end state (agreed 2026-08-07): three custom plugins, no more.**
+Everything else either folds into one of these or gets deleted once no longer
+needed for reference:
+- `niz-wa` — standalone, WhatsApp/AI backend. Stays separate; don't fold it
+  into `mfa-core`.
+- `mfa-core` — the one consolidated plugin for everything else site-facing:
+  identity/user/auth (absorbing `enaizi-identity` and `enaizi-user`) *and*
+  general site functionality (absorbing `enaizi-mfa` — its mosque/business/
+  website/knowledge directory shortcodes, not just identity/auth despite the
+  name). This consolidation is **already underway, not a separate future
+  effort** — most of this project's actual page-rebuild work this year has
+  been building directly into `mfa-core` (see `plugins/mfa-core/mfa-core.php`'s
+  own docblock: "Replaces enaizi-identity and enaizi-user (phased)").
+  Treat any further identity/user/directory work as *continuing* this
+  consolidation, not a separate initiative to schedule later.
+- `niz-pwa` — **planned, not started.** Will eventually be split back out of
+  `mfa-core` to own notifications and other PWA-specific features. No urgency
+  yet. Note: `plugins/enaizi-mfa/includes/pwa.php` has a dormant (fully
+  commented-out) "PWA global bar + GA analytics" concept from an earlier
+  attempt — worth a look when this actually starts, not necessarily worth
+  reviving as-is.
+- `enaizi_wa` — **retired, inactive**, historical reference only (see cutover
+  status below). Delete once its `wp_niz_wa_*` tables/FAQ history are no
+  longer needed for reference — not urgent.
+
+**No new third-party plugins** going forward except RankMath, JetEngine, and
+other exceptions explicitly approved as critical on a case-by-case basis.
+Prefer building functionality into our own plugins over adding a dependency.
+One concrete existing exception to phase out over time: a few `mfa-core`
+shortcodes (business-single, mosque-single) still lean on **Kadence Blocks
+Pro's modal JS** for popups — replace with our own custom modal pattern (the
+Sofia popup and header mobile menu are the proven template) as those areas
+get touched, rather than leaving the dependency in place indefinitely.
+
+Current custom plugins on disk, for reference:
+- `enaizi-identity`, `enaizi-user`, `enaizi-mfa` — being absorbed into
+  `mfa-core` per above. Don't add new functionality to these; add it to
+  `mfa-core` instead, even if it means duplicating a small amount of code
+  temporarily during the transition.
+- `mfa-core` — **active**, the consolidation target. Most current work should
+  land here.
+- `enaizi_wa` — retired, inactive (see above).
 - `niz-wa` — **active**, the WhatsApp plugin (renamed from a separate `nemkad-wa`
   codebase, not built from scratch — see naming note below). Mirrored into this repo
   at `plugins/niz-wa/` as of 2026-08-04; the copy on staging is authoritative — pull
   fresh from staging via Novamira before assuming this local copy is current.
-
-**Target state (still open)**: consolidate `enaizi-identity`, `enaizi-user`,
-`enaizi-mfa` into a single Identity/User/MFA plugin. Not started yet — treat as a
-separate future effort, unrelated to the `niz-wa` work below.
 
 ### `niz-wa` — actual status as of 2026-08-04
 - **Cutover is complete.** `enaizi_wa` has been deactivated on staging (not deleted —
@@ -55,12 +88,13 @@ separate future effort, unrelated to the `niz-wa` work below.
 - **No "Sofia" branding.** The AI system prompts in `niz-wa` are generic/unbranded —
   the "Sofia" persona only existed in the old `enaizi_wa` code and was not carried
   over.
-- **User resolution is wired to `enaizi-user`.** `includes/site-integration.php`
-  hooks `nwa_resolve_user_id` to call `niz_user_check()` / `niz_user_create_prospect()`
-  from `enaizi-user`, so unknown WhatsApp numbers become `prospect` users (not full
-  members) via the existing identity system — this is the "don't duplicate
-  user-creation logic" coordination the original plan called for; `enaizi-user` owns
-  user creation, `niz-wa` calls into it.
+- **User resolution is wired to `mfa-core`, read-only.** `includes/site-integration.php`
+  hooks `nwa_resolve_user_id` to call `niz_user_check()` (moved from `enaizi-user`
+  into `mfa-core` — see Plugin Architecture above) to look up already-existing
+  members. It does **not** auto-create `prospect` WordPress users anymore — that
+  `niz_user_create_prospect()` call was intentionally removed so `niz-wa` is fully
+  standalone; unrecognized numbers are tracked in `niz-wa`'s own `wp_nwa_contacts`
+  table instead. See the feature-scope status further down for the full detail.
 - **Hosting-specific gotcha, important for future changes:** this host (Hostinger,
   LiteSpeed) kills fire-and-forget non-blocking loopback HTTP requests before slow
   outbound calls (e.g. an AI API call) can finish — `wp_remote_post(..., 'blocking'
@@ -121,8 +155,17 @@ working copy: `C:\projects\masjid4all`.
   confirming first.
 
 ## Design / Frontend Work
-- Theme: **Kadence Pro**
-- Preferred pattern for homepage/section work: structured **per-section HTML +
+- Theme: **Kadence Pro** (the theme framework itself stays — this is about
+  moving off Kadence *block-based page building*, not the theme).
+- **Standing rule (agreed 2026-08-07): every WordPress page renders through
+  exactly one shortcode, with zero Kadence blocks.** The shortcode's PHP owns
+  the full HTML output, and its own CSS/JS files own all styling/behavior —
+  no inline Kadence block styles, no relying on Kadence Theme Builder markup
+  for anything new. This isn't just a style preference: the Kadence-block
+  removal work done so far has measurably sped up the site, confirmed via
+  this session's page-by-page rebuilds — keep going, don't backslide into
+  adding new Kadence blocks for convenience.
+- Preferred pattern for section work: structured **per-section HTML +
   separate CSS/JS files**, not inline styles or monolithic stylesheets.
 - Watch for render-blocking CSS — consolidate stylesheets where possible rather
   than adding new ones piecemeal.
@@ -131,6 +174,19 @@ working copy: `C:\projects\masjid4all`.
   breakpoints, class naming) before introducing new patterns.
 - Mobile-first: a large share of traffic (WhatsApp shares, prayer time lookups)
   is mobile. Test responsive behavior by default.
+- **Global CSS design-system pass — planned, not yet done.** Recurring bug
+  pattern worth fixing at the root: broad, catch-all selectors (e.g. a rule
+  like `.card a` meant for one kind of link) accidentally styling other
+  elements that happen to be descendants, requiring several rounds of
+  back-and-forth to track down (two real examples from this project: an
+  invisible CTA button and a too-small button font, both caused by a plain
+  `.mfa-impact-card a` rule outranking the button's own intended styling).
+  Direction: a shared `global.css` with CSS custom properties for the brand
+  palette, spacing scale, and type scale, referenced from every page-specific
+  file instead of repeating raw hex/px values — and prefer selectors scoped
+  to the specific element/class being styled over broad "any link/any child
+  inside this container" rules. Apply this as a deliberate pass over existing
+  CSS when asked, not silently on unrelated work.
 
 ## WhatsApp Business Plugin — `niz-wa` (Meta Cloud API)
 - **Currently masjid4all-specific, not portable** — see the "Not yet portable" note
@@ -171,9 +227,13 @@ their actual status as of the 2026-08-04 cutover:
 - **Template management** — ❌ not built. Sending a template message works, but
   there's no UI/API flow to create templates or submit them to Meta for approval.
   Still a gap against the original scope if that's needed.
-- **User/contact management** — ✅ done, via the `enaizi-user` integration described
-  above (`nwa_resolve_user_id` → `niz_user_check()`/`niz_user_create_prospect()`).
-  New WhatsApp numbers become `prospect` users in the existing identity system.
+- **User/contact management** — ✅ done, via `mfa-core`'s identity functions
+  (moved from `enaizi-user` — see Plugin Architecture above), hooked through
+  `nwa_resolve_user_id`. **Note:** `niz-wa` is intentionally standalone now —
+  the resolver only does a read-only `niz_user_check()` lookup for already-
+  existing members; it no longer auto-creates `prospect` WordPress users for
+  unrecognized numbers (`niz_user_create_prospect()` call removed). New
+  numbers fall through to `niz-wa`'s own `wp_nwa_contacts` table instead.
 - **Receiving/webhook handling** — ✅ done, with the synchronous-processing caveat
   noted above. Signature verification (`x-hub-signature-256` HMAC), dedupe, and a
   "typing…" indicator (`NWA_Sender::mark_read_with_typing()`) shown while a reply is
@@ -191,14 +251,17 @@ their actual status as of the 2026-08-04 cutover:
   facts into `wp_nwa_user_profiles` every 8 messages, merging rather than
   overwriting, and feeds that summary back into future AI replies.
 
-Given "create new user" is in scope, this plugin touches the same territory as the
-identity/user plugin above — user creation is *not* duplicated: `enaizi-user` owns
-it, `niz-wa` calls into it via the `nwa_resolve_user_id` filter.
+Given "create new user" is in scope, this plugin touches the same territory as
+`mfa-core`'s identity functions — but per the standalone note above, `niz-wa`
+no longer calls into user-creation at all for unrecognized numbers; it only
+does a read-only lookup and otherwise manages its own contacts table.
 - Don't push changes straight to production (masjid4all.com).
 - Don't reintroduce hardcoded secrets.
 - Don't rewrite auth/session code without flagging it first.
-- Follow the existing `enaizi-*` prefix for anything in the identity/user/MFA
-  consolidation, and the existing `NWA_*`/`nwa_*` prefix for `niz-wa` — don't
-  introduce a third naming scheme.
+- Naming: `mfa-core` mixes `niz_user_*` (identity/auth functions, prefix
+  preserved from the original `enaizi-user` code for continuity) with
+  `mfa_*`/`mfa_core_*` (shortcodes, page widgets, plugin-level hooks) — match
+  whichever pattern the surrounding file already uses, don't introduce a
+  third scheme. `niz-wa` keeps its own separate `NWA_*`/`nwa_*` prefix.
 - `enaizi_wa` is already deactivated; don't reactivate it or resume dual-running it
   as part of routine `niz-wa` work.

@@ -137,6 +137,26 @@ function niz_wa_handle_verify_override( $override, $user_id, $wa_number, $messag
 		return "That verification code has expired. Please generate a new one from your account page.";
 	}
 
+	// One WhatsApp number must map to exactly one account - without this
+	// check the same number could verify against multiple accounts (bug
+	// found 2026-08-08 testing). Excludes $verified_user_id itself so
+	// re-verifying (e.g. after a merge) isn't blocked by your own record.
+	$existing_owner = get_users( array(
+		'meta_query' => array(
+			array( 'key' => 'user_phone', 'value' => $wa_number ),
+			array( 'key' => 'niz_whatsapp_verified', 'value' => 'Yes' ),
+		),
+		'exclude' => array( $verified_user_id ),
+		'number'  => 1,
+		'fields'  => 'ID',
+	) );
+
+	if ( ! empty( $existing_owner ) ) {
+		delete_user_meta( $verified_user_id, 'niz_wa_verify_code' );
+		delete_user_meta( $verified_user_id, 'niz_wa_verify_code_expires' );
+		return "This WhatsApp number is already verified on a different Masjid4All account. Please use a different number, or contact support if this looks wrong.";
+	}
+
 	// If this WhatsApp number already resolved to a different (likely
 	// auto-created prospect) account, fold its conversation history into
 	// the verified account and remove the orphaned duplicate.
@@ -151,7 +171,21 @@ function niz_wa_handle_verify_override( $override, $user_id, $wa_number, $messag
 		mfa_award_points( $verified_user_id, 'Verify WhatsApp', 25 );
 	}
 
-	return "Your WhatsApp number has been successfully verified and linked to your account!";
+	$success_message = "Your WhatsApp number has been successfully verified and linked to your account!";
+
+	// The merge above may have just moved the conversation row from the
+	// original (pre-verification) $user_id to $verified_user_id. NWA_Router
+	// would otherwise send this reply using that now-stale $user_id, whose
+	// conversation no longer exists - NWA_Sender::send_message() looks it
+	// up, finds nothing, and silently fails ("outside_window"), which is
+	// why the account verified but no WhatsApp reply arrived (bug found
+	// 2026-08-08). Send directly with the correct id and return '' so the
+	// router's own send (using the stale id) is skipped.
+	if ( function_exists( 'nwa_send_message' ) ) {
+		nwa_send_message( $verified_user_id, $wa_number, $success_message );
+	}
+
+	return '';
 }
 
 /* ---------------- Prospect merge ---------------- */

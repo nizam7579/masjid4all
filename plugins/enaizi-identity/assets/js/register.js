@@ -27,7 +27,7 @@ jQuery(document).ready(function($){
 
             console.log({
 
-                nonce: $('#niz_nonce').val(),
+                nonce: $('#niz_register_nonce_field').val(),
 
                 name: $('#niz_name').val(),
 
@@ -52,7 +52,7 @@ jQuery(document).ready(function($){
 
 
                     nonce:
-                    $('#niz_nonce').val(),
+                    $('#niz_register_nonce_field').val(),
 
 
                     name:

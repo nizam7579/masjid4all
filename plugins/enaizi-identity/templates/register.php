@@ -48,7 +48,7 @@ Continue with Google
 
 wp_nonce_field(
     'niz_register_nonce',
-    'niz_nonce'
+    'niz_register_nonce_field'
 );
 
 ?>

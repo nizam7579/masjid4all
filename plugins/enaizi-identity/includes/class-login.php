@@ -26,6 +26,16 @@ class Niz_Login {
     ) {
 
 
+        if (!is_email($identifier)) {
+
+            return new WP_Error(
+                'invalid_email',
+                'Please enter a valid email address.'
+            );
+
+        }
+
+
         $user = self::get_user_by_identifier(
             $identifier
         );
@@ -95,7 +105,12 @@ class Niz_Login {
 
 
     /**
-     * Find user by email or WhatsApp
+     * Find user by email. Login is email/Google only (2026-08-08 decision) -
+     * this used to also try a phone-number path (usermeta key
+     * 'niz_phone_number', then a jet_cct_member.phone fallback), but that
+     * never reliably worked (nothing ever wrote 'niz_phone_number', and the
+     * cct fallback wasn't kept in sync with later WhatsApp verification) -
+     * removed rather than fixed, since phone-based login is out of scope now.
      */
     private static function get_user_by_identifier(
         $identifier
@@ -107,129 +122,17 @@ class Niz_Login {
         );
 
 
-        // Email login
+        if (!is_email($identifier)) {
 
-        if (is_email($identifier)) {
-
-
-            return get_user_by(
-                'email',
-                $identifier
-            );
-
+            return false;
 
         }
 
 
-
-        // Phone login
-
-        $phone = self::normalize_phone(
+        return get_user_by(
+            'email',
             $identifier
         );
-
-
-        if (!$phone) {
-
-            return false;
-
-        }
-
-
-
-        // Search user meta
-
-        $users = get_users(
-            array(
-
-                'meta_query' => array(
-
-                    array(
-
-                        'key'   => 'niz_phone_number',
-
-                        'value' => $phone
-
-                    )
-
-                )
-
-            )
-        );
-
-
-        if (!empty($users)) {
-
-            return $users[0];
-
-        }
-
-
-
-        // fallback to cct_member
-
-        global $wpdb;
-
-
-        $table = $wpdb->prefix . 'jet_cct_member';
-
-
-        $user_id = $wpdb->get_var(
-
-            $wpdb->prepare(
-
-                "SELECT user_id 
-                 FROM {$table}
-                 WHERE phone = %s
-                 LIMIT 1",
-
-                $phone
-
-            )
-
-        );
-
-
-        if ($user_id) {
-
-            return get_userdata(
-                $user_id
-            );
-
-        }
-
-
-        return false;
-
-
-    }
-
-
-
-
-    /**
-     * Normalize phone number
-     */
-    private static function normalize_phone(
-        $phone
-    ) {
-
-
-        $phone = preg_replace(
-            '/[^0-9]/',
-            '',
-            $phone
-        );
-
-
-        if (strlen($phone) < 8) {
-
-            return false;
-
-        }
-
-
-        return $phone;
 
 
     }

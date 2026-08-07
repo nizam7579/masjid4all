@@ -60,14 +60,14 @@
             <div class="niz-input-group">
 
                 <label>
-                    Email or WhatsApp Number
+                    Your Email Address
                 </label>
 
                 <input
-                    type="text"
+                    type="email"
                     name="identifier"
                     id="niz_identifier"
-                    placeholder="Enter email or WhatsApp number"
+                    placeholder="Enter your email address"
                     value="<?php
 
                     echo isset($_COOKIE['niz_last_login'])

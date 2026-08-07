@@ -146,17 +146,6 @@
 
 
 
-        <div class="niz-register-link">
-
-            Don't have an account?
-
-            <a href="/register/">
-                Register
-            </a>
-
-        </div>
-
-
     </div>
 
 </div>

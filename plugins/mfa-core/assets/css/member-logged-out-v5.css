@@ -73,20 +73,33 @@
   margin-bottom: var(--mfa-space-5);
 }
 
+/* Kadence's sitewide `button:hover, button:focus, ...` rule (LiteSpeed-
+   combined stylesheet) carries !important on both background and color -
+   both need to be overridden explicitly or the hover state falls through
+   to Kadence's default orange, same root cause as the header Tools-button
+   and mobile-menu close-button fixes (see header-v11.css). */
 .mfa-member-auth-tab {
   flex: 1;
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
+  background: none !important;
+  border: none !important;
+  border-bottom: 2px solid transparent !important;
+  box-shadow: none !important;
   padding: 10px 0 12px;
   font-size: 15px;
   font-weight: 700;
-  color: var(--mfa-muted);
+  color: var(--mfa-muted) !important;
   cursor: pointer;
 }
+.mfa-member-auth-tab:hover,
+.mfa-member-auth-tab:focus {
+  background: none !important;
+  border-bottom-color: var(--mfa-border) !important;
+  box-shadow: none !important;
+  color: var(--mfa-teal-dark) !important;
+}
 .mfa-member-auth-tab.is-active {
-  color: var(--mfa-teal-dark);
-  border-bottom-color: var(--mfa-teal);
+  color: var(--mfa-teal-dark) !important;
+  border-bottom-color: var(--mfa-teal) !important;
 }
 
 .mfa-member-auth-panel[hidden] {

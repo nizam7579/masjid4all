@@ -96,24 +96,6 @@ required>
 <div class="niz-input-group">
 
 <label>
-WhatsApp Number (Optional)
-</label>
-
-
-<input
-type="text"
-name="phone"
-id="niz_phone"
-placeholder="60123456789">
-
-</div>
-
-
-
-
-<div class="niz-input-group">
-
-<label>
 Password
 </label>
 
@@ -149,25 +131,12 @@ required>
 
 <label class="niz-checkbox">
 
-
 <input
 type="checkbox"
 id="niz_accept_terms"
 required>
 
-
-I agree to the
-
-<a href="/terms-of-service/" target="_blank">
-Terms of Service
-</a>
-
-and
-
-<a href="/privacy-policy/" target="_blank">
-Privacy Policy
-</a>
-
+<span>I agree to the <a href="/terms-of-service/" target="_blank">Terms of Service</a> and <a href="/privacy-policy/" target="_blank">Privacy Policy</a></span>
 
 </label>
 
@@ -192,18 +161,6 @@ Create Account
 
 </form>
 
-
-
-
-<div class="niz-register-link">
-
-Already have an account?
-
-<a href="/member/">
-Login
-</a>
-
-</div>
 
 
 

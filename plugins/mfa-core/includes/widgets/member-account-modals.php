@@ -12,6 +12,36 @@ if ( ! defined( 'ABSPATH' ) ) {
  * custom-modal template - see CLAUDE.md's Design/Frontend Work section) -
  * plain HTML + a small AJAX handler, no Kadence Blocks Pro modal either.
  */
+/**
+ * Standard country list for the Edit Profile "Country" field - a select
+ * instead of free text, so the value is always consistent/usable data
+ * rather than however each user happens to type it.
+ */
+function mfa_get_country_list() {
+	return array(
+		'Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Antigua and Barbuda', 'Argentina', 'Armenia', 'Australia', 'Austria',
+		'Azerbaijan', 'Bahamas', 'Bahrain', 'Bangladesh', 'Barbados', 'Belarus', 'Belgium', 'Belize', 'Benin', 'Bhutan',
+		'Bolivia', 'Bosnia and Herzegovina', 'Botswana', 'Brazil', 'Brunei', 'Bulgaria', 'Burkina Faso', 'Burundi', 'Cambodia', 'Cameroon',
+		'Canada', 'Cape Verde', 'Central African Republic', 'Chad', 'Chile', 'China', 'Colombia', 'Comoros', 'Congo', 'Costa Rica',
+		'Croatia', 'Cuba', 'Cyprus', 'Czech Republic', 'Denmark', 'Djibouti', 'Dominica', 'Dominican Republic', 'East Timor', 'Ecuador',
+		'Egypt', 'El Salvador', 'Equatorial Guinea', 'Eritrea', 'Estonia', 'Eswatini', 'Ethiopia', 'Fiji', 'Finland', 'France',
+		'Gabon', 'Gambia', 'Georgia', 'Germany', 'Ghana', 'Greece', 'Grenada', 'Guatemala', 'Guinea', 'Guinea-Bissau',
+		'Guyana', 'Haiti', 'Honduras', 'Hong Kong', 'Hungary', 'Iceland', 'India', 'Indonesia', 'Iran', 'Iraq',
+		'Ireland', 'Israel', 'Italy', 'Ivory Coast', 'Jamaica', 'Japan', 'Jordan', 'Kazakhstan', 'Kenya', 'Kiribati',
+		'Kosovo', 'Kuwait', 'Kyrgyzstan', 'Laos', 'Latvia', 'Lebanon', 'Lesotho', 'Liberia', 'Libya', 'Liechtenstein',
+		'Lithuania', 'Luxembourg', 'Macau', 'Madagascar', 'Malawi', 'Malaysia', 'Maldives', 'Mali', 'Malta', 'Marshall Islands',
+		'Mauritania', 'Mauritius', 'Mexico', 'Micronesia', 'Moldova', 'Monaco', 'Mongolia', 'Montenegro', 'Morocco', 'Mozambique',
+		'Myanmar', 'Namibia', 'Nauru', 'Nepal', 'Netherlands', 'New Zealand', 'Nicaragua', 'Niger', 'Nigeria', 'North Korea',
+		'North Macedonia', 'Norway', 'Oman', 'Pakistan', 'Palau', 'Palestine', 'Panama', 'Papua New Guinea', 'Paraguay', 'Peru',
+		'Philippines', 'Poland', 'Portugal', 'Qatar', 'Romania', 'Russia', 'Rwanda', 'Saint Kitts and Nevis', 'Saint Lucia', 'Saint Vincent and the Grenadines',
+		'Samoa', 'San Marino', 'Sao Tome and Principe', 'Saudi Arabia', 'Senegal', 'Serbia', 'Seychelles', 'Sierra Leone', 'Singapore', 'Slovakia',
+		'Slovenia', 'Solomon Islands', 'Somalia', 'South Africa', 'South Korea', 'South Sudan', 'Spain', 'Sri Lanka', 'Sudan', 'Suriname',
+		'Sweden', 'Switzerland', 'Syria', 'Taiwan', 'Tajikistan', 'Tanzania', 'Thailand', 'Togo', 'Tonga', 'Trinidad and Tobago',
+		'Tunisia', 'Turkey', 'Turkmenistan', 'Tuvalu', 'Uganda', 'Ukraine', 'United Arab Emirates', 'United Kingdom', 'United States', 'Uruguay',
+		'Uzbekistan', 'Vanuatu', 'Vatican City', 'Venezuela', 'Vietnam', 'Yemen', 'Zambia', 'Zimbabwe',
+	);
+}
+
 add_shortcode( 'mfa_member_account_modals', 'mfa_member_account_modals_shortcode' );
 function mfa_member_account_modals_shortcode() {
 	if ( ! is_user_logged_in() ) {
@@ -68,7 +98,12 @@ function mfa_member_account_modals_shortcode() {
 			</div>
 			<div class="mfa-form-group">
 				<label for="mfa-profile-country">Country</label>
-				<input type="text" id="mfa-profile-country" name="country" value="<?php echo esc_attr( $country ); ?>">
+				<select id="mfa-profile-country" name="country">
+					<option value="" <?php selected( $country, '' ); ?>>Select</option>
+					<?php foreach ( mfa_get_country_list() as $country_option ) : ?>
+						<option value="<?php echo esc_attr( $country_option ); ?>" <?php selected( $country, $country_option ); ?>><?php echo esc_html( $country_option ); ?></option>
+					<?php endforeach; ?>
+				</select>
 			</div>
 			<button type="submit" class="mfa-btn mfa-btn-primary mfa-modal-submit">Save Changes</button>
 			<p class="mfa-modal-message" data-mfa-form-message></p>

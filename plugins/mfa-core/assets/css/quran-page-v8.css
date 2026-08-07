@@ -6,13 +6,13 @@
    dependency on Kadence's .kt-row-column-wrap/.kt-inside-inner-col) —
    the intended template for refactoring the other pages the same way. */
 
-.mfa-quran-page { font-family: Lato, sans-serif; max-width: 1290px; margin: 0 auto; }
+.mfa-quran-page { font-family: Lato, sans-serif; max-width: var(--mfa-container-max); margin: 0 auto; }
 
 .mfa-quran-header {
   text-align: center;
   padding: 48px 24px 36px;
-  background: linear-gradient(150deg, #12181f 0%, #0d4d47 100%);
-  color: #f4faf9;
+  background: linear-gradient(150deg, var(--mfa-ink) 0%, var(--mfa-green-dark) 100%);
+  color: var(--mfa-mint-bg);
   border-radius: 0;
   margin-bottom: 32px;
 }
@@ -24,7 +24,7 @@
   font-size: clamp(28px, 4vw, 40px);
   font-weight: 800;
   margin: 0 0 14px;
-  color: #ffffff;
+  color: var(--mfa-white);
 }
 .mfa-quran-tagline {
   max-width: 640px;
@@ -78,24 +78,26 @@
 
 /* ---------- Article ---------- */
 .mfa-quran-article-post {
-  border-top: 1px solid #e7efed;
+  border-top: 1px solid var(--mfa-border);
   padding-top: 28px;
   margin-top: 28px;
 }
 .mfa-quran-article h1 {
   font-size: 24px;
   font-weight: 800;
-  color: #12181f;
+  color: var(--mfa-ink);
   margin: 0 0 16px;
 }
+/* #25988b was 3.53:1 against white - fails 4.5:1 at this size/weight
+   (regular, not "large text"). var(--mfa-teal-dark) clears it (~4.96:1). */
 .mfa-quran-article a {
-  color: #25988b;
+  color: var(--mfa-teal-dark);
   text-decoration: underline;
 }
 .mfa-quran-article h2 {
   font-size: 21px;
   font-weight: 800;
-  color: #12181f;
+  color: var(--mfa-ink);
   margin: 28px 0 12px;
 }
 .mfa-quran-article p {
@@ -114,10 +116,10 @@
   color: #3d4a45;
   margin-bottom: 6px;
 }
-.mfa-quran-article strong { color: #12181f; }
+.mfa-quran-article strong { color: var(--mfa-ink); }
 .mfa-quran-article hr {
   border: none;
-  border-top: 1px solid #e7efed;
+  border-top: 1px solid var(--mfa-border);
   margin: 28px 0;
 }
 

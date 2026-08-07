@@ -95,8 +95,8 @@ function mfa_core_enqueue_widget_assets() {
 	}
 
 	if ( $is_quran_page ) {
-		$css = MFA_CORE_PATH . 'assets/css/quran-page-v7.css';
-		wp_enqueue_style( 'mfa-core-quran-page', MFA_CORE_URL . 'assets/css/quran-page-v7.css', array(), $get_version( $css ) );
+		$css = MFA_CORE_PATH . 'assets/css/quran-page-v8.css';
+		wp_enqueue_style( 'mfa-core-quran-page', MFA_CORE_URL . 'assets/css/quran-page-v8.css', array(), $get_version( $css ) );
 	}
 
 	$is_tool_page = $post && in_array( $post->post_name, array( 'prayer-times', 'qibla-finder', 'masjid', 'business', 'web', 'knowledge-hub' ), true );
@@ -206,7 +206,7 @@ function mfa_core_litespeed_css_excludes( $excludes ) {
 	// documented elsewhere in this project for other files.
 	$excludes[] = 'mfa-core/assets/css/member-logged-out-v3.css';
 	$excludes[] = 'mfa-core/assets/css/page-layout-v2.css';
-	$excludes[] = 'mfa-core/assets/css/quran-page-v7.css';
+	$excludes[] = 'mfa-core/assets/css/quran-page-v8.css';
 	$excludes[] = 'mfa-core/assets/css/tool-page-v9.css';
 	$excludes[] = 'mfa-core/assets/css/brand-page-v5.css';
 	$excludes[] = 'mfa-core/assets/css/legal-page-v3.css';

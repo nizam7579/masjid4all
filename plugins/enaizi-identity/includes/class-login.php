@@ -268,6 +268,24 @@ class Niz_Login {
         );
 
 
+        // $count was read before the increment above, so 0 here means this
+        // is genuinely this user's first login - not a session/auth change,
+        // just a side effect after wp_signon() has already succeeded.
+        // "Welcome Bonus" matches the description string the legacy
+        // niz_user_info/niz_user_welcome shortcodes already use for this
+        // same concept, so mfa_award_points()'s per-user dedup blocks a
+        // double award if one of those shortcodes also fires for this user.
+        if ($count === 0 && function_exists('mfa_award_points')) {
+
+            mfa_award_points(
+                $user_id,
+                'Welcome Bonus',
+                50
+            );
+
+        }
+
+
     }
 
 

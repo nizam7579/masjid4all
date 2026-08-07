@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 add_shortcode( 'mfa_sofia_button', 'mfa_sofia_button_shortcode' );
 function mfa_sofia_button_shortcode() {
-	$avatar = 'https://staging.masjid4all.com/wp-content/uploads/2025/03/Sofia.jpeg';
+	$avatar = '/wp-content/uploads/2025/03/Sofia-icon.jpeg';
 	$wa_link = 'https://api.whatsapp.com/send?phone=60189897579&text=I+have+a+question';
 
 	ob_start();

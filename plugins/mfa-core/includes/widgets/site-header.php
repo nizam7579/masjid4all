@@ -64,7 +64,7 @@ function mfa_site_header_shortcode() {
 	<header class="mfa-header">
 		<div class="mfa-header-inner">
 			<a href="/" class="mfa-header-logo">
-				<img src="https://staging.masjid4all.com/wp-content/uploads/2025/12/Masjid4All-logo.png" alt="Masjid4All">
+				<img src="/wp-content/uploads/2025/12/Masjid4All-logo-header.png" alt="Masjid4All">
 			</a>
 
 			<nav class="mfa-header-nav" aria-label="Primary">
@@ -92,7 +92,7 @@ function mfa_site_header_shortcode() {
 			<div class="mfa-header-mobile-inner">
 				<div class="mfa-header-mobile-topbar">
 					<a href="/" class="mfa-header-mobile-logo">
-						<img src="https://staging.masjid4all.com/wp-content/uploads/2025/12/Masjid4All-logo.png" alt="Masjid4All">
+						<img src="/wp-content/uploads/2025/12/Masjid4All-logo-header.png" alt="Masjid4All">
 					</a>
 					<button type="button" class="mfa-header-mobile-close" id="mfa-header-mobile-close" aria-label="Close menu">
 						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>

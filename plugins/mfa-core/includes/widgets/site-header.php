@@ -106,12 +106,6 @@ function mfa_site_header_shortcode() {
 					<a href="/member/" class="mfa-header-mobile-account">Login/Register to My Account &rarr;</a>
 				<?php endif; ?>
 
-				<div class="mfa-header-mobile-group">
-					<?php foreach ( $main_nav as $item ) : ?>
-						<a href="<?php echo esc_url( $item[0] ); ?>" class="mfa-header-mobile-link"><?php echo $item[2]; ?><span><?php echo esc_html( $item[1] ); ?></span></a>
-					<?php endforeach; ?>
-				</div>
-
 				<h4 class="mfa-header-mobile-heading">TOOLS</h4>
 				<div class="mfa-header-mobile-group mfa-header-mobile-group--grid">
 					<?php foreach ( $mobile_tools as $item ) : ?>

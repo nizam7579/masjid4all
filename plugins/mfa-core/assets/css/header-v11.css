@@ -87,13 +87,43 @@ body.wp-theme-kadence { padding-top: 64px !important; }
 /* This one's a <button>, not an <a> - reset browser button chrome so it
    matches the plain nav links around it. Opens the same slide-out panel
    the mobile burger opens (Tools/Prayer Time/Qibla Finder/etc.) - desktop
-   gets an inline nav item for this instead of a hamburger icon. */
+   gets an inline nav item for this instead of a hamburger icon.
+   Re-declares every .mfa-header-nav-link property directly (not relying
+   on also having that class) plus !important on the chrome-reset
+   properties - Kadence's theme.json applies its own default
+   button/:hover/:focus styling (an orange accent, with !important on
+   color specifically) that otherwise wins because it's a real button
+   element, not just unstyled. Without this the trigger visibly sat
+   lower than its sibling links (button default line-height/padding)
+   and flashed orange on hover instead of the plain teal the other nav
+   items use. */
 .mfa-header-more-trigger {
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
+  display: inline-block;
+  background: none !important;
+  border: none !important;
+  border-bottom: 2px solid transparent !important;
+  box-shadow: none !important;
+  outline: none;
   font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: inherit;
+  color: #0d4d47;
+  padding: 0 0 4px;
+  margin: 0;
   cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.mfa-header-more-trigger:hover,
+.mfa-header-more-trigger:focus {
+  background: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  color: #25988b !important;
+}
+.mfa-header-more-trigger:focus-visible {
+  outline: 2px solid #25988b !important;
+  outline-offset: 2px;
 }
 
 .mfa-header-actions { display: flex; align-items: center; gap: 10px; margin-left: auto; }
@@ -184,6 +214,12 @@ body.wp-theme-kadence { padding-top: 64px !important; }
 }
 .mfa-header-mobile-logo img { height: 28px; width: auto; display: block; }
 
+/* !important on background/border/box-shadow/color for the same reason
+   as .mfa-header-more-trigger above - Kadence's default button styling
+   otherwise wins on hover/focus and paints an orange circle instead of
+   this. stroke set directly on the svg (not just inherited via
+   currentColor) so the X can't disappear if something overrides the
+   button's own color. */
 .mfa-header-mobile-close {
   display: flex;
   align-items: center;
@@ -191,13 +227,25 @@ body.wp-theme-kadence { padding-top: 64px !important; }
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  border: none;
-  background: #f4faf9;
+  border: none !important;
+  background: #f4faf9 !important;
+  box-shadow: none !important;
   color: #12181f;
   cursor: pointer;
   flex-shrink: 0;
 }
-.mfa-header-mobile-close svg { width: 18px; height: 18px; }
+.mfa-header-mobile-close:hover,
+.mfa-header-mobile-close:focus {
+  background: #e7efed !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #12181f !important;
+}
+.mfa-header-mobile-close svg {
+  width: 18px;
+  height: 18px;
+  stroke: #12181f !important;
+}
 
 .mfa-header-mobile-account {
   display: block;

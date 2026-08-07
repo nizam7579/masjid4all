@@ -66,9 +66,38 @@ foreach ($mfa_shortcode_files as $file) {
 
 add_filter('render_block', function($block_content, $block) {
     if (strpos($block_content, 'kb-section-link-overlay') !== false) {
-        $block_content = str_replace(
-            'class="kb-section-link-overlay"',
-            'class="kb-section-link-overlay" aria-label="Learn more"',
+        // Distinct per-destination label, not a single "Learn more" repeated
+        // on every card - identical accessible names on different links
+        // fail the "Identical links have the same purpose" check, since
+        // screen reader users tabbing through can't tell the links apart.
+        // render_block fires once for the whole row of 5 cards (not once
+        // per card), so this must replace each <a> using ITS OWN href, not
+        // a single label reused across the whole block via a blind
+        // str_replace - preg_replace_callback matches each tag separately.
+        $href_labels = [
+            '/'               => 'Home',
+            '/masjid/'        => 'Mosque Directory',
+            '/business/'      => 'Business Directory',
+            '/web/'           => 'Website Directory',
+            '/knowledge-hub/' => 'Knowledge Hub',
+        ];
+        $block_content = preg_replace_callback(
+            '/<a\b[^>]*class="kb-section-link-overlay"[^>]*>/',
+            function( $match ) use ( $href_labels ) {
+                $tag = $match[0];
+                $label = 'Learn more';
+                if ( preg_match('/href="([^"]*)"/', $tag, $hm) ) {
+                    $path = rtrim( (string) ( parse_url( $hm[1], PHP_URL_PATH ) ?: $hm[1] ), '/' ) . '/';
+                    if ( isset( $href_labels[ $path ] ) ) {
+                        $label = 'Learn more about ' . $href_labels[ $path ];
+                    }
+                }
+                return str_replace(
+                    'class="kb-section-link-overlay"',
+                    'class="kb-section-link-overlay" aria-label="' . esc_attr( $label ) . '"',
+                    $tag
+                );
+            },
             $block_content
         );
     }

@@ -29,6 +29,7 @@
       if (overlay) overlay.classList.add('is-open');
       document.body.classList.add('mfa-header-menu-open');
       menu.setAttribute('aria-hidden', 'false');
+      menu.removeAttribute('inert');
       if (burger) burger.setAttribute('aria-expanded', 'true');
     }
 
@@ -37,6 +38,7 @@
       if (overlay) overlay.classList.remove('is-open');
       document.body.classList.remove('mfa-header-menu-open');
       menu.setAttribute('aria-hidden', 'true');
+      menu.setAttribute('inert', '');
       if (burger) burger.setAttribute('aria-expanded', 'false');
     }
 

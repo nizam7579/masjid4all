@@ -85,7 +85,9 @@
 .mfa-stat-item { text-align: center; padding: 10px; border-right: 1px solid #edf2f1; }
 .mfa-stat-item:last-child { border-right: none; }
 .mfa-stat-value { display: block; font-size: 28px; font-weight: 800; color: var(--mfa-ink); }
-.mfa-stat-label { display: block; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #64837e; margin-top: 4px; }
+/* #64837e was only 4.13:1 against white - fails the 4.5:1 minimum at this
+   size/weight. var(--mfa-muted) is the closest token that clears it (~5.6:1). */
+.mfa-stat-label { display: block; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--mfa-muted); margin-top: 4px; }
 @media (max-width: 700px) {
   .mfa-stats-strip { grid-template-columns: repeat(2, 1fr); margin-top: -40px; margin-bottom: 24px; border-radius: var(--mfa-radius-md); padding-bottom: 18px; border-bottom: 2px solid #e2e8e6; }
   .mfa-stat-item:nth-child(2) { border-right: none; }

@@ -59,10 +59,10 @@ function mfa_core_enqueue_widget_assets() {
 
 	// Sitewide header — same reasoning as the floating share button below:
 	// not tied to any specific page's post_content.
-	$header_css_path = MFA_CORE_PATH . 'assets/css/header-v8.css';
-	$header_js_path  = MFA_CORE_PATH . 'assets/js/header-v2.js';
-	wp_enqueue_style( 'mfa-core-header', MFA_CORE_URL . 'assets/css/header-v8.css', array(), $get_version( $header_css_path ) );
-	wp_enqueue_script( 'mfa-core-header', MFA_CORE_URL . 'assets/js/header-v2.js', array(), $get_version( $header_js_path ), true );
+	$header_css_path = MFA_CORE_PATH . 'assets/css/header-v9.css';
+	$header_js_path  = MFA_CORE_PATH . 'assets/js/header-v3.js';
+	wp_enqueue_style( 'mfa-core-header', MFA_CORE_URL . 'assets/css/header-v9.css', array(), $get_version( $header_css_path ) );
+	wp_enqueue_script( 'mfa-core-header', MFA_CORE_URL . 'assets/js/header-v3.js', array(), $get_version( $header_js_path ), true );
 
 	// Floating footer share button — sitewide, since the Kadence Theme
 	// Builder footer isn't part of any specific page's post_content.
@@ -90,8 +90,8 @@ function mfa_core_enqueue_widget_assets() {
 	wp_enqueue_style( 'mfa-core-coming-soon', MFA_CORE_URL . 'assets/css/coming-soon-v1.css', array(), $get_version( $coming_soon_css ) );
 
 	if ( $post && 'homepage' === $post->post_name ) {
-		$css = MFA_CORE_PATH . 'assets/css/homepage-v13.css';
-		wp_enqueue_style( 'mfa-core-homepage', MFA_CORE_URL . 'assets/css/homepage-v13.css', array(), $get_version( $css ) );
+		$css = MFA_CORE_PATH . 'assets/css/homepage-v14.css';
+		wp_enqueue_style( 'mfa-core-homepage', MFA_CORE_URL . 'assets/css/homepage-v14.css', array(), $get_version( $css ) );
 	}
 
 	if ( $is_quran_page ) {
@@ -198,7 +198,7 @@ add_filter( 'litespeed_optimize_css_excludes', 'mfa_core_litespeed_css_excludes'
 function mfa_core_litespeed_css_excludes( $excludes ) {
 	$excludes[] = 'mfa-core/assets/css/prayer-times-v2.css';
 	$excludes[] = 'mfa-core/assets/css/qibla-v3.css';
-	$excludes[] = 'mfa-core/assets/css/homepage-v13.css';
+	$excludes[] = 'mfa-core/assets/css/homepage-v14.css';
 	// Newly excluded 2026-08-07: a rule targeting this page's unique
 	// Kadence column ID was silently dropped when this file went through
 	// LiteSpeed's combine/minify pipeline (confirmed present in the raw
@@ -217,6 +217,6 @@ function mfa_core_litespeed_css_excludes( $excludes ) {
 	$excludes[] = 'mfa-core/assets/css/website-single-v1.css';
 	$excludes[] = 'mfa-core/assets/css/coming-soon-v1.css';
 	$excludes[] = 'mfa-core/assets/css/knowledge-single-v1.css';
-	$excludes[] = 'mfa-core/assets/css/header-v8.css';
+	$excludes[] = 'mfa-core/assets/css/header-v9.css';
 	return $excludes;
 }

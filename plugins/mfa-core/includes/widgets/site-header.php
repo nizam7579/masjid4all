@@ -88,7 +88,7 @@ function mfa_site_header_shortcode() {
 		</div>
 
 		<div class="mfa-header-mobile-overlay" id="mfa-header-mobile-overlay"></div>
-		<div class="mfa-header-mobile-menu" id="mfa-header-mobile-menu" aria-hidden="true">
+		<div class="mfa-header-mobile-menu" id="mfa-header-mobile-menu" aria-hidden="true" inert>
 			<div class="mfa-header-mobile-inner">
 				<div class="mfa-header-mobile-topbar">
 					<a href="/" class="mfa-header-mobile-logo">

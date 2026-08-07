@@ -138,7 +138,7 @@ function mfa_member_dashboard_shortcode() {
 			<ul class="mfa-dash-checklist">
 				<li class="<?php echo $has_joined_award ? 'is-done' : ''; ?>">
 					<span class="mfa-dash-check"><?php echo $has_joined_award ? '&#10003;' : ''; ?></span>
-					<span>Joined Masjid4All</span>
+					<span>Welcome Bonus</span>
 					<span class="mfa-dash-check-pts">+50</span>
 				</li>
 				<li class="<?php echo $has_email_award ? 'is-done' : ''; ?>">

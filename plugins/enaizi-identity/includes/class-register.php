@@ -152,12 +152,20 @@ public static function init(){
         }
 
         $token = Niz_Email_Verification::generate_token($user_id  );
-        
+
         Niz_Email_Verification::send_email(
             $user_id,
             $token
         );
-        
+
+        // Registration logs the user straight in (below) rather than going
+        // through Niz_Login::authenticate() - the only other place that
+        // awards this - so without this call a fresh registration would
+        // never earn the Welcome Bonus until a separate later login.
+        if ( function_exists( 'mfa_award_points' ) ) {
+            mfa_award_points( $user_id, 'Welcome Bonus', 50 );
+        }
+
         wp_set_current_user($user_id);
         
         wp_set_auth_cookie($user_id );

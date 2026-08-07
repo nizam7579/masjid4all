@@ -77,6 +77,22 @@
 .mfa-dash-link-btn:hover {
   text-decoration: underline;
 }
+.mfa-dash-link-btn[disabled] {
+  color: var(--mfa-label);
+  cursor: not-allowed;
+}
+.mfa-dash-link-btn[disabled]:hover {
+  text-decoration: none;
+}
+
+.mfa-dash-change-email-btn {
+  display: block;
+  margin-top: var(--mfa-space-2);
+}
+
+.mfa-dash-locked {
+  font-style: italic;
+}
 
 /* ---------- Next step banner ---------- */
 

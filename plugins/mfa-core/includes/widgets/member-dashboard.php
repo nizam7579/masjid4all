@@ -54,26 +54,24 @@ function mfa_member_dashboard_shortcode() {
 	$initial      = strtoupper( mb_substr( $user->display_name ? $user->display_name : $user->user_login, 0, 1 ) );
 	$display_name = $user->display_name ? $user->display_name : $user->user_login;
 
-	// Single most urgent onboarding action - deliberately one at a time
-	// rather than a checklist of demands, per "focus user to start and
-	// enjoy the free services" (downplay everything except the one next step).
-	// Order: profile -> email -> WhatsApp (2026-08-08 - profile comes first
-	// since it's the step right after the Welcome Bonus, and gets a one-time
-	// congratulations intro since most users reach it fresh off joining).
-	if ( ! $profile_complete ) {
+	// Email verification is a mandatory gate (2026-08-08 decision): until
+	// it's done, it's the only active next step - Edit Profile and WhatsApp
+	// verification are locked below, so every member ends up with a
+	// verified email. Order after that: profile -> WhatsApp.
+	if ( ! $email_verified ) {
 		$next_step = array(
 			'intro' => "Congratulations! You've earned 50 Barakah points for joining Masjid4All as a member.",
-			'title' => 'Update your profile',
-			'body'  => 'Complete your profile to earn another 50 Barakah points.',
-			'cta'   => 'Update Profile',
-			'modal' => 'mfa-edit-profile-modal',
-		);
-	} elseif ( ! $email_verified ) {
-		$next_step = array(
 			'title' => 'Verify your email address',
 			'body'  => 'Confirm your email to secure your account and earn 25 Barakah points.',
 			'cta'   => 'Verify Email',
 			'href'  => '#mfa-dash-email',
+		);
+	} elseif ( ! $profile_complete ) {
+		$next_step = array(
+			'title' => 'Update your profile',
+			'body'  => 'Complete your profile to earn another 50 Barakah points.',
+			'cta'   => 'Update Profile',
+			'modal' => 'mfa-edit-profile-modal',
 		);
 	} elseif ( ! $wa_verified ) {
 		$next_step = array(
@@ -99,7 +97,11 @@ function mfa_member_dashboard_shortcode() {
 				</span>
 			</div>
 			<div class="mfa-dash-profile-actions">
-				<button type="button" class="mfa-dash-link-btn" data-mfa-modal-open="mfa-edit-profile-modal">Edit Profile</button>
+				<?php if ( $email_verified ) : ?>
+					<button type="button" class="mfa-dash-link-btn" data-mfa-modal-open="mfa-edit-profile-modal">Edit Profile</button>
+				<?php else : ?>
+					<button type="button" class="mfa-dash-link-btn" disabled title="Verify your email first">Edit Profile</button>
+				<?php endif; ?>
 				<button type="button" class="mfa-dash-link-btn" data-mfa-modal-open="mfa-change-password-modal">Change Password</button>
 			</div>
 		</section>
@@ -153,15 +155,15 @@ function mfa_member_dashboard_shortcode() {
 					<span>Verify email</span>
 					<span class="mfa-dash-check-pts">+25</span>
 				</li>
-				<li class="<?php echo $has_wa_award ? 'is-done' : ''; ?>">
-					<span class="mfa-dash-check"><?php echo $has_wa_award ? '&#10003;' : ''; ?></span>
-					<span>Verify WhatsApp</span>
-					<span class="mfa-dash-check-pts">+25</span>
-				</li>
 				<li class="<?php echo $has_profile_award ? 'is-done' : ''; ?>">
 					<span class="mfa-dash-check"><?php echo $has_profile_award ? '&#10003;' : ''; ?></span>
 					<span>Complete profile</span>
 					<span class="mfa-dash-check-pts">+50</span>
+				</li>
+				<li class="<?php echo $has_wa_award ? 'is-done' : ''; ?>">
+					<span class="mfa-dash-check"><?php echo $has_wa_award ? '&#10003;' : ''; ?></span>
+					<span>Verify WhatsApp</span>
+					<span class="mfa-dash-check-pts">+25</span>
 				</li>
 			</ul>
 		</section>
@@ -172,9 +174,10 @@ function mfa_member_dashboard_shortcode() {
 				<?php if ( $email_verified ) : ?>
 					<p class="mfa-dash-verified">&#10003; Verified</p>
 				<?php else : ?>
-					<p class="mfa-body-muted">Not verified yet.</p>
+					<p class="mfa-body-muted">We sent a verification link to <strong><?php echo esc_html( $user->user_email ); ?></strong>.</p>
 					<button type="button" class="niz-resend-email mfa-btn mfa-btn-primary mfa-dash-btn-sm">Resend Verification Email</button>
 					<span id="niz-email-message" class="mfa-dash-inline-msg"></span>
+					<button type="button" class="mfa-dash-link-btn mfa-dash-change-email-btn" data-mfa-modal-open="mfa-update-email-modal">Wrong email? Update it</button>
 				<?php endif; ?>
 			</div>
 
@@ -182,6 +185,8 @@ function mfa_member_dashboard_shortcode() {
 				<h3 class="mfa-h3">WhatsApp</h3>
 				<?php if ( $wa_verified ) : ?>
 					<p class="mfa-dash-verified">&#10003; Verified</p>
+				<?php elseif ( ! $email_verified ) : ?>
+					<p class="mfa-body-muted mfa-dash-locked">Verify your email first to unlock WhatsApp verification.</p>
 				<?php else : ?>
 					<p class="mfa-body-muted">Not verified yet.</p>
 					<?php

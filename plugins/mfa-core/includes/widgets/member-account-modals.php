@@ -55,9 +55,6 @@ function mfa_member_account_modals_shortcode() {
 	$sex       = function_exists( 'niz_user_field_by_userid' ) ? niz_user_field_by_userid( $user_id, 'sex' ) : '';
 	$birthdate = function_exists( 'niz_user_field_by_userid' ) ? niz_user_field_by_userid( $user_id, 'birthdate' ) : '';
 	$country   = function_exists( 'niz_user_field_by_userid' ) ? niz_user_field_by_userid( $user_id, 'country' ) : '';
-	$email     = function_exists( 'niz_user_field_by_userid' ) && niz_user_field_by_userid( $user_id, 'email' )
-		? niz_user_field_by_userid( $user_id, 'email' )
-		: $user->user_email;
 
 	if ( empty( $name ) ) {
 		$name = $user->display_name;
@@ -77,10 +74,6 @@ function mfa_member_account_modals_shortcode() {
 			<div class="mfa-form-group">
 				<label for="mfa-profile-name">Name</label>
 				<input type="text" id="mfa-profile-name" name="name" value="<?php echo esc_attr( $name ); ?>" required>
-			</div>
-			<div class="mfa-form-group">
-				<label for="mfa-profile-email">Email</label>
-				<input type="email" id="mfa-profile-email" name="email" value="<?php echo esc_attr( $email ); ?>" required>
 			</div>
 			<div class="mfa-form-row">
 				<div class="mfa-form-group">
@@ -133,6 +126,23 @@ function mfa_member_account_modals_shortcode() {
 			<p class="mfa-modal-message" data-mfa-form-message></p>
 		</form>
 	</div>
+
+	<div class="mfa-modal" id="mfa-update-email-modal" role="dialog" aria-modal="true" aria-label="Update Email Address" aria-hidden="true">
+		<button type="button" class="mfa-modal-close" data-mfa-modal-close aria-label="Close">
+			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+		</button>
+		<h3 class="mfa-h3">Update Email Address</h3>
+		<p class="mfa-body-muted">Entered the wrong email when you registered? Update it here - we'll send a fresh verification link to the new address.</p>
+		<form id="mfa-update-email-form" class="mfa-modal-form">
+			<input type="hidden" name="nonce" value="<?php echo esc_attr( wp_create_nonce( 'mfa_update_email' ) ); ?>">
+			<div class="mfa-form-group">
+				<label for="mfa-new-email">Correct Email Address</label>
+				<input type="email" id="mfa-new-email" name="email" placeholder="Enter your correct email address" required>
+			</div>
+			<button type="submit" class="mfa-btn mfa-btn-primary mfa-modal-submit">Update Email</button>
+			<p class="mfa-modal-message" data-mfa-form-message></p>
+		</form>
+	</div>
 	<?php
 	return ob_get_clean();
 }
@@ -154,13 +164,12 @@ function mfa_ajax_update_profile() {
 	$user_id = get_current_user_id();
 
 	$name      = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
-	$email     = isset( $_POST['email'] ) ? sanitize_email( wp_unslash( $_POST['email'] ) ) : '';
 	$sex       = isset( $_POST['sex'] ) ? sanitize_text_field( wp_unslash( $_POST['sex'] ) ) : '';
 	$birthdate = isset( $_POST['birthdate'] ) ? sanitize_text_field( wp_unslash( $_POST['birthdate'] ) ) : '';
 	$country   = isset( $_POST['country'] ) ? sanitize_text_field( wp_unslash( $_POST['country'] ) ) : '';
 
-	if ( empty( $name ) || empty( $email ) || ! is_email( $email ) ) {
-		wp_send_json_error( array( 'message' => 'Please provide a valid name and email.' ) );
+	if ( empty( $name ) ) {
+		wp_send_json_error( array( 'message' => 'Please provide your name.' ) );
 	}
 
 	if ( function_exists( 'niz_user_member_cct' ) ) {
@@ -171,7 +180,6 @@ function mfa_ajax_update_profile() {
 
 	if ( function_exists( 'niz_user_update_field' ) ) {
 		niz_user_update_field( $user_id, 'name', $name );
-		niz_user_update_field( $user_id, 'email', $email );
 		niz_user_update_field( $user_id, 'sex', $sex );
 		niz_user_update_field( $user_id, 'birthdate', $birthdate );
 		niz_user_update_field( $user_id, 'country', $country );
@@ -221,4 +229,58 @@ function mfa_ajax_change_password() {
 	wp_set_auth_cookie( $user->ID );
 
 	wp_send_json_success( array( 'message' => 'Password updated successfully.' ) );
+}
+
+/**
+ * Lets a user correct their email if they registered with a wrong/dummy
+ * address they can't verify - the only way to recover, since email
+ * verification is a mandatory gate (2026-08-08 decision) before Edit
+ * Profile / WhatsApp verification unlock. This updates the REAL account
+ * email (wp_users.user_email, what login and verification both check) -
+ * unlike the old Edit Profile "Email" field, which only ever wrote to a
+ * secondary jet_cct_member column and silently did nothing useful (found
+ * and removed as part of this same change). Resets verification status
+ * and sends a fresh link to the new address.
+ */
+add_action( 'wp_ajax_mfa_update_email', 'mfa_ajax_update_email' );
+function mfa_ajax_update_email() {
+	if ( ! is_user_logged_in() ) {
+		wp_send_json_error( array( 'message' => 'Please login first.' ) );
+	}
+
+	check_ajax_referer( 'mfa_update_email', 'nonce' );
+
+	$user_id   = get_current_user_id();
+	$new_email = isset( $_POST['email'] ) ? sanitize_email( wp_unslash( $_POST['email'] ) ) : '';
+
+	if ( empty( $new_email ) || ! is_email( $new_email ) ) {
+		wp_send_json_error( array( 'message' => 'Please enter a valid email address.' ) );
+	}
+
+	$existing_owner = email_exists( $new_email );
+	if ( $existing_owner && (int) $existing_owner !== $user_id ) {
+		wp_send_json_error( array( 'message' => 'This email is already registered to another account.' ) );
+	}
+
+	$result = wp_update_user( array(
+		'ID'         => $user_id,
+		'user_email' => $new_email,
+	) );
+
+	if ( is_wp_error( $result ) ) {
+		wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+	}
+
+	if ( function_exists( 'niz_user_update_field' ) ) {
+		niz_user_update_field( $user_id, 'email', $new_email );
+	}
+
+	update_user_meta( $user_id, 'niz_email_verified', 'No' );
+
+	if ( class_exists( 'Niz_Email_Verification' ) ) {
+		$token = Niz_Email_Verification::generate_token( $user_id );
+		Niz_Email_Verification::send_email( $user_id, $token );
+	}
+
+	wp_send_json_success( array( 'message' => 'Email updated. A new verification link has been sent to your new address.' ) );
 }

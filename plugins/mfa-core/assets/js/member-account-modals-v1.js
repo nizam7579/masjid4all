@@ -84,4 +84,5 @@ document.addEventListener('DOMContentLoaded', function () {
 
 	bindAjaxForm('mfa-edit-profile-form', 'mfa_update_profile');
 	bindAjaxForm('mfa-change-password-form', 'mfa_change_password');
+	bindAjaxForm('mfa-update-email-form', 'mfa_update_email');
 });

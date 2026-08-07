@@ -1,9 +1,8 @@
-/* mosque-single.css — [mfa_mosque_home_tab] / [mfa_mosque_local_business_tab]
-   on the single mosque post template (Kadence Theme Builder "Mosque"
-   element, post 875). Plain HTML/CSS, no Kadence blocks for these two
-   tabs' own content; the outer 4-tab nav (Home / Community / Local
-   Business / Review) and the right-column Mosque Directory sidebar stay
-   Kadence for now.
+/* website-single.css — [mfa_website_home_tab] on the single website post
+   template (Kadence Theme Builder "Web" element, post 220902). Plain
+   HTML/CSS, no Kadence blocks for this tab's own content; the outer
+   3-tab nav (Home / Review / Claim Website) and the right-column
+   "Islamic Resources" directory sidebar stay Kadence for now.
 
    The modal chrome/animation rules below are copied verbatim from
    business-single-v4.css (same Kadence Blocks Pro modal DOM contract,
@@ -12,9 +11,9 @@
    dependency, matching this codebase's existing per-page-type
    self-contained CSS convention. */
 
-.mfa-mosque-home { font-family: Lato, sans-serif; }
+.mfa-web-home { font-family: Lato, sans-serif; }
 
-.mfa-mosque-actions {
+.mfa-web-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
@@ -22,48 +21,23 @@
   margin-bottom: 20px;
 }
 
-.mfa-mosque-action-btn {
+.mfa-web-action-btn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   padding: 10px 20px;
   border-radius: 999px;
-  background: #ffffff;
+  background: var(--mfa-white);
   border: 1px solid #d7e4e1;
-  color: #12181f;
+  color: var(--mfa-ink);
   font-weight: 700;
   font-size: 14px;
   cursor: pointer;
   text-decoration: none;
   transition: filter 0.15s ease, background 0.15s ease;
 }
-.mfa-mosque-action-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
-.mfa-mosque-action-btn:hover { background: #f4faf9; color: #12181f; }
-
-/* ---------- Local Business tab ---------- */
-.mfa-mosque-local { font-family: Lato, sans-serif; }
-.mfa-mosque-local-title {
-  font-size: 18px;
-  font-weight: 700;
-  color: #12181f;
-  margin: 0 0 8px;
-}
-.mfa-mosque-local-sub {
-  font-size: 15px;
-  color: #56655f;
-  line-height: 1.6;
-  margin: 0 0 16px;
-}
-/* [niz_mfa_local_business]'s own .niz-grid-canvas grid is 1-column by
-   default (its 3-col media query lives in business-v2.css, which isn't
-   necessarily enqueued on this page) - force 3 columns on desktop,
-   matching the Nearby Mosques tab treatment on the business single page. */
-@media (min-width: 900px) {
-  .mfa-mosque-local .niz-grid-canvas {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
-  }
-}
+.mfa-web-action-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+.mfa-web-action-btn:hover { background: var(--mfa-mint-bg); color: var(--mfa-ink); }
 
 /* ---------- Modal chrome (mirrors Kadence Blocks Pro's own modal CSS) ---------- */
 .kadence-block-pro-modal { display: none; }
@@ -104,7 +78,7 @@
 
 .kadence-block-pro-modal .kt-modal-container {
   position: relative;
-  background: #ffffff;
+  background: var(--mfa-white);
   width: 100%;
   max-width: 600px;
   max-height: 90vh;
@@ -126,10 +100,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f4faf9;
+  background: var(--mfa-mint-bg);
   border: none;
   border-radius: 50%;
-  color: #12181f;
+  color: var(--mfa-ink);
   cursor: pointer;
   padding: 0;
 }
@@ -138,7 +112,7 @@
 .kadence-block-pro-modal .kt-modal-content h2,
 .kadence-block-pro-modal .kt-modal-content h3 {
   margin-top: 0;
-  color: #12181f;
+  color: var(--mfa-ink);
 }
 .kadence-block-pro-modal .kt-modal-content p {
   color: #56655f;

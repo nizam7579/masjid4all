@@ -30,9 +30,9 @@
   gap: 8px;
   padding: 10px 20px;
   border-radius: 999px;
-  background: #ffffff;
+  background: var(--mfa-white);
   border: 1px solid #d7e4e1;
-  color: #12181f;
+  color: var(--mfa-ink);
   font-weight: 700;
   font-size: 14px;
   cursor: pointer;
@@ -40,7 +40,7 @@
   transition: filter 0.15s ease, background 0.15s ease;
 }
 .mfa-biz-action-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
-.mfa-biz-action-btn:hover { background: #f4faf9; color: #12181f; }
+.mfa-biz-action-btn:hover { background: var(--mfa-mint-bg); color: var(--mfa-ink); }
 
 /* ---------- Nearby Mosques tab ---------- */
 .mfa-biz-nearby { font-family: Lato, sans-serif; }
@@ -55,7 +55,7 @@
 .mfa-biz-nearby-title {
   font-size: 18px;
   font-weight: 700;
-  color: #12181f;
+  color: var(--mfa-ink);
   margin: 0;
   flex: 1 1 auto;
   min-width: 0;
@@ -90,7 +90,7 @@
 .mfa-biz-sidebar-title {
   font-size: 18px;
   font-weight: 700;
-  color: #12181f;
+  color: var(--mfa-ink);
   margin: 0 0 14px;
 }
 
@@ -133,7 +133,7 @@
 
 .kadence-block-pro-modal .kt-modal-container {
   position: relative;
-  background: #ffffff;
+  background: var(--mfa-white);
   width: 100%;
   max-width: 600px;
   max-height: 90vh;
@@ -155,10 +155,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f4faf9;
+  background: var(--mfa-mint-bg);
   border: none;
   border-radius: 50%;
-  color: #12181f;
+  color: var(--mfa-ink);
   cursor: pointer;
   padding: 0;
 }
@@ -167,7 +167,7 @@
 .kadence-block-pro-modal .kt-modal-content h2,
 .kadence-block-pro-modal .kt-modal-content h3 {
   margin-top: 0;
-  color: #12181f;
+  color: var(--mfa-ink);
 }
 .kadence-block-pro-modal .kt-modal-content p {
   color: #56655f;

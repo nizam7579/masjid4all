@@ -40,13 +40,13 @@
 .mfa-member-out-title {
   font-size: 24px;
   font-weight: 700;
-  color: #12181f;
+  color: var(--mfa-ink);
   margin: 0 0 12px;
 }
 
 .mfa-member-out-lead {
   font-size: 16px;
-  color: #12181f;
+  color: var(--mfa-ink);
   line-height: 1.6;
   margin: 0 0 24px;
 }
@@ -54,7 +54,7 @@
 .mfa-member-out-subhead {
   font-size: 20px;
   font-weight: 700;
-  color: #12181f;
+  color: var(--mfa-ink);
   margin: 0 0 16px;
 }
 
@@ -68,13 +68,13 @@
 }
 
 .mfa-member-out-card {
-  background: #f4faf9;
+  background: var(--mfa-mint-bg);
   border-top: 1px solid #239084;
   border-radius: 10px;
   padding: 16px;
 }
 .mfa-member-out-card p {
   margin: 0;
-  color: #12181f;
+  color: var(--mfa-ink);
   line-height: 1.6;
 }

@@ -114,8 +114,8 @@ function mfa_core_enqueue_widget_assets() {
 	}
 
 	if ( $post && 'member' === $post->post_name ) {
-		$css = MFA_CORE_PATH . 'assets/css/member-logged-out-v2.css';
-		wp_enqueue_style( 'mfa-core-member-logged-out', MFA_CORE_URL . 'assets/css/member-logged-out-v2.css', array(), $get_version( $css ) );
+		$css = MFA_CORE_PATH . 'assets/css/member-logged-out-v3.css';
+		wp_enqueue_style( 'mfa-core-member-logged-out', MFA_CORE_URL . 'assets/css/member-logged-out-v3.css', array(), $get_version( $css ) );
 	}
 
 	$is_legal_page = $post && in_array( $post->post_name, array( 'privacy-policy', 'terms-of-service' ), true );
@@ -131,8 +131,8 @@ function mfa_core_enqueue_widget_assets() {
 	// renders through the CPT template, not literal post_content — checked
 	// by post_type instead, same pattern as $is_quran_page above.
 	if ( $post && 'business' === $post->post_type ) {
-		$css = MFA_CORE_PATH . 'assets/css/business-single-v4.css';
-		wp_enqueue_style( 'mfa-core-business-single', MFA_CORE_URL . 'assets/css/business-single-v4.css', array(), $get_version( $css ) );
+		$css = MFA_CORE_PATH . 'assets/css/business-single-v5.css';
+		wp_enqueue_style( 'mfa-core-business-single', MFA_CORE_URL . 'assets/css/business-single-v5.css', array(), $get_version( $css ) );
 
 		// Explicit safety-net enqueue: the modal markup relies on Kadence
 		// Blocks Pro's own kt-modal-init.min.js (MicroModal, handle
@@ -162,8 +162,8 @@ function mfa_core_enqueue_widget_assets() {
 	// post_type-based detection and modal safety-net pattern as the
 	// business post block above.
 	if ( $post && 'masjid' === $post->post_type ) {
-		$css = MFA_CORE_PATH . 'assets/css/mosque-single-v1.css';
-		wp_enqueue_style( 'mfa-core-mosque-single', MFA_CORE_URL . 'assets/css/mosque-single-v1.css', array(), $get_version( $css ) );
+		$css = MFA_CORE_PATH . 'assets/css/mosque-single-v2.css';
+		wp_enqueue_style( 'mfa-core-mosque-single', MFA_CORE_URL . 'assets/css/mosque-single-v2.css', array(), $get_version( $css ) );
 
 		if ( wp_script_is( 'kadence-blocks-pro-modal', 'registered' ) ) {
 			wp_enqueue_script( 'kadence-blocks-pro-modal' );
@@ -175,8 +175,8 @@ function mfa_core_enqueue_widget_assets() {
 	// [mfa_website_home_tab]). Same post_type-based detection and modal
 	// safety-net pattern as the business/mosque post blocks above.
 	if ( $post && 'web' === $post->post_type ) {
-		$css = MFA_CORE_PATH . 'assets/css/website-single-v1.css';
-		wp_enqueue_style( 'mfa-core-website-single', MFA_CORE_URL . 'assets/css/website-single-v1.css', array(), $get_version( $css ) );
+		$css = MFA_CORE_PATH . 'assets/css/website-single-v2.css';
+		wp_enqueue_style( 'mfa-core-website-single', MFA_CORE_URL . 'assets/css/website-single-v2.css', array(), $get_version( $css ) );
 
 		if ( wp_script_is( 'kadence-blocks-pro-modal', 'registered' ) ) {
 			wp_enqueue_script( 'kadence-blocks-pro-modal' );
@@ -204,7 +204,7 @@ function mfa_core_litespeed_css_excludes( $excludes ) {
 	// LiteSpeed's combine/minify pipeline (confirmed present in the raw
 	// file, absent from the served combined bundle) - same class of bug
 	// documented elsewhere in this project for other files.
-	$excludes[] = 'mfa-core/assets/css/member-logged-out-v2.css';
+	$excludes[] = 'mfa-core/assets/css/member-logged-out-v3.css';
 	$excludes[] = 'mfa-core/assets/css/page-layout-v2.css';
 	$excludes[] = 'mfa-core/assets/css/quran-page-v7.css';
 	$excludes[] = 'mfa-core/assets/css/tool-page-v9.css';
@@ -212,9 +212,9 @@ function mfa_core_litespeed_css_excludes( $excludes ) {
 	$excludes[] = 'mfa-core/assets/css/legal-page-v3.css';
 	$excludes[] = 'mfa-core/assets/css/share-button-v15.css';
 	$excludes[] = 'mfa-core/assets/css/sofia-button-v1.css';
-	$excludes[] = 'mfa-core/assets/css/business-single-v4.css';
-	$excludes[] = 'mfa-core/assets/css/mosque-single-v1.css';
-	$excludes[] = 'mfa-core/assets/css/website-single-v1.css';
+	$excludes[] = 'mfa-core/assets/css/business-single-v5.css';
+	$excludes[] = 'mfa-core/assets/css/mosque-single-v2.css';
+	$excludes[] = 'mfa-core/assets/css/website-single-v2.css';
 	$excludes[] = 'mfa-core/assets/css/coming-soon-v1.css';
 	$excludes[] = 'mfa-core/assets/css/knowledge-single-v1.css';
 	$excludes[] = 'mfa-core/assets/css/header-v9.css';

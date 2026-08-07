@@ -54,8 +54,8 @@ function mfa_core_enqueue_widget_assets() {
 	// Global design tokens (colors, spacing, buttons, etc) — sitewide,
 	// loaded first so every other mfa-core stylesheet can build on it.
 	// See global-v1.css's own header comment for what's in it and why.
-	$global_css_path = MFA_CORE_PATH . 'assets/css/global-v1.css';
-	wp_enqueue_style( 'mfa-core-global', MFA_CORE_URL . 'assets/css/global-v1.css', array(), $get_version( $global_css_path ) );
+	$global_css_path = MFA_CORE_PATH . 'assets/css/global-v2.css';
+	wp_enqueue_style( 'mfa-core-global', MFA_CORE_URL . 'assets/css/global-v2.css', array(), $get_version( $global_css_path ) );
 
 	// /member/* has its own custom header/footer shell (see
 	// includes/member-template.php) that bypasses the public site's chrome
@@ -87,6 +87,9 @@ function mfa_core_enqueue_widget_assets() {
 	} else {
 		$member_shell_css = MFA_CORE_PATH . 'assets/css/member-shell-v1.css';
 		wp_enqueue_style( 'mfa-core-member-shell', MFA_CORE_URL . 'assets/css/member-shell-v1.css', array( 'mfa-core-global' ), $get_version( $member_shell_css ) );
+
+		$member_dashboard_css = MFA_CORE_PATH . 'assets/css/member-dashboard-v1.css';
+		wp_enqueue_style( 'mfa-core-member-dashboard', MFA_CORE_URL . 'assets/css/member-dashboard-v1.css', array( 'mfa-core-global', 'mfa-core-member-shell' ), $get_version( $member_dashboard_css ) );
 	}
 
 	// Reusable content/ad two-column layout utility — sitewide, not tied
@@ -230,5 +233,7 @@ function mfa_core_litespeed_css_excludes( $excludes ) {
 	$excludes[] = 'mfa-core/assets/css/knowledge-single-v1.css';
 	$excludes[] = 'mfa-core/assets/css/header-v11.css';
 	$excludes[] = 'mfa-core/assets/css/member-shell-v1.css';
+	$excludes[] = 'mfa-core/assets/css/member-dashboard-v1.css';
+	$excludes[] = 'mfa-core/assets/css/global-v2.css';
 	return $excludes;
 }

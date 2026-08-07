@@ -1,0 +1,290 @@
+/* mfa-core member-dashboard.css — [mfa_member_dashboard] on /member/
+   (post 70180). Builds on global-v2.css tokens + member-shell-v1.css's
+   .mfa-member-main container (loaded first, see widgets-enqueue.php). */
+
+.mfa-dash {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mfa-space-6);
+}
+
+/* ---------- Profile header ---------- */
+
+.mfa-dash-profile-header {
+  display: flex;
+  align-items: center;
+  gap: var(--mfa-space-4);
+}
+
+.mfa-dash-avatar-lg {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--mfa-teal);
+  color: var(--mfa-white);
+  font-weight: 800;
+  font-size: 26px;
+  flex-shrink: 0;
+}
+
+.mfa-dash-name {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--mfa-ink);
+  margin: 0 0 4px;
+}
+
+.mfa-dash-pill {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 4px 12px;
+  border-radius: var(--mfa-radius-pill);
+  background: var(--mfa-border);
+  color: var(--mfa-muted);
+}
+.mfa-dash-pill-gold {
+  background: color-mix(in srgb, var(--mfa-gold) 18%, transparent);
+  color: var(--mfa-gold);
+}
+
+/* ---------- Next step banner ---------- */
+
+.mfa-dash-next-step {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mfa-space-5);
+  background: var(--mfa-green-dark);
+  color: var(--mfa-white);
+  border-radius: var(--mfa-radius-md);
+  padding: var(--mfa-space-6);
+  box-shadow: var(--mfa-shadow-card);
+}
+.mfa-dash-next-step-done { background: var(--mfa-teal-dark); }
+
+.mfa-dash-next-step-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--mfa-white);
+  margin: 4px 0 6px;
+}
+.mfa-dash-next-step-body {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0;
+  max-width: 46ch;
+}
+.mfa-dash-next-step .mfa-btn { flex-shrink: 0; }
+
+@media (max-width: 600px) {
+  .mfa-dash-next-step { flex-direction: column; align-items: flex-start; }
+}
+
+/* ---------- Barakah points card ---------- */
+
+.mfa-dash-points-card {
+  background: var(--mfa-white);
+  border: 1px solid var(--mfa-border);
+  border-radius: var(--mfa-radius-md);
+  padding: var(--mfa-space-6);
+  box-shadow: var(--mfa-shadow-card);
+}
+
+.mfa-dash-points-total {
+  display: flex;
+  align-items: baseline;
+  gap: var(--mfa-space-3);
+  flex-wrap: wrap;
+}
+
+.mfa-dash-points-number {
+  font-size: 40px;
+  font-weight: 800;
+  color: var(--mfa-ink);
+  font-variant-numeric: tabular-nums;
+}
+.mfa-dash-points-label {
+  font-size: 15px;
+  color: var(--mfa-muted);
+  font-weight: 600;
+}
+.mfa-dash-rank-badge {
+  margin-left: auto;
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--mfa-gold);
+  border: 1px solid var(--mfa-gold);
+  border-radius: var(--mfa-radius-pill);
+  padding: 4px 14px;
+}
+
+.mfa-dash-points-next { margin-top: 4px; }
+
+.mfa-dash-checklist {
+  list-style: none;
+  margin: var(--mfa-space-5) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--mfa-space-3);
+}
+.mfa-dash-checklist li {
+  display: flex;
+  align-items: center;
+  gap: var(--mfa-space-3);
+  font-size: 14px;
+  color: var(--mfa-muted);
+}
+.mfa-dash-checklist li.is-done { color: var(--mfa-ink); }
+
+.mfa-dash-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid var(--mfa-border);
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.mfa-dash-checklist li.is-done .mfa-dash-check {
+  background: var(--mfa-teal);
+  border-color: var(--mfa-teal);
+  color: var(--mfa-white);
+}
+
+.mfa-dash-check-pts {
+  margin-left: auto;
+  font-weight: 700;
+  color: var(--mfa-gold);
+  font-size: 13px;
+}
+
+/* ---------- Security cards ---------- */
+
+.mfa-dash-security-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--mfa-space-5);
+}
+@media (max-width: 600px) {
+  .mfa-dash-security-row { grid-template-columns: 1fr; }
+}
+
+.mfa-dash-security-card { scroll-margin-top: 90px; }
+
+.mfa-dash-verified {
+  color: var(--mfa-teal-dark);
+  font-weight: 700;
+  font-size: 14px;
+  margin: 0;
+}
+
+.mfa-dash-btn-sm {
+  padding: 10px 20px;
+  font-size: 13px;
+  margin-top: var(--mfa-space-3);
+}
+
+.mfa-dash-inline-msg {
+  display: block;
+  margin-top: var(--mfa-space-2);
+  font-size: 13px;
+  color: var(--mfa-muted);
+}
+
+/* ---------- Profile completion form ---------- */
+
+.mfa-dash-profile-card { scroll-margin-top: 90px; }
+
+/* ---------- Tools grid ---------- */
+
+.mfa-dash-tools-grid {
+  margin-top: var(--mfa-space-4);
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--mfa-space-4);
+}
+@media (max-width: 900px) {
+  .mfa-dash-tools-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 600px) {
+  .mfa-dash-tools-grid { grid-template-columns: 1fr; }
+}
+
+.mfa-dash-tool-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-decoration: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.mfa-dash-tool-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--mfa-shadow-card);
+}
+.mfa-dash-tool-card .mfa-h3 { display: flex; align-items: center; gap: 8px; }
+
+.mfa-dash-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--mfa-radius-pill);
+  background: var(--mfa-teal);
+  color: var(--mfa-white);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* ---------- Founding Member card ---------- */
+
+.mfa-dash-premium-card {
+  background: var(--mfa-mint-bg);
+  border: 1px solid var(--mfa-border);
+  border-radius: var(--mfa-radius-md);
+  padding: var(--mfa-space-6);
+}
+.mfa-dash-premium-card-active {
+  background: color-mix(in srgb, var(--mfa-gold) 10%, var(--mfa-white));
+  border-color: var(--mfa-gold);
+}
+
+.mfa-dash-premium-list {
+  margin: var(--mfa-space-4) 0 var(--mfa-space-5);
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--mfa-space-2);
+  font-size: 14px;
+  color: var(--mfa-ink);
+}
+
+/* ---------- Account summary strip ---------- */
+
+.mfa-dash-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--mfa-space-4);
+  text-align: center;
+  border-top: 1px solid var(--mfa-border);
+  padding-top: var(--mfa-space-5);
+}
+.mfa-dash-summary-number {
+  display: block;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--mfa-ink);
+  font-variant-numeric: tabular-nums;
+}

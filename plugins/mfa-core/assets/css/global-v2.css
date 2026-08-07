@@ -25,6 +25,9 @@
   --mfa-muted: #5b6b66;       /* secondary/muted body text */
   --mfa-label: #9aa5a2;       /* uppercase labels, least emphasis */
   --mfa-white: #ffffff;
+  --mfa-gold: #a97d2f;        /* Barakah points / rank accent only - not a
+                                  general-purpose accent, keep it scoped to
+                                  the points/rank UI (member dashboard). */
 
   /* ---------- Spacing scale (8px-based) ---------- */
   --mfa-space-1: 4px;
@@ -63,6 +66,14 @@
   --z-modal: 4000;
   --z-toast: 5000;
 }
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --mfa-gold: #d9ac5f;
+  }
+}
+:root[data-theme="dark"] { --mfa-gold: #d9ac5f; }
+:root[data-theme="light"] { --mfa-gold: #a97d2f; }
 
 /* ---------- Containers ---------- */
 

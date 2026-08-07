@@ -147,6 +147,10 @@ function niz_wa_handle_verify_override( $override, $user_id, $wa_number, $messag
 	delete_user_meta( $verified_user_id, 'niz_wa_verify_code' );
 	delete_user_meta( $verified_user_id, 'niz_wa_verify_code_expires' );
 
+	if ( function_exists( 'mfa_award_points' ) ) {
+		mfa_award_points( $verified_user_id, 'Verify WhatsApp', 25 );
+	}
+
 	return "Your WhatsApp number has been successfully verified and linked to your account!";
 }
 

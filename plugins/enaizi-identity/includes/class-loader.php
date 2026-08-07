@@ -39,7 +39,6 @@ class Enaizi_Identity_Loader {
             'class-login.php',
             'class-assets.php',
             'class-register.php',
-            'class-email-verification.php',
             'class-mailer.php',
             'class-app-config.php',
             'class-forgot-password.php',
@@ -124,12 +123,6 @@ class Enaizi_Identity_Loader {
         if (class_exists('Niz_Register')) {
         
             Niz_Register::init();
-        
-        }
-        
-        if (class_exists('Niz_Email_Verification')) {
-        
-            Niz_Email_Verification::init();
         
         }
         

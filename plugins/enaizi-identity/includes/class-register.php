@@ -158,11 +158,14 @@ public static function init(){
             $token
         );
 
-        // Registration logs the user straight in (below) rather than going
-        // through Niz_Login::authenticate() - the only other place that
-        // awards this - so without this call a fresh registration would
-        // never earn the Welcome Bonus until a separate later login.
-        if ( function_exists( 'mfa_award_points' ) ) {
+        // Creates the jet_cct_member row, syncs name/email, marks
+        // user_status 'member', and awards the Welcome Bonus - the same
+        // shared step Google sign-up and WhatsApp registration also use
+        // (2026-08-08), so all three paths behave identically instead of
+        // only this one remembering to award points.
+        if ( function_exists( 'niz_user_complete_registration' ) ) {
+            niz_user_complete_registration( $user_id, array( 'name' => $name, 'email' => $email ) );
+        } elseif ( function_exists( 'mfa_award_points' ) ) {
             mfa_award_points( $user_id, 'Welcome Bonus', 50 );
         }
 

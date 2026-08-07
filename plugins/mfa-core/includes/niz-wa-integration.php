@@ -19,17 +19,67 @@ function niz_wa_resolve_user_id( $user_id, $wa_number, $contact_name ) {
 		return $user_id; // Identity core not loaded — fall back to niz-wa's own default resolver.
 	}
 
-	// Read-only: link to an already-existing WordPress member if this
-	// WhatsApp number is recognized. Does not create anything.
+	// Link to an already-existing WordPress member if this WhatsApp number
+	// is recognized.
 	$existing = niz_user_check( $wa_number );
 	if ( $existing ) {
 		return $existing;
 	}
 
-	// No auto-creating new WordPress users ("prospects") for unrecognized
-	// numbers anymore — niz-wa falls back to its own standalone
-	// wp_nwa_contacts table instead (NWA_DB::get_or_create_contact()),
-	// same as running with no site-integration hook at all.
+	// 2026-08-08 decision: reversed from the 2026-08-04 "niz-wa standalone"
+	// cutover — unrecognized numbers now get a real WordPress user instead
+	// of only living in niz-wa's own wp_nwa_contacts table, so identity is
+	// shareable across other Masjid4All-family sites. Deliberately lighter
+	// than niz_user_complete_registration() though: no jet_cct_member row,
+	// no Welcome Bonus. Those only happen if the contact explicitly replies
+	// REGISTER (niz_wa_action_register(), below) — someone who messages
+	// Sofia once and never comes back shouldn't end up with a half-built
+	// "member" record. niz-wa itself is untouched — this hook is still the
+	// only place that decides what a WhatsApp number means on this site.
+	$new_user_id = niz_wa_create_contact_user( $wa_number, $contact_name );
+
+	return $new_user_id ? $new_user_id : $user_id;
+}
+
+/**
+ * Creates a bare WordPress user for a WhatsApp number with no existing
+ * account. Marked phone-verified immediately — Meta's webhook only
+ * delivers messages from a number that actually controls that WhatsApp,
+ * so receiving one is already proof of ownership. Not yet a registered
+ * "member" (see niz_wa_resolve_user_id() above).
+ */
+function niz_wa_create_contact_user( $wa_number, $contact_name ) {
+	$phone = niz_user_normalize_phone( $wa_number );
+	if ( empty( $phone ) ) {
+		return 0;
+	}
+
+	$name     = sanitize_text_field( $contact_name );
+	$username = 'mfa_' . $phone;
+	if ( username_exists( $username ) ) {
+		$username .= wp_rand( 100, 999 );
+	}
+
+	$user_id = wp_create_user( $username, wp_generate_password( 20 ), $phone . '@mfa.com' );
+
+	if ( is_wp_error( $user_id ) ) {
+		error_log( 'niz_wa_create_contact_user: wp_create_user failed - ' . $user_id->get_error_message() );
+		return 0;
+	}
+
+	if ( $name ) {
+		wp_update_user( array(
+			'ID'           => $user_id,
+			'display_name' => $name,
+			'first_name'   => $name,
+		) );
+	}
+
+	update_user_meta( $user_id, 'user_phone', $phone );
+	update_user_meta( $user_id, 'user_status', 'prospect' );
+	update_user_meta( $user_id, 'lead_source', 'whatsapp' );
+	update_user_meta( $user_id, 'niz_whatsapp_verified', 'Yes' );
+
 	return $user_id;
 }
 
@@ -42,41 +92,43 @@ function niz_wa_action_start( $user_id, $context ) {
 }
 
 function niz_wa_action_register( $user_id, $context ) {
-	if ( ! function_exists( 'niz_user_register' ) ) {
-		return "Registration is temporarily unavailable. Please try again later.";
-	}
-
 	$status = get_user_meta( $user_id, 'user_status', true );
 
 	if ( in_array( $status, array( 'member', 'premium' ), true ) ) {
 		return "You're already a registered member. Log in here:\nhttps://staging.masjid4all.com/member";
 	}
 
-	$phone = get_user_meta( $user_id, 'user_phone', true );
 	$user  = get_userdata( $user_id );
-	$name  = $user ? trim( (string) $user->first_name ) : '';
+	$phone = get_user_meta( $user_id, 'user_phone', true );
 
+	if ( ! $user || empty( $phone ) ) {
+		return "Registration failed — we couldn't find your WhatsApp number on file. Please try again later.";
+	}
+
+	$name = trim( (string) $user->first_name );
 	if ( ! $name || 0 === strpos( $name, 'Prospect ' ) ) {
 		$name = 'Member';
 	}
 
-	if ( empty( $phone ) ) {
-		return "Registration failed — we couldn't find your WhatsApp number on file. Please try again later.";
+	if ( function_exists( 'niz_user_complete_registration' ) ) {
+		// Creates the jet_cct_member row, syncs name, marks user_status
+		// 'member', awards the Welcome Bonus — same shared step every
+		// other registration path uses (see identity-registration.php).
+		niz_user_complete_registration( $user_id, array( 'name' => $name ) );
+	} else {
+		wp_update_user( array(
+			'ID'           => $user_id,
+			'display_name' => $name,
+			'first_name'   => $name,
+		) );
+		update_user_meta( $user_id, 'user_status', 'member' );
 	}
 
-	$result = niz_user_register( $phone, $name, false );
+	$temp_pass = (string) random_int( 100000, 999999 );
+	wp_set_password( $temp_pass, $user_id );
+	update_user_meta( $user_id, 'change_password', 'yes' );
 
-	if ( is_wp_error( $result ) ) {
-		return 'Registration failed: ' . $result->get_error_message();
-	}
-
-	$password = function_exists( 'niz_user_password' ) ? niz_user_password( $phone ) : null;
-
-	if ( ! $password || is_wp_error( $password ) ) {
-		return "Registration successful, {$name}!\n\nUse the 'forgot password' option after visiting:\nhttps://staging.masjid4all.com/member";
-	}
-
-	return "Registration successful, {$name}!\n\nYour temporary password is: {$password}\n\nLogin here:\nhttps://staging.masjid4all.com/member\n\nPlease change your password after login.";
+	return "Registration successful, {$name}!\n\nYour temporary password is: {$temp_pass}\n\nLogin here:\nhttps://staging.masjid4all.com/member\n\nPlease change your password after login.";
 }
 
 function niz_wa_action_reset_password( $user_id, $context ) {

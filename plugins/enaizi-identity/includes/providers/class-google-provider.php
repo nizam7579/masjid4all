@@ -389,15 +389,33 @@ class Niz_Google_Provider {
                 'niz_trust_score',
                 10
             );
-        
-        
+
+
+            /*
+             * Creates the jet_cct_member row, marks user_status 'member',
+             * and awards the Welcome Bonus - the same shared step the
+             * email/password and WhatsApp registration paths use
+             * (2026-08-08). Previously only the email/password path did
+             * this, so a Google sign-up never got a cct row or the bonus.
+             */
+            if ( function_exists( 'niz_user_complete_registration' ) ) {
+                niz_user_complete_registration(
+                    $user_id,
+                    array(
+                        'name'  => $name,
+                        'email' => $email,
+                    )
+                );
+            }
+
+
             $user =
             get_user_by(
                 'id',
                 $user_id
             );
-        
-        
+
+
         }
         
         

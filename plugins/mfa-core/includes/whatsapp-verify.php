@@ -236,9 +236,36 @@ function niz_wa_merge_prospect_into_verified_user( $prospect_user_id, $verified_
 		$wpdb->update( $profiles_table, array( 'user_id' => $verified_user_id ), array( 'user_id' => $prospect_user_id ) );
 	}
 
-	$prospect_user = get_userdata( $prospect_user_id );
-	if ( $prospect_user && 'prospect' === get_user_meta( $prospect_user_id, 'user_status', true ) ) {
+	// Most of the time the prospect side has no jet_cct_member row at all
+	// (2026-08-08: a WhatsApp contact only gets one if they explicitly
+	// registered via the REGISTER reply) - these calls are no-ops then.
+	// When it does have one, only fill gaps the verified account is
+	// missing; never overwrite data the verified account already has.
+	if ( function_exists( 'niz_user_field_by_userid' ) && function_exists( 'niz_user_update_field' ) ) {
+		$prospect_name = niz_user_field_by_userid( $prospect_user_id, 'name' );
+		$verified_name = niz_user_field_by_userid( $verified_user_id, 'name' );
+		if ( $prospect_name && ! $verified_name ) {
+			niz_user_update_field( $verified_user_id, 'name', $prospect_name );
+		}
+	}
+
+	$prospect_user   = get_userdata( $prospect_user_id );
+	$prospect_status = get_user_meta( $prospect_user_id, 'user_status', true );
+
+	if ( $prospect_user && 'prospect' === $prospect_status ) {
 		require_once ABSPATH . 'wp-admin/includes/user.php';
 		wp_delete_user( $prospect_user_id );
+	} elseif ( $prospect_user && 'member' === $prospect_status ) {
+		// A second, already-registered account on the same WhatsApp number
+		// (e.g. they registered via the REGISTER reply before ever creating
+		// a separate web account) - it may hold its own Barakah points, cct
+		// data, or listings. Auto-merging that is a bigger job than this
+		// verify flow should do silently, so both accounts are left intact
+		// and this is only logged for manual follow-up.
+		error_log( sprintf(
+			'niz_wa_merge_prospect_into_verified_user: WhatsApp verify on user %d found a second, already-registered account (user %d) on the same number — left both intact, needs manual review.',
+			$verified_user_id,
+			$prospect_user_id
+		) );
 	}
 }

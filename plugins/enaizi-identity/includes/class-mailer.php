@@ -90,9 +90,26 @@ class Niz_Mailer {
 
 
 
-        return !is_wp_error(
-            $response
-        );
+        if ( is_wp_error( $response ) ) {
+            error_log( 'Niz_Mailer::send failed (connection error): ' . $response->get_error_message() );
+            return false;
+        }
+
+        $code = wp_remote_retrieve_response_code( $response );
+
+        if ( $code < 200 || $code >= 300 ) {
+            // wp_remote_post() only returns a WP_Error for connection-level
+            // failures - Resend rejecting the request (bad API key, sender
+            // domain not verified/authorized, etc.) comes back as a normal
+            // HTTP response with a 4xx/5xx code, which the old `!is_wp_error()`
+            // check treated as success. That silently swallowed real send
+            // failures - e.g. a 403 "API key not authorized to send from
+            // this domain" - while every caller kept reporting success.
+            error_log( 'Niz_Mailer::send failed (HTTP ' . $code . '): ' . wp_remote_retrieve_body( $response ) );
+            return false;
+        }
+
+        return true;
 
 
     }

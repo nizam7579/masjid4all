@@ -406,10 +406,24 @@ class Niz_Email_Verification {
 
 
 
+		$sent =
 		self::send_email(
 			$user_id,
 			$token
 		);
+
+
+
+		if ( ! $sent ) {
+
+			wp_send_json_error(
+				array(
+					'message' =>
+					"We couldn't send the verification email right now. Please try again shortly, or contact support if this keeps happening."
+				)
+			);
+
+		}
 
 
 

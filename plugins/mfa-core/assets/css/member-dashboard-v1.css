@@ -104,7 +104,7 @@
 
 .mfa-dash-next-step-row {
   display: grid;
-  grid-template-columns: 1.3fr 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: var(--mfa-space-5);
   align-items: stretch;
 }
@@ -150,6 +150,33 @@
   display: flex;
   flex-direction: column;
   gap: var(--mfa-space-4);
+}
+.mfa-dash-action-cards .mfa-dash-security-card {
+  padding: var(--mfa-space-4) var(--mfa-space-5);
+}
+.mfa-dash-action-cards .mfa-h3 {
+  margin: 0 0 6px;
+}
+
+.mfa-dash-card-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mfa-space-3);
+  flex-wrap: wrap;
+}
+.mfa-dash-card-row .mfa-dash-verified,
+.mfa-dash-card-row .mfa-body-muted {
+  margin: 0;
+}
+.mfa-dash-card-row .mfa-btn {
+  margin-top: 0;
+}
+
+.mfa-dash-card-note {
+  font-size: 12px;
+  color: var(--mfa-muted);
+  margin: 6px 0 0;
 }
 
 /* ---------- Barakah points row (points card + earn-points card, 2 columns) ---------- */
@@ -283,12 +310,6 @@
   font-weight: 800;
   color: var(--mfa-ink);
   font-variant-numeric: tabular-nums;
-}
-.mfa-dash-earn-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--mfa-ink);
-  margin: 0;
 }
 
 /* ---------- Security cards ---------- */

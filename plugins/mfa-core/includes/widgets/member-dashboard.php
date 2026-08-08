@@ -165,10 +165,16 @@ function mfa_member_dashboard_shortcode() {
 				<div class="mfa-card mfa-dash-security-card" id="mfa-dash-email">
 					<h3 class="mfa-h3">Email</h3>
 					<?php if ( $email_verified ) : ?>
-						<p class="mfa-dash-verified">&#10003; Verified</p>
+						<div class="mfa-dash-card-row">
+							<span class="mfa-dash-verified">&#10003; Verified</span>
+							<button type="button" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm" data-mfa-modal-open="mfa-update-email-modal">Change Email</button>
+						</div>
+						<p class="mfa-dash-card-note">Changing your email will require verifying it again.</p>
 					<?php else : ?>
-						<p class="mfa-body-muted">We sent a verification link to <strong><?php echo esc_html( $user->user_email ); ?></strong>.</p>
-						<button type="button" class="niz-resend-email mfa-btn mfa-btn-primary mfa-dash-btn-sm">Resend Verification Email</button>
+						<div class="mfa-dash-card-row">
+							<span class="mfa-body-muted">Not verified yet</span>
+							<button type="button" class="niz-resend-email mfa-btn mfa-btn-primary mfa-dash-btn-sm">Resend Email</button>
+						</div>
 						<span id="niz-email-message" class="mfa-dash-inline-msg"></span>
 						<button type="button" class="mfa-dash-link-btn mfa-dash-change-email-btn" data-mfa-modal-open="mfa-update-email-modal">Wrong email? Update it</button>
 					<?php endif; ?>
@@ -177,16 +183,20 @@ function mfa_member_dashboard_shortcode() {
 				<div class="mfa-card mfa-dash-security-card" id="mfa-dash-whatsapp">
 					<h3 class="mfa-h3">WhatsApp</h3>
 					<?php if ( $wa_verified ) : ?>
-						<p class="mfa-dash-verified">&#10003; Verified</p>
+						<div class="mfa-dash-card-row">
+							<span class="mfa-dash-verified">&#10003; Verified</span>
+						</div>
 					<?php elseif ( ! $email_verified ) : ?>
 						<p class="mfa-body-muted mfa-dash-locked">Verify your email first to unlock WhatsApp verification.</p>
 					<?php else : ?>
-						<p class="mfa-body-muted">Not verified yet.</p>
 						<?php
 						$wa_link = function_exists( 'niz_wa_generate_verify_link' ) ? niz_wa_generate_verify_link( $user_id ) : null;
 						if ( $wa_link && ! is_wp_error( $wa_link ) ) :
 							?>
-							<a href="<?php echo esc_url( $wa_link ); ?>" target="_blank" rel="noopener" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm">Verify via WhatsApp</a>
+							<div class="mfa-dash-card-row">
+								<span class="mfa-body-muted">Not verified yet</span>
+								<a href="<?php echo esc_url( $wa_link ); ?>" target="_blank" rel="noopener" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm">Verify WhatsApp</a>
+							</div>
 						<?php else : ?>
 							<p class="mfa-body-muted">WhatsApp verification is temporarily unavailable. Please try again shortly.</p>
 						<?php endif; ?>
@@ -198,12 +208,10 @@ function mfa_member_dashboard_shortcode() {
 					<?php if ( ! $email_verified ) : ?>
 						<p class="mfa-body-muted mfa-dash-locked">Verify your email first to unlock your profile.</p>
 					<?php else : ?>
-						<?php if ( $profile_complete ) : ?>
-							<p class="mfa-dash-verified">&#10003; Complete</p>
-						<?php else : ?>
-							<p class="mfa-body-muted">Complete your profile to earn 50 Barakah points.</p>
-						<?php endif; ?>
-						<button type="button" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm" data-mfa-modal-open="mfa-edit-profile-modal">Edit Profile</button>
+						<div class="mfa-dash-card-row">
+							<span class="<?php echo $profile_complete ? 'mfa-dash-verified' : 'mfa-body-muted'; ?>"><?php echo $profile_complete ? '&#10003; Completed' : 'Not completed yet'; ?></span>
+							<button type="button" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm" data-mfa-modal-open="mfa-edit-profile-modal">Update Profile</button>
+						</div>
 					<?php endif; ?>
 				</div>
 			</div>
@@ -251,25 +259,21 @@ function mfa_member_dashboard_shortcode() {
 				<div class="mfa-dash-earn-grid">
 					<div class="mfa-card mfa-dash-earn-item">
 						<span class="mfa-dash-earn-count"><?php echo esc_html( number_format_i18n( $referral_count ) ); ?></span>
-						<h4 class="mfa-dash-earn-title">Start Sharing</h4>
 						<p class="mfa-body-muted">Members who joined under you</p>
 						<button type="button" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm" data-mfa-modal-open="mfa-share-modal">Start Share Now</button>
 					</div>
 					<div class="mfa-card mfa-dash-earn-item">
 						<span class="mfa-dash-earn-count"><?php echo esc_html( number_format_i18n( $mosque_count ) ); ?></span>
-						<h4 class="mfa-dash-earn-title">Add New Mosque</h4>
 						<p class="mfa-body-muted">Mosques you've added</p>
 						<a href="/add-mosque/" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm">Add Mosque</a>
 					</div>
 					<div class="mfa-card mfa-dash-earn-item">
 						<span class="mfa-dash-earn-count"><?php echo esc_html( number_format_i18n( $business_count ) ); ?></span>
-						<h4 class="mfa-dash-earn-title">Add New Business</h4>
 						<p class="mfa-body-muted">Businesses you've added</p>
 						<a href="/add-business/" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm">Add Business</a>
 					</div>
 					<div class="mfa-card mfa-dash-earn-item">
 						<span class="mfa-dash-earn-count"><?php echo esc_html( number_format_i18n( $website_count ) ); ?></span>
-						<h4 class="mfa-dash-earn-title">Add New Website</h4>
 						<p class="mfa-body-muted">Websites you've added</p>
 						<a href="/add-website/" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm">Add Website</a>
 					</div>

@@ -154,10 +154,11 @@ class NWA_Webhook {
 	 * conversations/messages/profiles on. A site plugin can hook
 	 * 'nwa_resolve_user_id' to link this to its own user/CRM model (e.g.
 	 * mfa-core links WhatsApp numbers to real WordPress users on
-	 * Masjid4All). With no filter hooked, niz-wa manages its own
-	 * lightweight contact record instead of assuming WordPress users
-	 * exist at all — this is what makes niz-wa usable standalone on any
-	 * site, not just ones running a specific identity plugin.
+	 * Masjid4All). With no filter hooked, niz-wa creates a real WordPress
+	 * user for this number itself (2026-08-09) - user_id is a genuine WP
+	 * user ID either way, which is what makes niz-wa usable standalone on
+	 * any site out of the box, not just ones running a companion identity
+	 * plugin.
 	 */
 	private static function resolve_user_id( $wa_number, $contact_name ) {
 		$user_id = apply_filters( 'nwa_resolve_user_id', null, $wa_number, $contact_name );
@@ -166,7 +167,7 @@ class NWA_Webhook {
 			return (int) $user_id;
 		}
 
-		return NWA_DB::get_or_create_contact( $wa_number, $contact_name );
+		return NWA_DB::get_or_create_wp_user( $wa_number, $contact_name );
 	}
 
 	private static function extract_content( $message, $type ) {

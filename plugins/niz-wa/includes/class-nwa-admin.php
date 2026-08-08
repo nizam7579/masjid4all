@@ -10,11 +10,14 @@ class NWA_Admin {
 	}
 
 	public static function add_menu() {
+		// Knowledge Base and Inbox moved out of wp-admin entirely — see
+		// [nwa_knowledge_base] / [nwa_inbox] in class-nwa-shortcodes.php.
+		// Settings and Actions stay here: API keys and raw PHP callback
+		// wiring are developer-level configuration, not day-to-day helpline
+		// work, so they're not part of that front-end move.
 		add_menu_page( 'Niz WA', 'Niz WA', 'manage_options', 'nemkad-wa', array( __CLASS__, 'render_settings' ), 'dashicons-whatsapp', 58 );
 		add_submenu_page( 'nemkad-wa', 'Settings', 'Settings', 'manage_options', 'nemkad-wa', array( __CLASS__, 'render_settings' ) );
 		add_submenu_page( 'nemkad-wa', 'Actions', 'Actions', 'manage_options', 'nemkad-wa-actions', array( __CLASS__, 'render_actions' ) );
-		add_submenu_page( 'nemkad-wa', 'Knowledge Base', 'Knowledge Base', 'manage_options', 'nemkad-wa-kb', array( __CLASS__, 'render_kb' ) );
-		add_submenu_page( 'nemkad-wa', 'Inbox', 'Inbox', 'manage_options', 'nemkad-wa-inbox', array( __CLASS__, 'render_inbox' ) );
 	}
 
 	/* ---------------- Settings ---------------- */
@@ -197,144 +200,7 @@ class NWA_Admin {
 		<?php
 	}
 
-	/* ---------------- Knowledge base ---------------- */
-
-	public static function render_kb() {
-		if ( ! current_user_can( 'manage_options' ) ) return;
-
-		if ( isset( $_POST['nwa_kb_nonce'] ) && wp_verify_nonce( $_POST['nwa_kb_nonce'], 'nwa_save_kb' ) ) {
-			NWA_DB::save_knowledge( array(
-				'title'   => wp_unslash( $_POST['title'] ),
-				'content' => wp_unslash( $_POST['content'] ),
-			) );
-			echo '<div class="notice notice-success"><p>Saved.</p></div>';
-		}
-
-		if ( isset( $_GET['delete'] ) ) {
-			NWA_DB::delete_knowledge( (int) $_GET['delete'] );
-			echo '<div class="notice notice-success"><p>Deleted.</p></div>';
-		}
-
-		$entries = NWA_DB::get_all_knowledge();
-		?>
-		<div class="wrap">
-			<h1>Niz WA — Knowledge Base</h1>
-			<p>Entries here ground the Q&A fallback — the AI is instructed to answer only from what's here for company/product questions, and say so when it doesn't know.</p>
-
-			<h2>Add entry</h2>
-			<form method="post">
-				<?php wp_nonce_field( 'nwa_save_kb', 'nwa_kb_nonce' ); ?>
-				<table class="form-table">
-					<tr><th><label>Title</label></th><td><input type="text" name="title" required style="width:400px" placeholder="Founding Member pricing tiers"></td></tr>
-					<tr><th><label>Content</label></th><td><textarea name="content" rows="6" style="width:600px" required></textarea></td></tr>
-				</table>
-				<?php submit_button( 'Save Entry' ); ?>
-			</form>
-
-			<h2>Entries</h2>
-			<table class="widefat">
-				<thead><tr><th>Title</th><th>Updated</th><th></th></tr></thead>
-				<tbody>
-				<?php foreach ( $entries as $e ) : ?>
-					<tr>
-						<td><?php echo esc_html( $e->title ); ?></td>
-						<td><?php echo esc_html( $e->updated_at ); ?></td>
-						<td><a href="<?php echo esc_url( add_query_arg( 'delete', $e->id ) ); ?>" onclick="return confirm('Delete this entry?');">Delete</a></td>
-					</tr>
-				<?php endforeach; ?>
-				</tbody>
-			</table>
-		</div>
-		<?php
-	}
-
-	/* ---------------- Inbox ---------------- */
-
-	public static function render_inbox() {
-		if ( ! current_user_can( 'manage_options' ) ) return;
-
-		$conversations = NWA_DB::get_conversations( 100 );
-		$selected_id   = isset( $_GET['user_id'] ) ? (int) $_GET['user_id'] : 0;
-		$active        = $selected_id ? NWA_DB::get_conversation_by_user( $selected_id ) : null;
-		$messages      = $active ? NWA_DB::get_messages( $active->id, 100 ) : array();
-		$within_window = $active ? NWA_DB::is_within_window( $active ) : false;
-		$profile       = $active ? NWA_DB::get_profile( $selected_id ) : array( 'summary' => array() );
-
-		if ( isset( $_POST['nwa_reply_nonce'] ) && wp_verify_nonce( $_POST['nwa_reply_nonce'], 'nwa_reply' ) && $active ) {
-			$text = sanitize_textarea_field( wp_unslash( $_POST['nwa_reply_text'] ?? '' ) );
-			if ( $text ) {
-				nwa_send_message( $active->user_id, $active->wa_number, $text );
-				wp_safe_redirect( add_query_arg( 'user_id', $active->user_id ) );
-				exit;
-			}
-		}
-
-		if ( isset( $_POST['nwa_clear_profile'] ) && $active ) {
-			NWA_DB::clear_profile( $active->user_id );
-			wp_safe_redirect( add_query_arg( 'user_id', $active->user_id ) );
-			exit;
-		}
-		?>
-		<div class="wrap">
-			<h1>Niz WA — Inbox</h1>
-			<div style="display:flex; gap:20px; margin-top:20px;">
-
-				<div style="width:280px; border:1px solid #ccd0d4; background:#fff; max-height:650px; overflow-y:auto;">
-					<?php foreach ( $conversations as $c ) : ?>
-						<a href="<?php echo esc_url( add_query_arg( 'user_id', $c->user_id ) ); ?>"
-							style="display:block; padding:10px; text-decoration:none; border-bottom:1px solid #eee; <?php echo ( $active && $active->id === $c->id ) ? 'background:#f0f6fc;' : ''; ?>">
-							<strong><?php echo esc_html( $c->contact_name ?: $c->wa_number ); ?></strong>
-							<?php if ( $c->unread_count > 0 ) : ?><span style="background:#d63638;color:#fff;border-radius:10px;padding:1px 7px;font-size:11px;float:right;"><?php echo (int) $c->unread_count; ?></span><?php endif; ?>
-							<br><small><?php echo esc_html( $c->wa_number ); ?></small>
-						</a>
-					<?php endforeach; ?>
-				</div>
-
-				<div style="flex:1; border:1px solid #ccd0d4; background:#fff; padding:15px;">
-					<?php if ( ! $active ) : ?>
-						<p>Select a conversation.</p>
-					<?php else : ?>
-						<h2><?php echo esc_html( $active->contact_name ?: $active->wa_number ); ?></h2>
-
-						<?php if ( ! empty( $profile['summary'] ) ) : ?>
-							<div class="notice notice-info inline" style="margin:0 0 10px;">
-								<p><strong>Profile:</strong>
-								<?php
-								$parts = array();
-								foreach ( $profile['summary'] as $k => $v ) {
-									$parts[] = esc_html( ucfirst( $k ) . ': ' . ( is_array( $v ) ? implode( ', ', $v ) : $v ) );
-								}
-								echo implode( ' &middot; ', $parts );
-								?>
-								</p>
-								<form method="post" style="margin-top:5px;">
-									<button type="submit" name="nwa_clear_profile" value="1" class="button button-small" onclick="return confirm('Clear this user\'s stored profile?');">Clear profile</button>
-								</form>
-							</div>
-						<?php endif; ?>
-
-						<div style="max-height:380px; overflow-y:auto; display:flex; flex-direction:column-reverse; gap:8px; margin-bottom:15px;">
-							<?php foreach ( $messages as $m ) : ?>
-								<div style="align-self:<?php echo 'inbound' === $m->direction ? 'flex-start' : 'flex-end'; ?>; background:<?php echo 'inbound' === $m->direction ? '#f0f0f1' : '#d1e7dd'; ?>; padding:8px 12px; border-radius:8px; max-width:70%;">
-									<?php echo esc_html( $m->content ); ?>
-									<br><small style="color:#666;"><?php echo esc_html( $m->created_at ); ?> &middot; <?php echo esc_html( $m->msg_type ); ?></small>
-								</div>
-							<?php endforeach; ?>
-						</div>
-
-						<?php if ( $within_window ) : ?>
-							<form method="post">
-								<?php wp_nonce_field( 'nwa_reply', 'nwa_reply_nonce' ); ?>
-								<textarea name="nwa_reply_text" rows="2" style="width:100%;" placeholder="Type a reply..."></textarea>
-								<p><button type="submit" class="button button-primary">Send</button></p>
-							</form>
-						<?php else : ?>
-							<div class="notice notice-warning inline"><p>24-hour window closed — free-text replies aren't allowed. Send a template instead via <code>nwa_send_template()</code>.</p></div>
-						<?php endif; ?>
-					<?php endif; ?>
-				</div>
-			</div>
-		</div>
-		<?php
-	}
+	// Knowledge Base and Inbox render methods moved to
+	// class-nwa-shortcodes.php ([nwa_knowledge_base] / [nwa_inbox]) so
+	// Helpline Staff can use them without wp-admin access.
 }

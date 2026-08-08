@@ -474,24 +474,55 @@ class NWA_DB {
 		return $total - $profile['message_count_at_last_update'];
 	}
 
-	/* ---------------- Contacts (standalone identity, used only when no
-	   nwa_resolve_user_id filter is hooked by a site plugin) ---------------- */
+	/* ---------------- Standalone identity (used only when no
+	   nwa_resolve_user_id filter is hooked by a site plugin) ----------------
+	   Creates a real WordPress user for this number (2026-08-09 - previously
+	   created a row in niz-wa's own now-unused wp_nwa_contacts table
+	   instead, so user_id was never a real WP user in pure standalone mode).
+	   Only ever sets user_phone meta plus a display name - a site's own
+	   integration (via the filter) owns everything else about "who this
+	   user is"; that's what a masjid4all-specific fork of this function
+	   would do differently (e.g. also creating a CCT member record). */
 
-	public static function get_or_create_contact( $wa_number, $contact_name = null ) {
-		global $wpdb;
-		$table = self::contacts_table();
-
-		$contact_id = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$table} WHERE wa_number = %s", $wa_number ) );
-		if ( $contact_id ) {
-			return (int) $contact_id;
+	public static function get_or_create_wp_user( $wa_number, $contact_name = null ) {
+		$existing = get_users( array(
+			'meta_key'   => 'user_phone',
+			'meta_value' => $wa_number,
+			'number'     => 1,
+			'fields'     => 'ID',
+		) );
+		if ( ! empty( $existing ) ) {
+			return (int) $existing[0];
 		}
 
-		$wpdb->insert(
-			$table,
-			array( 'wa_number' => $wa_number, 'contact_name' => $contact_name, 'created_at' => current_time( 'mysql' ) ),
-			array( '%s', '%s', '%s' )
-		);
+		$domain   = wp_parse_url( home_url(), PHP_URL_HOST );
+		$username = 'nwa_' . $wa_number;
+		$email    = $wa_number . '@' . $domain;
 
-		return (int) $wpdb->insert_id;
+		// Guard against a very unlikely username/email collision (e.g. a
+		// manually created account) rather than letting wp_insert_user()
+		// fail silently on the first attempt.
+		$suffix = 1;
+		while ( username_exists( $username ) || email_exists( $email ) ) {
+			$username = 'nwa_' . $wa_number . '_' . $suffix;
+			$email    = $wa_number . '+' . $suffix . '@' . $domain;
+			$suffix++;
+		}
+
+		$user_id = wp_insert_user( array(
+			'user_login'   => $username,
+			'user_pass'    => wp_generate_password( 20, true ),
+			'user_email'   => $email,
+			'display_name' => $contact_name ? sanitize_text_field( $contact_name ) : $wa_number,
+		) );
+
+		if ( is_wp_error( $user_id ) ) {
+			error_log( 'NWA_DB::get_or_create_wp_user: wp_insert_user failed - ' . $user_id->get_error_message() );
+			return 0;
+		}
+
+		update_user_meta( $user_id, 'user_phone', $wa_number );
+
+		return (int) $user_id;
 	}
 }

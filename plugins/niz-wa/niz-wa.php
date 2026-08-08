@@ -22,16 +22,26 @@ require_once NWA_PATH . 'includes/class-nwa-ai.php';
 require_once NWA_PATH . 'includes/class-nwa-router.php';
 require_once NWA_PATH . 'includes/class-nwa-webhook.php';
 require_once NWA_PATH . 'includes/class-nwa-admin.php';
+require_once NWA_PATH . 'includes/class-nwa-roles.php';
+require_once NWA_PATH . 'includes/class-nwa-shortcodes.php';
 // site-integration.php removed — moved to mfa-core so niz-wa has zero
 // masjid4all-specific code. See mfa-core/includes/niz-wa-integration.php.
 
 function nwa_activate() {
 	NWA_DB::create_tables();
+	NWA_Roles::activate();
 }
 register_activation_hook( __FILE__, 'nwa_activate' );
 
 function nwa_init() {
+	// Re-run idempotently on every load (not just on activation) so an
+	// already-active install picks up the role/capability after a plain
+	// code update — register_activation_hook() only fires on fresh
+	// activation, not on files changing underneath an active plugin.
+	NWA_Roles::activate();
+
 	NWA_Webhook::init();
 	NWA_Admin::init();
+	NWA_Shortcodes::init();
 }
 add_action( 'plugins_loaded', 'nwa_init' );

@@ -16,9 +16,19 @@ if ( ! defined( 'ABSPATH' ) ) {
  * email/WhatsApp verification, a native Edit Profile / Change Password
  * popup (member-account-modals.php - replaced the earlier Fluent Form
  * embed 2026-08-08, avoiding a 3rd-party form-plugin dependency),
- * listing ownership, and the live Stripe Founding Member checkout. No
- * affiliate/referral UI here - that backend (outbound referral links,
- * commission ledger) doesn't exist yet (Phase 4).
+ * listing ownership, and the live Stripe Founding Member checkout.
+ *
+ * 2026-08-09 layout pass: profile header now shows email/WhatsApp number
+ * and a real cct status label; the "next step" banner and the email/
+ * WhatsApp/profile cards became a 2-column row (was 2 stacked full-width
+ * sections); Barakah points card gained a "Help us build Masjid4All"
+ * 2x2 stat-card grid alongside it. Share/business/website counts there
+ * are real queries - mosque submissions have no ownership tracking yet
+ * (add-mosque.php never records who submitted a mosque), so that one
+ * card is a literal 0 placeholder until that gap gets closed. The
+ * "Start Share Now" link is a generic wa.me invite text, not a tracked
+ * referral link - Phase 4 (real referral links, commission ledger)
+ * still hasn't started.
  */
 
 add_shortcode( 'mfa_member_dashboard', 'mfa_member_dashboard_shortcode' );
@@ -32,11 +42,14 @@ function mfa_member_dashboard_shortcode() {
 
 	$email_verified = get_user_meta( $user_id, 'niz_email_verified', true ) === 'Yes';
 	$wa_verified     = get_user_meta( $user_id, 'niz_whatsapp_verified', true ) === 'Yes';
+	$wa_number       = get_user_meta( $user_id, 'user_phone', true );
 
 	$country          = function_exists( 'niz_user_field_by_userid' ) ? niz_user_field_by_userid( $user_id, 'country' ) : '';
 	$profile_complete = ! empty( $country );
 
-	$is_premium = function_exists( 'niz_user_field_by_userid' ) && 'Yes' === niz_user_field_by_userid( $user_id, 'chk_premium' );
+	$is_premium   = function_exists( 'niz_user_field_by_userid' ) && 'Yes' === niz_user_field_by_userid( $user_id, 'chk_premium' );
+	$cct_status   = function_exists( 'niz_user_field_by_userid' ) ? niz_user_field_by_userid( $user_id, 'status' ) : '';
+	$status_label = $cct_status ? $cct_status : 'Free Member';
 
 	$points = function_exists( 'mfa_get_barakah_points' ) ? mfa_get_barakah_points( $user_id ) : 0;
 	$rank   = function_exists( 'mfa_get_barakah_rank' ) ? mfa_get_barakah_rank( $points ) : array( 'rank' => 'Bronze', 'next_rank' => 'Silver', 'next_at' => 500, 'points_to_next' => 500 );
@@ -50,6 +63,22 @@ function mfa_member_dashboard_shortcode() {
 	$listing_count = (int) $wpdb->get_var(
 		$wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}jet_cct_listing_owner WHERE user_id = %d", $user_id )
 	);
+	$business_count = (int) $wpdb->get_var(
+		$wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}jet_cct_listing_owner WHERE user_id = %d AND post_type = 'business'", $user_id )
+	);
+	$website_count = (int) $wpdb->get_var(
+		$wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}jet_cct_listing_owner WHERE user_id = %d AND post_type = 'web'", $user_id )
+	);
+	// referrer_id on jet_cct_member stores the referring member's WP user_id
+	// (confirmed against live data), so this is a real "how many people
+	// registered under you" count even without a referral-link UI yet.
+	$referral_count = (int) $wpdb->get_var(
+		$wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}jet_cct_member WHERE referrer_id = %d", $user_id )
+	);
+	// No ownership tracking exists yet for mosque submissions - add-mosque.php
+	// inserts the masjid CPT without recording a user_id anywhere. Placeholder
+	// until that gap is closed.
+	$mosque_count = 0;
 
 	$initial      = strtoupper( mb_substr( $user->display_name ? $user->display_name : $user->user_login, 0, 1 ) );
 	$display_name = $user->display_name ? $user->display_name : $user->user_login;
@@ -92,112 +121,159 @@ function mfa_member_dashboard_shortcode() {
 			<span class="mfa-dash-avatar-lg" aria-hidden="true"><?php echo esc_html( $initial ); ?></span>
 			<div>
 				<h1 class="mfa-dash-name"><?php echo esc_html( $display_name ); ?></h1>
+				<p class="mfa-dash-contact-line"><?php echo esc_html( $user->user_email ); ?></p>
+				<?php if ( $wa_verified && $wa_number ) : ?>
+					<p class="mfa-dash-contact-line">+<?php echo esc_html( $wa_number ); ?></p>
+				<?php endif; ?>
 				<span class="mfa-dash-pill <?php echo $is_premium ? 'mfa-dash-pill-gold' : ''; ?>">
-					<?php echo $is_premium ? 'Founding Member' : 'Free Member'; ?>
+					<?php echo esc_html( $status_label ); ?>
 				</span>
 			</div>
 			<div class="mfa-dash-profile-actions">
-				<?php if ( $email_verified ) : ?>
-					<button type="button" class="mfa-dash-link-btn" data-mfa-modal-open="mfa-edit-profile-modal">Edit Profile</button>
-				<?php else : ?>
-					<button type="button" class="mfa-dash-link-btn" disabled title="Verify your email first">Edit Profile</button>
-				<?php endif; ?>
 				<button type="button" class="mfa-dash-link-btn" data-mfa-modal-open="mfa-change-password-modal">Change Password</button>
 			</div>
 		</section>
 
-		<?php if ( $next_step ) : ?>
-		<section class="mfa-dash-next-step">
-			<div>
-				<?php if ( ! empty( $next_step['intro'] ) ) : ?>
-					<p class="mfa-dash-next-step-intro"><?php echo esc_html( $next_step['intro'] ); ?></p>
-				<?php endif; ?>
-				<span class="mfa-label" style="color: rgba(255,255,255,0.7);">Your Next Step</span>
-				<h2 class="mfa-dash-next-step-title"><?php echo esc_html( $next_step['title'] ); ?></h2>
-				<p class="mfa-dash-next-step-body"><?php echo esc_html( $next_step['body'] ); ?></p>
-			</div>
-			<?php if ( ! empty( $next_step['modal'] ) ) : ?>
-				<button type="button" class="mfa-btn mfa-btn-primary" data-mfa-modal-open="<?php echo esc_attr( $next_step['modal'] ); ?>"><?php echo esc_html( $next_step['cta'] ); ?></button>
-			<?php else : ?>
-				<a href="<?php echo esc_url( $next_step['href'] ); ?>" class="mfa-btn mfa-btn-primary"><?php echo esc_html( $next_step['cta'] ); ?></a>
-			<?php endif; ?>
-		</section>
-		<?php else : ?>
-		<section class="mfa-dash-next-step mfa-dash-next-step-done">
-			<div>
-				<span class="mfa-label" style="color: rgba(255,255,255,0.7);">You're All Set</span>
-				<h2 class="mfa-dash-next-step-title">Great work, <?php echo esc_html( $display_name ); ?>!</h2>
-				<p class="mfa-dash-next-step-body">You've completed every onboarding step. Explore the tools below or consider becoming a Founding Member.</p>
-			</div>
-		</section>
-		<?php endif; ?>
-
-		<section class="mfa-dash-points-card">
-			<div class="mfa-dash-points-total">
-				<span class="mfa-dash-points-number"><?php echo esc_html( number_format_i18n( $points ) ); ?></span>
-				<span class="mfa-dash-points-label">Barakah Points</span>
-				<span class="mfa-dash-rank-badge"><?php echo esc_html( $rank['rank'] ); ?></span>
-			</div>
-			<?php if ( $rank['next_rank'] ) : ?>
-				<p class="mfa-body-muted mfa-dash-points-next"><?php echo esc_html( number_format_i18n( $rank['points_to_next'] ) ); ?> points to <?php echo esc_html( $rank['next_rank'] ); ?></p>
-			<?php else : ?>
-				<p class="mfa-body-muted mfa-dash-points-next">You've reached the highest rank</p>
-			<?php endif; ?>
-
-			<ul class="mfa-dash-checklist">
-				<li class="<?php echo $has_joined_award ? 'is-done' : ''; ?>">
-					<span class="mfa-dash-check"><?php echo $has_joined_award ? '&#10003;' : ''; ?></span>
-					<span>Welcome Bonus</span>
-					<span class="mfa-dash-check-pts">+50</span>
-				</li>
-				<li class="<?php echo $has_email_award ? 'is-done' : ''; ?>">
-					<span class="mfa-dash-check"><?php echo $has_email_award ? '&#10003;' : ''; ?></span>
-					<span>Verify email</span>
-					<span class="mfa-dash-check-pts">+25</span>
-				</li>
-				<li class="<?php echo $has_profile_award ? 'is-done' : ''; ?>">
-					<span class="mfa-dash-check"><?php echo $has_profile_award ? '&#10003;' : ''; ?></span>
-					<span>Complete profile</span>
-					<span class="mfa-dash-check-pts">+50</span>
-				</li>
-				<li class="<?php echo $has_wa_award ? 'is-done' : ''; ?>">
-					<span class="mfa-dash-check"><?php echo $has_wa_award ? '&#10003;' : ''; ?></span>
-					<span>Verify WhatsApp</span>
-					<span class="mfa-dash-check-pts">+25</span>
-				</li>
-			</ul>
-		</section>
-
-		<section class="mfa-dash-security-row">
-			<div class="mfa-card mfa-dash-security-card" id="mfa-dash-email">
-				<h3 class="mfa-h3">Email</h3>
-				<?php if ( $email_verified ) : ?>
-					<p class="mfa-dash-verified">&#10003; Verified</p>
-				<?php else : ?>
-					<p class="mfa-body-muted">We sent a verification link to <strong><?php echo esc_html( $user->user_email ); ?></strong>.</p>
-					<button type="button" class="niz-resend-email mfa-btn mfa-btn-primary mfa-dash-btn-sm">Resend Verification Email</button>
-					<span id="niz-email-message" class="mfa-dash-inline-msg"></span>
-					<button type="button" class="mfa-dash-link-btn mfa-dash-change-email-btn" data-mfa-modal-open="mfa-update-email-modal">Wrong email? Update it</button>
-				<?php endif; ?>
-			</div>
-
-			<div class="mfa-card mfa-dash-security-card" id="mfa-dash-whatsapp">
-				<h3 class="mfa-h3">WhatsApp</h3>
-				<?php if ( $wa_verified ) : ?>
-					<p class="mfa-dash-verified">&#10003; Verified</p>
-				<?php elseif ( ! $email_verified ) : ?>
-					<p class="mfa-body-muted mfa-dash-locked">Verify your email first to unlock WhatsApp verification.</p>
-				<?php else : ?>
-					<p class="mfa-body-muted">Not verified yet.</p>
-					<?php
-					$wa_link = function_exists( 'niz_wa_generate_verify_link' ) ? niz_wa_generate_verify_link( $user_id ) : null;
-					if ( $wa_link && ! is_wp_error( $wa_link ) ) :
-						?>
-						<a href="<?php echo esc_url( $wa_link ); ?>" target="_blank" rel="noopener" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm">Verify via WhatsApp</a>
-					<?php else : ?>
-						<p class="mfa-body-muted">WhatsApp verification is temporarily unavailable. Please try again shortly.</p>
+		<section class="mfa-dash-next-step-row">
+			<?php if ( $next_step ) : ?>
+			<div class="mfa-dash-next-step">
+				<div>
+					<?php if ( ! empty( $next_step['intro'] ) ) : ?>
+						<p class="mfa-dash-next-step-intro"><?php echo esc_html( $next_step['intro'] ); ?></p>
 					<?php endif; ?>
+					<span class="mfa-label" style="color: rgba(255,255,255,0.7);">Your Next Step</span>
+					<h2 class="mfa-dash-next-step-title"><?php echo esc_html( $next_step['title'] ); ?></h2>
+					<p class="mfa-dash-next-step-body"><?php echo esc_html( $next_step['body'] ); ?></p>
+				</div>
+				<?php if ( ! empty( $next_step['modal'] ) ) : ?>
+					<button type="button" class="mfa-btn mfa-btn-primary" data-mfa-modal-open="<?php echo esc_attr( $next_step['modal'] ); ?>"><?php echo esc_html( $next_step['cta'] ); ?></button>
+				<?php else : ?>
+					<a href="<?php echo esc_url( $next_step['href'] ); ?>" class="mfa-btn mfa-btn-primary"><?php echo esc_html( $next_step['cta'] ); ?></a>
 				<?php endif; ?>
+			</div>
+			<?php else : ?>
+			<div class="mfa-dash-next-step mfa-dash-next-step-done">
+				<div>
+					<span class="mfa-label" style="color: rgba(255,255,255,0.7);">You're All Set</span>
+					<h2 class="mfa-dash-next-step-title">Great work, <?php echo esc_html( $display_name ); ?>!</h2>
+					<p class="mfa-dash-next-step-body">You've completed every onboarding step. Explore the tools below or consider becoming a Founding Member.</p>
+				</div>
+			</div>
+			<?php endif; ?>
+
+			<div class="mfa-dash-action-cards">
+				<div class="mfa-card mfa-dash-security-card" id="mfa-dash-email">
+					<h3 class="mfa-h3">Email</h3>
+					<?php if ( $email_verified ) : ?>
+						<p class="mfa-dash-verified">&#10003; Verified</p>
+					<?php else : ?>
+						<p class="mfa-body-muted">We sent a verification link to <strong><?php echo esc_html( $user->user_email ); ?></strong>.</p>
+						<button type="button" class="niz-resend-email mfa-btn mfa-btn-primary mfa-dash-btn-sm">Resend Verification Email</button>
+						<span id="niz-email-message" class="mfa-dash-inline-msg"></span>
+						<button type="button" class="mfa-dash-link-btn mfa-dash-change-email-btn" data-mfa-modal-open="mfa-update-email-modal">Wrong email? Update it</button>
+					<?php endif; ?>
+				</div>
+
+				<div class="mfa-card mfa-dash-security-card" id="mfa-dash-whatsapp">
+					<h3 class="mfa-h3">WhatsApp</h3>
+					<?php if ( $wa_verified ) : ?>
+						<p class="mfa-dash-verified">&#10003; Verified</p>
+					<?php elseif ( ! $email_verified ) : ?>
+						<p class="mfa-body-muted mfa-dash-locked">Verify your email first to unlock WhatsApp verification.</p>
+					<?php else : ?>
+						<p class="mfa-body-muted">Not verified yet.</p>
+						<?php
+						$wa_link = function_exists( 'niz_wa_generate_verify_link' ) ? niz_wa_generate_verify_link( $user_id ) : null;
+						if ( $wa_link && ! is_wp_error( $wa_link ) ) :
+							?>
+							<a href="<?php echo esc_url( $wa_link ); ?>" target="_blank" rel="noopener" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm">Verify via WhatsApp</a>
+						<?php else : ?>
+							<p class="mfa-body-muted">WhatsApp verification is temporarily unavailable. Please try again shortly.</p>
+						<?php endif; ?>
+					<?php endif; ?>
+				</div>
+
+				<div class="mfa-card mfa-dash-security-card" id="mfa-dash-profile">
+					<h3 class="mfa-h3">Profile</h3>
+					<?php if ( ! $email_verified ) : ?>
+						<p class="mfa-body-muted mfa-dash-locked">Verify your email first to unlock your profile.</p>
+					<?php else : ?>
+						<?php if ( $profile_complete ) : ?>
+							<p class="mfa-dash-verified">&#10003; Complete</p>
+						<?php else : ?>
+							<p class="mfa-body-muted">Complete your profile to earn 50 Barakah points.</p>
+						<?php endif; ?>
+						<button type="button" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm" data-mfa-modal-open="mfa-edit-profile-modal">Edit Profile</button>
+					<?php endif; ?>
+				</div>
+			</div>
+		</section>
+
+		<section class="mfa-dash-points-row">
+			<div class="mfa-dash-points-card">
+				<div class="mfa-dash-points-total">
+					<span class="mfa-dash-points-number"><?php echo esc_html( number_format_i18n( $points ) ); ?></span>
+					<span class="mfa-dash-points-label">Barakah Points</span>
+					<span class="mfa-dash-rank-badge"><?php echo esc_html( $rank['rank'] ); ?></span>
+				</div>
+				<?php if ( $rank['next_rank'] ) : ?>
+					<p class="mfa-body-muted mfa-dash-points-next"><?php echo esc_html( number_format_i18n( $rank['points_to_next'] ) ); ?> points to <?php echo esc_html( $rank['next_rank'] ); ?></p>
+				<?php else : ?>
+					<p class="mfa-body-muted mfa-dash-points-next">You've reached the highest rank</p>
+				<?php endif; ?>
+
+				<ul class="mfa-dash-checklist">
+					<li class="<?php echo $has_joined_award ? 'is-done' : ''; ?>">
+						<span class="mfa-dash-check"><?php echo $has_joined_award ? '&#10003;' : ''; ?></span>
+						<span>Welcome Bonus</span>
+						<span class="mfa-dash-check-pts">+50</span>
+					</li>
+					<li class="<?php echo $has_email_award ? 'is-done' : ''; ?>">
+						<span class="mfa-dash-check"><?php echo $has_email_award ? '&#10003;' : ''; ?></span>
+						<span>Verify email</span>
+						<span class="mfa-dash-check-pts">+25</span>
+					</li>
+					<li class="<?php echo $has_profile_award ? 'is-done' : ''; ?>">
+						<span class="mfa-dash-check"><?php echo $has_profile_award ? '&#10003;' : ''; ?></span>
+						<span>Complete profile</span>
+						<span class="mfa-dash-check-pts">+50</span>
+					</li>
+					<li class="<?php echo $has_wa_award ? 'is-done' : ''; ?>">
+						<span class="mfa-dash-check"><?php echo $has_wa_award ? '&#10003;' : ''; ?></span>
+						<span>Verify WhatsApp</span>
+						<span class="mfa-dash-check-pts">+25</span>
+					</li>
+				</ul>
+			</div>
+
+			<div class="mfa-dash-earn-card">
+				<h3 class="mfa-h3">Help us build Masjid4All and earn Barakah points</h3>
+				<div class="mfa-dash-earn-grid">
+					<div class="mfa-card mfa-dash-earn-item">
+						<span class="mfa-dash-earn-count"><?php echo esc_html( number_format_i18n( $referral_count ) ); ?></span>
+						<h4 class="mfa-dash-earn-title">Start Sharing</h4>
+						<p class="mfa-body-muted">Members who joined under you</p>
+						<button type="button" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm" data-mfa-modal-open="mfa-share-modal">Start Share Now</button>
+					</div>
+					<div class="mfa-card mfa-dash-earn-item">
+						<span class="mfa-dash-earn-count"><?php echo esc_html( number_format_i18n( $mosque_count ) ); ?></span>
+						<h4 class="mfa-dash-earn-title">Add New Mosque</h4>
+						<p class="mfa-body-muted">Mosques you've added</p>
+						<a href="/add-mosque/" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm">Add Mosque</a>
+					</div>
+					<div class="mfa-card mfa-dash-earn-item">
+						<span class="mfa-dash-earn-count"><?php echo esc_html( number_format_i18n( $business_count ) ); ?></span>
+						<h4 class="mfa-dash-earn-title">Add New Business</h4>
+						<p class="mfa-body-muted">Businesses you've added</p>
+						<a href="/add-business/" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm">Add Business</a>
+					</div>
+					<div class="mfa-card mfa-dash-earn-item">
+						<span class="mfa-dash-earn-count"><?php echo esc_html( number_format_i18n( $website_count ) ); ?></span>
+						<h4 class="mfa-dash-earn-title">Add New Website</h4>
+						<p class="mfa-body-muted">Websites you've added</p>
+						<a href="/add-website/" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm">Add Website</a>
+					</div>
+				</div>
 			</div>
 		</section>
 

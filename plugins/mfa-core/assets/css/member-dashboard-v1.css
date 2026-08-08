@@ -38,6 +38,12 @@
   margin: 0 0 4px;
 }
 
+.mfa-dash-contact-line {
+  font-size: 13px;
+  color: var(--mfa-muted);
+  margin: 0 0 4px;
+}
+
 .mfa-dash-pill {
   display: inline-block;
   font-size: 12px;
@@ -94,13 +100,24 @@
   font-style: italic;
 }
 
-/* ---------- Next step banner ---------- */
+/* ---------- Next step row (banner + action cards, 2 columns) ---------- */
+
+.mfa-dash-next-step-row {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: var(--mfa-space-5);
+  align-items: stretch;
+}
+@media (max-width: 900px) {
+  .mfa-dash-next-step-row { grid-template-columns: 1fr; }
+}
 
 .mfa-dash-next-step {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--mfa-space-5);
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: var(--mfa-space-4);
   background: var(--mfa-green-dark);
   color: var(--mfa-white);
   border-radius: var(--mfa-radius-md);
@@ -128,13 +145,24 @@
   margin: 0;
   max-width: 46ch;
 }
-.mfa-dash-next-step .mfa-btn { flex-shrink: 0; }
 
-@media (max-width: 600px) {
-  .mfa-dash-next-step { flex-direction: column; align-items: flex-start; }
+.mfa-dash-action-cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mfa-space-4);
 }
 
-/* ---------- Barakah points card ---------- */
+/* ---------- Barakah points row (points card + earn-points card, 2 columns) ---------- */
+
+.mfa-dash-points-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--mfa-space-5);
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .mfa-dash-points-row { grid-template-columns: 1fr; }
+}
 
 .mfa-dash-points-card {
   background: var(--mfa-white);
@@ -217,16 +245,53 @@
   font-size: 13px;
 }
 
-/* ---------- Security cards ---------- */
+/* ---------- Help us build Masjid4All (earn points) card ---------- */
 
-.mfa-dash-security-row {
+.mfa-dash-earn-card {
+  background: var(--mfa-white);
+  border: 1px solid var(--mfa-border);
+  border-radius: var(--mfa-radius-md);
+  padding: var(--mfa-space-6);
+  box-shadow: var(--mfa-shadow-card);
+}
+.mfa-dash-earn-card .mfa-h3 {
+  margin: 0 0 var(--mfa-space-4);
+}
+
+.mfa-dash-earn-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--mfa-space-5);
+  gap: var(--mfa-space-3);
 }
-@media (max-width: 600px) {
-  .mfa-dash-security-row { grid-template-columns: 1fr; }
+@media (max-width: 480px) {
+  .mfa-dash-earn-grid { grid-template-columns: 1fr; }
 }
+
+.mfa-dash-earn-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.mfa-dash-earn-item .mfa-btn {
+  margin-top: auto;
+  align-self: flex-start;
+}
+
+.mfa-dash-earn-count {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--mfa-ink);
+  font-variant-numeric: tabular-nums;
+}
+.mfa-dash-earn-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--mfa-ink);
+  margin: 0;
+}
+
+/* ---------- Security cards ---------- */
 
 .mfa-dash-security-card { scroll-margin-top: 90px; }
 

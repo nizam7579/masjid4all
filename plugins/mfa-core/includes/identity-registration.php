@@ -52,7 +52,8 @@ function niz_user_complete_registration( $user_id, $args = array() ) {
 	if ( function_exists( 'niz_user_member_cct' ) ) {
 		// Creates and links the jet_cct_member row if one doesn't exist yet
 		// (reads country/referrer/partner from cookies at creation time).
-		niz_user_member_cct( $user_id );
+		$member = niz_user_member_cct( $user_id );
+		niz_user_award_referrer_points( $user_id, $name, $member );
 	}
 
 	if ( function_exists( 'niz_user_update_field' ) ) {
@@ -69,4 +70,47 @@ function niz_user_complete_registration( $user_id, $args = array() ) {
 	}
 
 	return true;
+}
+
+/**
+ * Awards the referrer Barakah points when someone they referred completes
+ * registration (2026-08-09 - start of the mosque-community growth loop:
+ * referral capture itself already worked sitewide via the affiliateid
+ * cookie set in enaizi-mfa's niz_mfa_location_init(), read here off the
+ * jet_cct_member row niz_user_member_cct() just created/fetched - only the
+ * reward side was missing). Commission/payout on paid conversions is a
+ * separate, later phase once Founding Member + a payment gateway exist -
+ * not built here.
+ *
+ * @param int        $new_user_id The person who just finished registering.
+ * @param string     $new_user_name
+ * @param array|null $member      Return value of niz_user_member_cct().
+ */
+function niz_user_award_referrer_points( $new_user_id, $new_user_name, $member ) {
+	if ( ! is_array( $member ) || empty( $member['referrer_id'] ) ) {
+		return;
+	}
+
+	$referrer_id = (int) $member['referrer_id'];
+
+	// 14270 is the hardcoded "no real referrer" sentinel used across the
+	// codebase (identity-core.php, enaizi-user, enaizi-mfa) whenever no
+	// affiliateid cookie was present at registration - confirmed 2026-08-09
+	// it isn't even a real WordPress user, so it must never receive points.
+	if ( ! $referrer_id || 14270 === $referrer_id || $referrer_id === (int) $new_user_id ) {
+		return;
+	}
+
+	if ( ! get_userdata( $referrer_id ) ) {
+		return;
+	}
+
+	if ( function_exists( 'mfa_award_points' ) ) {
+		// Description includes the new member's ID (not just name) so a
+		// referrer's second, third, etc. successful referral each get their
+		// own ledger row - mfa_award_points() dedupes on the exact
+		// (user_id, description) pair, so a generic description would
+		// silently drop every referral after the first for the same referrer.
+		mfa_award_points( $referrer_id, 'Referral - ' . $new_user_name . ' joined (#' . $new_user_id . ')', 25 );
+	}
 }

@@ -122,19 +122,16 @@ class Niz_Email_Verification {
 
 		if (empty($users)) {
 
-
+			// Invalid, stale, or already-consumed token - redirect with
+			// no query arg so [niz_email_verified]'s default branch (the
+			// "Verification Link Invalid" card) renders. Previously this
+			// added niz_verify_status=success, which is backwards - it
+			// showed "Email Verified Successfully" even though nothing
+			// was actually verified (bug found 2026-08-09: a user whose
+			// browser/click landed on a superseded token saw a false
+			// success page while niz_email_verified stayed 'No').
 			wp_redirect(
-
-				add_query_arg(
-
-					'niz_verify_status',
-
-					'success',
-
-					home_url('/email-verified/')
-
-				)
-
+				home_url('/email-verified/')
 			);
 
 			exit;
@@ -250,10 +247,18 @@ class Niz_Email_Verification {
 		}
 
 
+		// A real, successful match - this is the only branch that should
+		// show the success card (see the empty($users) branch above).
 		wp_redirect(
 
-			home_url(
-				'/email-verified/'
+			add_query_arg(
+
+				'niz_verify_status',
+
+				'success',
+
+				home_url( '/email-verified/' )
+
 			)
 
 		);

@@ -60,6 +60,11 @@ function mfa_member_account_modals_shortcode() {
 		$name = $user->display_name;
 	}
 
+	global $wpdb;
+	$barakah_history = $wpdb->get_results(
+		$wpdb->prepare( "SELECT description, points, cct_created FROM {$wpdb->prefix}jet_cct_barakah WHERE user_id = %d ORDER BY cct_created DESC LIMIT 50", $user_id )
+	);
+
 	ob_start();
 	?>
 	<div class="mfa-modal-overlay" data-mfa-modal-overlay></div>
@@ -155,6 +160,44 @@ function mfa_member_account_modals_shortcode() {
 		$share_url  = 'https://wa.me/?text=' . rawurlencode( $share_text );
 		?>
 		<a href="<?php echo esc_url( $share_url ); ?>" target="_blank" rel="noopener" class="mfa-btn mfa-btn-primary">Share on WhatsApp</a>
+	</div>
+
+	<div class="mfa-modal mfa-modal-lg" id="mfa-barakah-history-modal" role="dialog" aria-modal="true" aria-label="My Barakah Points" aria-hidden="true">
+		<button type="button" class="mfa-modal-close" data-mfa-modal-close aria-label="Close">
+			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+		</button>
+		<h3 class="mfa-h3">My Barakah Points</h3>
+		<?php if ( $barakah_history ) : ?>
+			<ul class="mfa-barakah-history-list">
+				<?php foreach ( $barakah_history as $entry ) : ?>
+					<li>
+						<div>
+							<span class="mfa-barakah-history-desc"><?php echo esc_html( $entry->description ); ?></span>
+							<span class="mfa-barakah-history-date"><?php echo esc_html( date_i18n( 'j M Y', strtotime( $entry->cct_created ) ) ); ?></span>
+						</div>
+						<span class="mfa-barakah-history-pts">+<?php echo esc_html( number_format_i18n( (int) $entry->points ) ); ?></span>
+					</li>
+				<?php endforeach; ?>
+			</ul>
+		<?php else : ?>
+			<p class="mfa-body-muted">No Barakah points yet - complete your onboarding steps to start earning.</p>
+		<?php endif; ?>
+	</div>
+
+	<div class="mfa-modal" id="mfa-barakah-info-modal" role="dialog" aria-modal="true" aria-label="About Barakah Points" aria-hidden="true">
+		<button type="button" class="mfa-modal-close" data-mfa-modal-close aria-label="Close">
+			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+		</button>
+		<h3 class="mfa-h3">About Barakah Points</h3>
+		<p class="mfa-body-muted">Barakah Points are Masjid4All's community rewards program - recognizing members who help build a trusted platform for Muslims everywhere.</p>
+		<p class="mfa-body-muted"><strong>Ways to earn points today:</strong></p>
+		<ul class="mfa-barakah-info-list">
+			<li>Join Masjid4All - <strong>+50</strong> Welcome Bonus</li>
+			<li>Verify your email address - <strong>+25</strong></li>
+			<li>Complete your profile - <strong>+50</strong></li>
+			<li>Verify your WhatsApp number - <strong>+25</strong></li>
+		</ul>
+		<p class="mfa-body-muted">More ways to earn - like sharing with friends and adding mosques, businesses, and websites - are coming soon.</p>
 	</div>
 	<?php
 	return ob_get_clean();

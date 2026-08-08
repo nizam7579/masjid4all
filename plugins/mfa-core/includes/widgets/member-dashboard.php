@@ -80,6 +80,10 @@ function mfa_member_dashboard_shortcode() {
 	// until that gap is closed.
 	$mosque_count = 0;
 
+	$barakah_history = $wpdb->get_results(
+		$wpdb->prepare( "SELECT description, points, cct_created FROM {$wpdb->prefix}jet_cct_barakah WHERE user_id = %d ORDER BY cct_created DESC LIMIT 50", $user_id )
+	);
+
 	$initial      = strtoupper( mb_substr( $user->display_name ? $user->display_name : $user->user_login, 0, 1 ) );
 	$display_name = $user->display_name ? $user->display_name : $user->user_login;
 
@@ -217,7 +221,9 @@ function mfa_member_dashboard_shortcode() {
 			</div>
 		</section>
 
-		<section class="mfa-dash-points-row">
+		<section class="mfa-dash-points-section">
+			<h2 class="mfa-h2">Help us build Masjid4All and earn Barakah points</h2>
+			<div class="mfa-dash-points-row">
 			<div class="mfa-dash-points-card">
 				<div class="mfa-dash-points-total">
 					<span class="mfa-dash-points-number"><?php echo esc_html( number_format_i18n( $points ) ); ?></span>
@@ -252,10 +258,14 @@ function mfa_member_dashboard_shortcode() {
 						<span class="mfa-dash-check-pts">+25</span>
 					</li>
 				</ul>
+
+				<div class="mfa-dash-points-actions">
+					<button type="button" class="mfa-dash-link-btn" data-mfa-modal-open="mfa-barakah-history-modal">View My Barakah Points</button>
+					<button type="button" class="mfa-dash-link-btn" data-mfa-modal-open="mfa-barakah-info-modal">About Barakah Points</button>
+				</div>
 			</div>
 
 			<div class="mfa-dash-earn-card">
-				<h3 class="mfa-h3">Help us build Masjid4All and earn Barakah points</h3>
 				<div class="mfa-dash-earn-grid">
 					<div class="mfa-card mfa-dash-earn-item">
 						<span class="mfa-dash-earn-count"><?php echo esc_html( number_format_i18n( $referral_count ) ); ?></span>
@@ -278,6 +288,7 @@ function mfa_member_dashboard_shortcode() {
 						<a href="/add-website/" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm">Add Website</a>
 					</div>
 				</div>
+			</div>
 			</div>
 		</section>
 

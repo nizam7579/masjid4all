@@ -179,24 +179,41 @@
   margin: 6px 0 0;
 }
 
-/* ---------- Barakah points row (points card + earn-points card, 2 columns) ---------- */
+/* ---------- Barakah points section (heading + 2-column row) ---------- */
+
+.mfa-dash-points-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mfa-space-4);
+}
 
 .mfa-dash-points-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--mfa-space-5);
-  align-items: start;
+  align-items: stretch;
 }
 @media (max-width: 900px) {
   .mfa-dash-points-row { grid-template-columns: 1fr; }
 }
 
 .mfa-dash-points-card {
+  display: flex;
+  flex-direction: column;
   background: var(--mfa-white);
   border: 1px solid var(--mfa-border);
   border-radius: var(--mfa-radius-md);
   padding: var(--mfa-space-6);
   box-shadow: var(--mfa-shadow-card);
+}
+
+.mfa-dash-points-actions {
+  margin-top: var(--mfa-space-4);
+  padding-top: var(--mfa-space-4);
+  border-top: 1px solid var(--mfa-border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mfa-space-4);
 }
 
 .mfa-dash-points-total {
@@ -280,9 +297,6 @@
   border-radius: var(--mfa-radius-md);
   padding: var(--mfa-space-6);
   box-shadow: var(--mfa-shadow-card);
-}
-.mfa-dash-earn-card .mfa-h3 {
-  margin: 0 0 var(--mfa-space-4);
 }
 
 .mfa-dash-earn-grid {

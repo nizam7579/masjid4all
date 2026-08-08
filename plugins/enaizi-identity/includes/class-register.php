@@ -173,10 +173,19 @@ public static function init(){
         
         wp_set_auth_cookie($user_id );
 
+        // Return to whichever page the registration form was submitted
+        // from (add-mosque, add-business, add-website, member, ...) instead
+        // of always landing on /member/ - matches how login's redirect
+        // already behaves (class-ajax.php).
+        $redirect = wp_get_referer();
+        if ( ! $redirect ) {
+            $redirect = home_url( '/member/' );
+        }
+
         wp_send_json_success(
             array(
             'message'=>'Registration successful. Please verify your email.',
-            'redirect'=>home_url('/member/')
+            'redirect'=>$redirect
             )
         );
 

@@ -1,0 +1,220 @@
+/* mfa-core admin-shell.css — chrome for /admin/* (staff-only area: Helpline
+   Staff, Editors, Administrators). See includes/admin-template.php and
+   includes/widgets/admin-shell.php. Builds on global-v2.css tokens. */
+
+body.mfa-admin-area {
+  background: var(--mfa-mint-bg);
+  margin: 0;
+}
+
+/* ---------- Header ---------- */
+
+.mfa-admin-header {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-header);
+  background: var(--mfa-white);
+  border-bottom: 1px solid var(--mfa-border);
+}
+
+.mfa-admin-header-inner {
+  max-width: var(--mfa-container-max);
+  margin: 0 auto;
+  padding: var(--mfa-space-4) var(--mfa-space-5);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mfa-space-4);
+}
+
+.mfa-admin-header-back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--mfa-space-2);
+  color: var(--mfa-green-dark);
+  font-weight: 700;
+  font-size: 15px;
+  text-decoration: none;
+}
+.mfa-admin-header-back svg { width: 18px; height: 18px; flex-shrink: 0; }
+.mfa-admin-header-back:hover { color: var(--mfa-teal-dark); }
+
+.mfa-admin-header-account {
+  display: flex;
+  align-items: center;
+  gap: var(--mfa-space-3);
+}
+
+.mfa-admin-header-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--mfa-green-dark);
+  color: var(--mfa-white);
+  font-weight: 700;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+.mfa-admin-header-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--mfa-ink);
+  display: none;
+}
+@media (min-width: 601px) {
+  .mfa-admin-header-name { display: inline; }
+}
+
+.mfa-admin-header-account .niz-user-logout-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--mfa-border);
+  background: transparent;
+  color: var(--mfa-muted);
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.mfa-admin-header-account .niz-user-logout-btn:hover {
+  background: var(--mfa-mint-bg);
+  color: var(--mfa-teal-dark);
+}
+
+/* ---------- Shell layout ---------- */
+
+.mfa-admin-shell {
+  max-width: var(--mfa-container-max);
+  margin: 0 auto;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--mfa-space-6);
+  padding: var(--mfa-space-6) var(--mfa-space-5) var(--mfa-space-9);
+  min-height: 60vh;
+}
+
+/* ---------- Sidebar ---------- */
+
+.mfa-admin-sidebar {
+  flex-shrink: 0;
+  width: 220px;
+  position: sticky;
+  top: calc(64px + var(--mfa-space-6));
+}
+
+.mfa-admin-sidebar-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--mfa-space-1);
+}
+
+.mfa-admin-sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: var(--mfa-space-3);
+  padding: var(--mfa-space-3) var(--mfa-space-4);
+  border-radius: var(--mfa-radius-sm);
+  color: var(--mfa-muted);
+  font-weight: 600;
+  font-size: 14px;
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.mfa-admin-sidebar-link svg { width: 18px; height: 18px; flex-shrink: 0; }
+.mfa-admin-sidebar-link:hover {
+  background: var(--mfa-white);
+  color: var(--mfa-green-dark);
+}
+.mfa-admin-sidebar-link.is-active {
+  background: var(--mfa-green-dark);
+  color: var(--mfa-white);
+}
+
+/* ---------- Main ---------- */
+
+.mfa-admin-main {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---------- Home (landing) grid ---------- */
+
+.mfa-admin-home-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: var(--mfa-space-4);
+  margin-top: var(--mfa-space-6);
+}
+
+.mfa-admin-home-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--mfa-space-3);
+  padding: var(--mfa-space-7) var(--mfa-space-4);
+  background: var(--mfa-white);
+  border: 1px solid var(--mfa-border);
+  border-radius: var(--mfa-radius-md);
+  color: var(--mfa-green-dark);
+  font-weight: 700;
+  font-size: 15px;
+  text-decoration: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.mfa-admin-home-card svg { width: 28px; height: 28px; }
+.mfa-admin-home-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--mfa-shadow-card);
+}
+
+/* ---------- Footer ---------- */
+
+.mfa-admin-footer {
+  border-top: 1px solid var(--mfa-border);
+  background: var(--mfa-white);
+  padding: var(--mfa-space-4) var(--mfa-space-5);
+  text-align: center;
+}
+.mfa-admin-footer-copy {
+  font-size: 13px;
+  color: var(--mfa-muted);
+}
+
+/* ---------- Mobile: sidebar becomes a horizontal scroll strip ---------- */
+
+@media (max-width: 900px) {
+  .mfa-admin-shell {
+    flex-direction: column;
+    padding-left: var(--mfa-space-3);
+    padding-right: var(--mfa-space-3);
+    gap: var(--mfa-space-4);
+  }
+
+  .mfa-admin-sidebar {
+    position: static;
+    width: 100%;
+  }
+
+  .mfa-admin-sidebar-list {
+    flex-direction: row;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: var(--mfa-space-1);
+  }
+
+  .mfa-admin-sidebar-link {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+}

@@ -57,13 +57,20 @@ function mfa_core_enqueue_widget_assets() {
 	$global_css_path = MFA_CORE_PATH . 'assets/css/global-v2.css';
 	wp_enqueue_style( 'mfa-core-global', MFA_CORE_URL . 'assets/css/global-v2.css', array(), $get_version( $global_css_path ) );
 
-	// /member/* has its own custom header/footer shell (see
-	// includes/member-template.php) that bypasses the public site's chrome
-	// entirely - the sitewide header and floating buttons below belong to
-	// that public chrome, so they're skipped here rather than loaded unused.
+	// /member/* and /admin/* both have their own custom header/footer shell
+	// (see includes/member-template.php, includes/admin-template.php) that
+	// bypasses the public site's chrome entirely - the sitewide header and
+	// floating buttons below belong to that public chrome, so they're
+	// skipped here rather than loaded unused.
 	$is_member_area = function_exists( 'mfa_is_member_area' ) && mfa_is_member_area();
+	$is_admin_area  = function_exists( 'mfa_is_admin_area' ) && mfa_is_admin_area();
 
-	if ( ! $is_member_area ) {
+	if ( $is_admin_area ) {
+		$admin_shell_css = MFA_CORE_PATH . 'assets/css/admin-shell-v1.css';
+		wp_enqueue_style( 'mfa-core-admin-shell', MFA_CORE_URL . 'assets/css/admin-shell-v1.css', array( 'mfa-core-global' ), $get_version( $admin_shell_css ) );
+	}
+
+	if ( ! $is_member_area && ! $is_admin_area ) {
 		// Sitewide header — same reasoning as the floating share button below:
 		// not tied to any specific page's post_content.
 		$header_css_path = MFA_CORE_PATH . 'assets/css/header-v11.css';
@@ -255,5 +262,6 @@ function mfa_core_litespeed_css_excludes( $excludes ) {
 	$excludes[] = 'mfa-core/assets/css/member-dashboard-v1.css';
 	$excludes[] = 'mfa-core/assets/css/member-account-modals-v1.css';
 	$excludes[] = 'mfa-core/assets/css/global-v2.css';
+	$excludes[] = 'mfa-core/assets/css/admin-shell-v1.css';
 	return $excludes;
 }

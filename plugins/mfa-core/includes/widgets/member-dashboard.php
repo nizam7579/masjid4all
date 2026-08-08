@@ -63,11 +63,30 @@ function mfa_member_dashboard_shortcode() {
 	$listing_count = (int) $wpdb->get_var(
 		$wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}jet_cct_listing_owner WHERE user_id = %d", $user_id )
 	);
+	// "Businesses/Websites you've added" (earn-grid below): distinct from
+	// $listing_count above - that's listings the user CLAIMED ownership of
+	// (jet_cct_listing_owner), this is listings the user actually SUBMITTED
+	// via /add-business//add-website/ (wp_posts.post_author, set at
+	// wp_insert_post() time in enaizi-mfa/shortcodes/add-business.php and
+	// add-website.php) and that have since been approved (listing_status -
+	// same 'Approved' check the Barakah-point-award code already uses in
+	// business.php/web.php). Found 2026-08-09: this previously queried
+	// jet_cct_listing_owner too, wrongly counting claims as additions.
 	$business_count = (int) $wpdb->get_var(
-		$wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}jet_cct_listing_owner WHERE user_id = %d AND post_type = 'business'", $user_id )
+		$wpdb->prepare(
+			"SELECT COUNT(*) FROM {$wpdb->prefix}jet_cct_business b
+			JOIN {$wpdb->posts} p ON b.cct_single_post_id = p.ID
+			WHERE p.post_author = %d AND b.listing_status = 'Approved'",
+			$user_id
+		)
 	);
 	$website_count = (int) $wpdb->get_var(
-		$wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}jet_cct_listing_owner WHERE user_id = %d AND post_type = 'web'", $user_id )
+		$wpdb->prepare(
+			"SELECT COUNT(*) FROM {$wpdb->prefix}jet_cct_web w
+			JOIN {$wpdb->posts} p ON w.cct_single_post_id = p.ID
+			WHERE p.post_author = %d AND w.listing_status = 'Approved'",
+			$user_id
+		)
 	);
 	// "My Business" section (below): real data, combines both business and
 	// website listings the user owns - the /member/business/?id= single-item

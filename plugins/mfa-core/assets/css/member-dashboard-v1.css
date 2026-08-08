@@ -450,13 +450,10 @@
 }
 
 /* ---------- Founding Member card ---------- */
+/* Box styling now comes from the shared .mfa-dash-earn-card (same white
+   card used by Affiliate Program alongside it) - this is just the
+   gold-tint modifier for the "already a member" state. */
 
-.mfa-dash-premium-card {
-  background: var(--mfa-mint-bg);
-  border: 1px solid var(--mfa-border);
-  border-radius: var(--mfa-radius-md);
-  padding: var(--mfa-space-6);
-}
 .mfa-dash-premium-card-active {
   background: color-mix(in srgb, var(--mfa-gold) 10%, var(--mfa-white));
   border-color: var(--mfa-gold);

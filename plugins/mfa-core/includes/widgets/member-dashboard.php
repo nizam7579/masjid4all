@@ -382,20 +382,20 @@ function mfa_member_dashboard_shortcode() {
 				</div>
 
 				<?php if ( $is_premium ) : ?>
-				<div class="mfa-dash-premium-card mfa-dash-premium-card-active">
+				<div class="mfa-dash-earn-card mfa-dash-premium-card-active">
 					<h3 class="mfa-h3 mfa-dash-col-title">You're a Founding Member</h3>
-					<p class="mfa-body-muted">Thank you for supporting Masjid4All from the start. Your Founding Member benefits are active on your account.</p>
+					<p class="mfa-body-muted mfa-dash-col-intro">Thank you for supporting Masjid4All from the start. Your Founding Member benefits are active on your account.</p>
 				</div>
 				<?php else : ?>
-				<div class="mfa-dash-premium-card">
+				<div class="mfa-dash-earn-card">
 					<h3 class="mfa-h3 mfa-dash-col-title">Become a Founding Member</h3>
-					<p class="mfa-body">One-time RM29.90 - Tier 1 pricing, limited spots left.</p>
+					<p class="mfa-body-muted mfa-dash-col-intro">One-time RM29.90 - Tier 1 pricing, limited spots left.</p>
 					<ul class="mfa-dash-premium-list">
 						<li>1,000 Barakah points added instantly</li>
 						<li>Get your RM29.90 back as platform credit - spend it on a premium business or website listing, banner ads, and more</li>
 						<li>Priority support and early access to new features</li>
 					</ul>
-					<a href="/member/premium/" class="mfa-btn mfa-btn-primary">See Founding Member Details</a>
+					<a href="/member/premium/" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm">See Founding Member Details</a>
 				</div>
 				<?php endif; ?>
 			</div>

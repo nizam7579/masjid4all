@@ -24,6 +24,7 @@ $mfa_core_includes = array(
 	'includes/barakah.php',
 	'includes/email-verification.php',
 	'includes/member-template.php',
+	'includes/member-access-control.php',
 	'includes/widgets/prayer-times.php',
 	'includes/widgets/qibla.php',
 	'includes/widgets/daily-quran.php',

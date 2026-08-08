@@ -16,13 +16,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  * the page's previous Kadence-block content entirely (its real content
  * was hardcoded hideBlock:true, and its join button just opened a modal
  * saying "Coming Soon"), per the project's one-shortcode-per-page rule.
+ *
+ * Login is already enforced before this ever runs -
+ * includes/member-access-control.php redirects logged-out visitors back
+ * to /member/ on template_redirect.
  */
 add_shortcode( 'mfa_member_affiliate', 'mfa_member_affiliate_shortcode' );
 function mfa_member_affiliate_shortcode() {
-
-	if ( ! is_user_logged_in() ) {
-		return '<p class="mfa-body-muted">Please log in to view your affiliate dashboard.</p>';
-	}
 
 	$user_id       = get_current_user_id();
 	$has_affiliate = function_exists( 'niz_user_field_by_userid' ) && 'Yes' === niz_user_field_by_userid( $user_id, 'chk_affiliate' );

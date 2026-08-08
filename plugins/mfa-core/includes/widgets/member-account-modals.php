@@ -340,3 +340,48 @@ function mfa_ajax_update_email() {
 
 	wp_send_json_success( array( 'message' => 'Email updated. A new verification link has been sent to your new address.' ) );
 }
+
+/**
+ * Lets the current user opt into the affiliate program - sets chk_affiliate
+ * on their jet_cct_member row (an existing but previously never-written
+ * field, found 2026-08-09 - the old legacy dashboard only ever read it)
+ * and awards the one-time Barakah bonus. Triggered from a plain button
+ * (data-mfa-join-affiliate, not a modal form) on both the dashboard's
+ * Affiliate Program card and /member/affiliate/ itself - see
+ * member-account-modals-v1.js for the click handler shared by both.
+ * Referral capture and per-referral points already exist separately
+ * (identity-registration.php) - this is just the opt-in step and its
+ * bonus. Commission/payout is a later phase once Founding Member + a
+ * payment gateway exist - not built here.
+ */
+add_action( 'wp_ajax_mfa_join_affiliate', 'mfa_ajax_join_affiliate' );
+function mfa_ajax_join_affiliate() {
+	if ( ! is_user_logged_in() ) {
+		wp_send_json_error( array( 'message' => 'Please login first.' ) );
+	}
+
+	check_ajax_referer( 'mfa_join_affiliate', 'nonce' );
+
+	$user_id = get_current_user_id();
+
+	if ( function_exists( 'niz_user_member_cct' ) ) {
+		// Ensures the jet_cct_member row exists before updating it - a user
+		// who registered via Google/WhatsApp only may not have one yet.
+		niz_user_member_cct( $user_id );
+	}
+
+	$already = function_exists( 'niz_user_field_by_userid' ) ? niz_user_field_by_userid( $user_id, 'chk_affiliate' ) : '';
+	if ( 'Yes' === $already ) {
+		wp_send_json_success( array( 'message' => 'Already joined.' ) );
+	}
+
+	if ( function_exists( 'niz_user_update_field' ) ) {
+		niz_user_update_field( $user_id, 'chk_affiliate', 'Yes' );
+	}
+
+	if ( function_exists( 'mfa_award_points' ) ) {
+		mfa_award_points( $user_id, 'Join Affiliate Program', 100 );
+	}
+
+	wp_send_json_success( array( 'message' => "You're in! 100 Barakah points added." ) );
+}

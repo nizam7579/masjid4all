@@ -48,6 +48,7 @@ function mfa_member_dashboard_shortcode() {
 	$profile_complete = ! empty( $country );
 
 	$is_premium   = function_exists( 'niz_user_field_by_userid' ) && 'Yes' === niz_user_field_by_userid( $user_id, 'chk_premium' );
+	$has_affiliate = function_exists( 'niz_user_field_by_userid' ) && 'Yes' === niz_user_field_by_userid( $user_id, 'chk_affiliate' );
 	$cct_status   = function_exists( 'niz_user_field_by_userid' ) ? niz_user_field_by_userid( $user_id, 'status' ) : '';
 	$status_label = $cct_status ? $cct_status : 'Free Member';
 
@@ -413,8 +414,13 @@ function mfa_member_dashboard_shortcode() {
 			<div class="mfa-dash-points-row">
 				<div class="mfa-dash-earn-card">
 					<h3 class="mfa-h3 mfa-dash-col-title">Affiliate Program</h3>
-					<p class="mfa-body-muted mfa-dash-col-intro">Earn rewards by inviting mosques, businesses, and members to join Masjid4All - full details coming soon.</p>
-					<button type="button" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm">Join Masjid4All Affiliate Program</button>
+					<?php if ( $has_affiliate ) : ?>
+						<p class="mfa-body-muted mfa-dash-col-intro"><?php echo esc_html( number_format_i18n( $referral_count ) ); ?> member<?php echo 1 === $referral_count ? '' : 's'; ?> joined through you so far.</p>
+						<a href="/member/affiliate/" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm">View My Affiliates</a>
+					<?php else : ?>
+						<p class="mfa-body-muted mfa-dash-col-intro">Earn 100 Barakah points and start building your downline by inviting mosques, businesses, and members to join Masjid4All.</p>
+						<button type="button" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm" data-mfa-join-affiliate="<?php echo esc_attr( wp_create_nonce( 'mfa_join_affiliate' ) ); ?>">Join Masjid4All Affiliate Program</button>
+					<?php endif; ?>
 				</div>
 
 				<?php if ( $is_premium ) : ?>

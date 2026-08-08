@@ -1,4 +1,40 @@
 document.addEventListener('DOMContentLoaded', function () {
+	// Not modal-dependent (unlike everything below) - runs on any member-area
+	// page since the button appears on both the dashboard and the standalone
+	// /member/affiliate/ page, which doesn't render [mfa_member_account_modals].
+	document.querySelectorAll('[data-mfa-join-affiliate]').forEach(function (btn) {
+		btn.addEventListener('click', function () {
+			var originalText = btn.textContent;
+			btn.disabled = true;
+			btn.textContent = 'Joining...';
+
+			var data = new FormData();
+			data.append('action', 'mfa_join_affiliate');
+			data.append('nonce', btn.getAttribute('data-mfa-join-affiliate'));
+
+			fetch(mfaMemberModals.ajaxUrl, {
+				method: 'POST',
+				body: data,
+				credentials: 'same-origin'
+			})
+				.then(function (response) { return response.json(); })
+				.then(function (result) {
+					if (result.success) {
+						window.location.reload();
+					} else {
+						btn.disabled = false;
+						btn.textContent = originalText;
+						alert((result.data && result.data.message) || 'Something went wrong.');
+					}
+				})
+				.catch(function () {
+					btn.disabled = false;
+					btn.textContent = originalText;
+					alert('Network error. Please try again.');
+				});
+		});
+	});
+
 	var overlay = document.querySelector('[data-mfa-modal-overlay]');
 	if (!overlay) return;
 

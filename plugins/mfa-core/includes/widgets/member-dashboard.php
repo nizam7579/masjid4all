@@ -76,13 +76,27 @@ function mfa_member_dashboard_shortcode() {
 	$my_listings = $wpdb->get_results(
 		$wpdb->prepare( "SELECT post_id, post_type FROM {$wpdb->prefix}jet_cct_listing_owner WHERE user_id = %d ORDER BY cct_created DESC", $user_id )
 	);
-	// "My Community" section (below): no mosque-community join mechanism
-	// exists yet anywhere in the codebase - no join button on mosque pages,
-	// no membership table. Left as an always-empty array (rather than
-	// skipping the section) so the template below is ready to go the moment
-	// that join flow gets built - just swap this query in. Once it exists,
-	// cap membership at 10 mosques per user there.
-	$joined_communities = array();
+	// "My Community" section (below): wp_jet_cct_community rows created by
+	// the [mosque_community] join form (enaizi-mfa/shortcodes/community.php)
+	// - found 2026-08-09 to already exist and work, it was just gated
+	// admin-only by mistake on the mosque single template (fixed separately
+	// in post 875's content). cct_single_post_id resolves the CCT mosque
+	// row back to its WP post ID, same as $my_listings uses get_the_title()
+	// below rather than trusting the CCT-mirrored name field. Capped at 10
+	// for display; the join flow itself doesn't yet enforce a 10-mosque-
+	// per-user limit.
+	$joined_communities = $wpdb->get_results(
+		$wpdb->prepare(
+			"SELECT m.cct_single_post_id AS id
+			FROM {$wpdb->prefix}jet_cct_community c
+			JOIN {$wpdb->prefix}jet_cct_mosque m ON c.mosque_id = m._ID
+			WHERE c.user_id = %d AND m.cct_single_post_id > 0
+			ORDER BY c.cct_created DESC
+			LIMIT 10",
+			$user_id
+		),
+		ARRAY_A
+	);
 	// referrer_id on jet_cct_member stores the referring member's WP user_id
 	// (confirmed against live data), so this is a real "how many people
 	// registered under you" count even without a referral-link UI yet.
@@ -316,7 +330,7 @@ function mfa_member_dashboard_shortcode() {
 						<ul class="mfa-dash-simple-list">
 							<?php foreach ( $joined_communities as $community ) : ?>
 								<li>
-									<span><?php echo esc_html( $community['name'] ); ?></span>
+									<span><?php echo esc_html( get_the_title( $community['id'] ) ); ?></span>
 									<a href="<?php echo esc_url( home_url( '/member/community/?id=' . $community['id'] ) ); ?>" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm">View</a>
 								</li>
 							<?php endforeach; ?>

@@ -45,6 +45,7 @@ $mfa_core_includes = array(
 	'includes/widgets/member-logged-out.php',
 	'includes/widgets/member-header-footer.php',
 	'includes/widgets/member-dashboard.php',
+	'includes/widgets/member-listing-single.php',
 	'includes/widgets/member-account-modals.php',
 	'includes/widgets/coming-soon.php',
 	'includes/widgets/site-header.php',

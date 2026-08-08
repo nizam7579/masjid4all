@@ -326,6 +326,41 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ---------- My Community & Business row ---------- */
+
+.mfa-dash-col-title {
+  text-align: center;
+  margin: var(--mfa-space-2) 0 var(--mfa-space-3);
+}
+.mfa-dash-col-intro {
+  text-align: center;
+  margin: 0 0 var(--mfa-space-4);
+}
+
+.mfa-dash-simple-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--mfa-space-3);
+}
+.mfa-dash-simple-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mfa-space-3);
+  padding-bottom: var(--mfa-space-3);
+  border-bottom: 1px solid var(--mfa-border);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--mfa-ink);
+}
+.mfa-dash-simple-list li:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
 /* ---------- Security cards ---------- */
 
 .mfa-dash-security-card { scroll-margin-top: 90px; }

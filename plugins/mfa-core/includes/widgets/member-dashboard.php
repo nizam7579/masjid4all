@@ -69,6 +69,20 @@ function mfa_member_dashboard_shortcode() {
 	$website_count = (int) $wpdb->get_var(
 		$wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}jet_cct_listing_owner WHERE user_id = %d AND post_type = 'web'", $user_id )
 	);
+	// "My Business" section (below): real data, combines both business and
+	// website listings the user owns - the /member/business/?id= single-item
+	// view it links to doesn't exist yet (Phase 4), same as the plain
+	// /member/business/ link on the "My Listings" tool card below.
+	$my_listings = $wpdb->get_results(
+		$wpdb->prepare( "SELECT post_id, post_type FROM {$wpdb->prefix}jet_cct_listing_owner WHERE user_id = %d ORDER BY cct_created DESC", $user_id )
+	);
+	// "My Community" section (below): no mosque-community join mechanism
+	// exists yet anywhere in the codebase - no join button on mosque pages,
+	// no membership table. Left as an always-empty array (rather than
+	// skipping the section) so the template below is ready to go the moment
+	// that join flow gets built - just swap this query in. Once it exists,
+	// cap membership at 10 mosques per user there.
+	$joined_communities = array();
 	// referrer_id on jet_cct_member stores the referring member's WP user_id
 	// (confirmed against live data), so this is a real "how many people
 	// registered under you" count even without a referral-link UI yet.
@@ -289,6 +303,47 @@ function mfa_member_dashboard_shortcode() {
 					</div>
 				</div>
 			</div>
+			</div>
+		</section>
+
+		<section class="mfa-dash-points-section">
+			<h2 class="mfa-h2">My Community &amp; Business</h2>
+			<div class="mfa-dash-points-row">
+				<div class="mfa-dash-earn-card">
+					<h3 class="mfa-h3 mfa-dash-col-title">My Community</h3>
+					<p class="mfa-body-muted mfa-dash-col-intro">Join mosque communities to connect, share updates, and stay involved - up to 10 at a time.</p>
+					<?php if ( $joined_communities ) : ?>
+						<ul class="mfa-dash-simple-list">
+							<?php foreach ( $joined_communities as $community ) : ?>
+								<li>
+									<span><?php echo esc_html( $community['name'] ); ?></span>
+									<a href="<?php echo esc_url( home_url( '/member/community/?id=' . $community['id'] ) ); ?>" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm">View</a>
+								</li>
+							<?php endforeach; ?>
+						</ul>
+					<?php else : ?>
+						<p class="mfa-body-muted mfa-dash-locked">You haven't joined any mosque communities yet.</p>
+						<a href="/masjid/" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm">Browse Mosques</a>
+					<?php endif; ?>
+				</div>
+
+				<div class="mfa-dash-earn-card">
+					<h3 class="mfa-h3 mfa-dash-col-title">My Business</h3>
+					<p class="mfa-body-muted mfa-dash-col-intro">Businesses and websites you've claimed appear here.</p>
+					<?php if ( $my_listings ) : ?>
+						<ul class="mfa-dash-simple-list">
+							<?php foreach ( $my_listings as $listing ) : ?>
+								<li>
+									<span><?php echo esc_html( get_the_title( $listing->post_id ) ); ?></span>
+									<a href="<?php echo esc_url( home_url( '/member/business/?id=' . $listing->post_id ) ); ?>" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm">View</a>
+								</li>
+							<?php endforeach; ?>
+						</ul>
+					<?php else : ?>
+						<p class="mfa-body-muted mfa-dash-locked">You haven't claimed any business or website listings yet.</p>
+						<a href="/add-business/" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm">Add Business</a>
+					<?php endif; ?>
+				</div>
 			</div>
 		</section>
 

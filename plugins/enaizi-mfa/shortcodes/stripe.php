@@ -179,30 +179,18 @@ function mfa_render_payment_success_details() {
         $session = \Stripe\Checkout\Session::retrieve( $session_id );
         $metadata = $session->metadata;
 
-        // 3. --- DATABASE UPDATE LOGIC ---
-        // Ensure the payment actually cleared before updating anything
-        if ( $session->payment_status === 'paid' ) {
-            
-            // Find the user by the email they used (or switch to get_current_user_id() if they are logged in)
-            $user = get_user_by( 'email', $metadata->user_email );
-            
-            if ( $user ) {
-                // Check if we already processed this exact session (prevents F5 refresh duplicate updates)
-                $already_processed = get_user_meta( $user->ID, '_stripe_session_processed_' . $session_id, true );
-                
-                if ( ! $already_processed ) {
-                    
-                    // UPDATE YOUR USER HERE! 
-                    // Example: Update their membership level
-                    update_user_meta( $user->ID, 'mfa_membership_status', 'premium' );
-                    
-                    // Example: Save their globally formatted WhatsApp number from the metadata
-                    update_user_meta( $user->ID, 'mfa_whatsapp_number', $metadata->user_whatsapp );
-                    
-                    // Mark this session as processed so it never runs again
-                    update_user_meta( $user->ID, '_stripe_session_processed_' . $session_id, 'yes' );
-                }
-            }
+        // 3. --- GRANT FOUNDING MEMBER BENEFITS ---
+        // Client-side fallback for when the webhook doesn't reach this
+        // environment (e.g. a Stripe Dashboard test-mode webhook still
+        // pointed at production while testing on staging). Shares the
+        // exact same grant logic and idempotency guard as the webhook -
+        // mfa_grant_founding_member_benefits() (mfa-core/includes/
+        // founding-member.php) - so this can no longer diverge into a
+        // separate, incomplete "premium" state the way it used to
+        // (previously only ever set an unused mfa_membership_status meta
+        // key, never chk_premium/points/credit/payment record).
+        if ( $session->payment_status === 'paid' && function_exists( 'mfa_grant_founding_member_benefits' ) ) {
+            mfa_grant_founding_member_benefits( $session );
         }
 
         // 4. --- DISPLAY LOGIC ---

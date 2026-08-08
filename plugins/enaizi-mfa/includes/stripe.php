@@ -160,73 +160,12 @@ function mfa_handle_stripe_webhook( WP_REST_Request $request ) {
 
     if ( $event->type === 'checkout.session.completed' ) {
         $session = $event->data->object;
-        
-        $metadata = $session->metadata;
-        $name     = sanitize_text_field( $metadata->user_name );
-        $email    = sanitize_email( $metadata->user_email );
-        $whatsapp = sanitize_text_field( $metadata->user_whatsapp );
-        $desc     = sanitize_text_field( $metadata->description );
-        $country  = sanitize_text_field( $metadata->country );
-        
-        $stripe_session_id = $session->id;
 
-        // Extract Checkout Currency and Actual Charged Amount
-        $session_currency = strtoupper( $session->currency ); 
-        $charge_amount    = $session->amount_total / 100;    
-
-        // Multi-Currency Tracking Logic
-        if ( $session_currency === 'MYR' ) {
-            $amount       = 29.90;          
-            $local_amount = $charge_amount; 
-        } elseif ( $session_currency === 'GBP' ) {
-            $amount       = 29.90;          
-            $local_amount = $charge_amount;     
-        } else {
-            $amount       = $charge_amount; 
-            $local_amount = $charge_amount; 
-        }
-
-        global $wpdb;
-
-        // JetEngine CCT Payment Table Duplicate Entry Check
-        $payment_exists = $wpdb->get_var( $wpdb->prepare(
-            "SELECT _ID FROM wp_jet_cct_payment WHERE stripe_session_id = %s", 
-            $stripe_session_id
-        ) );
-
-        if ( ! $payment_exists ) {
-            
-            // FIXED: Cleaned up JetEngine syntax issues (removed boolean assignment in args, added string quotes to _ID)
-            $user_id   = niz_user_register( $whatsapp, $name, true );
-            $member_id = niz_user_field_by_userid( $user_id, '_ID' );
-            niz_user_update_field( $user_id, 'status', 'Premium Lifetime' );
-            niz_user_update_field( $user_id, 'email', $email );
-            niz_user_update_field( $user_id, 'country', $country );
-            niz_user_update_field( $user_id, 'chk_premium', 'Yes' );
-            
-            // Issue Barakah Points 
-            niz_user_add_points($user_id, 'Welcome Bonus', 50);
-            niz_user_add_points($user_id, 'Founding Member Bonus', 1000);
-            
-            // Issue Platform Credit
-            niz_user_add_credit($user_id, 'Founding Member', $amount);
-            
-            
-            // Log transaction record into CCT Payment table
-            $wpdb->insert(
-                'wp_jet_cct_payment',
-                array(
-                    'user_id'           => $user_id, 
-                    'description'       => $desc, 
-                    'amount'            => $amount,            
-                    'currency'          => $session_currency,  
-                    'local_amount'      => $local_amount,      
-                    'stripe_session_id' => $stripe_session_id,
-                    'payment_status'    => 'Completed',
-                    'paid_at'           => current_time( 'mysql' )
-                ),
-                array( '%d', '%s', '%f', '%s', '%f', '%s', '%s', '%s' )
-            );
+        // Shared with /payment-success/'s mfa_render_payment_success_details()
+        // (mfa-core/includes/founding-member.php) - see that function's own
+        // docblock for why these two paths needed unifying (2026-08-09).
+        if ( function_exists( 'mfa_grant_founding_member_benefits' ) ) {
+            mfa_grant_founding_member_benefits( $session );
         }
     }
 

@@ -235,8 +235,8 @@ function mfa_member_dashboard_shortcode() {
 			</div>
 		</section>
 
-		<section class="mfa-dash-points-section">
-			<h2 class="mfa-h2">Help us build Masjid4All and earn Barakah points</h2>
+		<section class="mfa-dash-points-section mfa-dash-section-divided">
+			<h2 class="mfa-h2 mfa-dash-section-title-centered">Help us build Masjid4All and earn Barakah points</h2>
 			<div class="mfa-dash-points-row">
 			<div class="mfa-dash-points-card">
 				<div class="mfa-dash-points-total">
@@ -341,14 +341,17 @@ function mfa_member_dashboard_shortcode() {
 						</ul>
 					<?php else : ?>
 						<p class="mfa-body-muted mfa-dash-locked">You haven't claimed any business or website listings yet.</p>
-						<a href="/add-business/" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm">Add Business</a>
+						<div class="mfa-dash-btn-group">
+							<a href="/business/" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm">Business Directory</a>
+							<a href="/web/" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm">Website Directory</a>
+						</div>
 					<?php endif; ?>
 				</div>
 			</div>
 		</section>
 
-		<section class="mfa-dash-tools">
-			<h2 class="mfa-h2">Explore Masjid4All</h2>
+		<section class="mfa-dash-tools mfa-dash-section-divided">
+			<h2 class="mfa-h2 mfa-dash-section-title-centered">Explore Masjid4All</h2>
 			<div class="mfa-dash-tools-grid">
 				<a href="/prayer-times/" class="mfa-card mfa-dash-tool-card">
 					<span class="mfa-h3">Prayer Times</span>
@@ -362,30 +365,41 @@ function mfa_member_dashboard_shortcode() {
 					<span class="mfa-h3">Daily Quran</span>
 					<span class="mfa-body-muted">A new verse and reflection every day.</span>
 				</a>
-				<a href="/member/business/" class="mfa-card mfa-dash-tool-card">
-					<span class="mfa-h3">My Listings <?php if ( $listing_count > 0 ) : ?><span class="mfa-dash-count-badge"><?php echo esc_html( $listing_count ); ?></span><?php endif; ?></span>
-					<span class="mfa-body-muted">Manage the businesses and websites you've claimed.</span>
+				<a href="/knowledge-hub/" class="mfa-card mfa-dash-tool-card">
+					<span class="mfa-h3">Knowledge Hub</span>
+					<span class="mfa-body-muted">Islamic knowledge and resources.</span>
 				</a>
 			</div>
 		</section>
 
-		<?php if ( $is_premium ) : ?>
-		<section class="mfa-dash-premium-card mfa-dash-premium-card-active">
-			<h3 class="mfa-h3">You're a Founding Member</h3>
-			<p class="mfa-body-muted">Thank you for supporting Masjid4All from the start. Your Founding Member benefits are active on your account.</p>
+		<section class="mfa-dash-points-section mfa-dash-section-divided">
+			<h2 class="mfa-h2 mfa-dash-section-title-centered">Grow With Masjid4All</h2>
+			<div class="mfa-dash-points-row">
+				<div class="mfa-dash-earn-card">
+					<h3 class="mfa-h3 mfa-dash-col-title">Affiliate Program</h3>
+					<p class="mfa-body-muted mfa-dash-col-intro">Earn rewards by inviting mosques, businesses, and members to join Masjid4All - full details coming soon.</p>
+					<button type="button" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm">Join Masjid4All Affiliate Program</button>
+				</div>
+
+				<?php if ( $is_premium ) : ?>
+				<div class="mfa-dash-premium-card mfa-dash-premium-card-active">
+					<h3 class="mfa-h3 mfa-dash-col-title">You're a Founding Member</h3>
+					<p class="mfa-body-muted">Thank you for supporting Masjid4All from the start. Your Founding Member benefits are active on your account.</p>
+				</div>
+				<?php else : ?>
+				<div class="mfa-dash-premium-card">
+					<h3 class="mfa-h3 mfa-dash-col-title">Become a Founding Member</h3>
+					<p class="mfa-body">One-time RM29.90 - Tier 1 pricing, limited spots left.</p>
+					<ul class="mfa-dash-premium-list">
+						<li>1,000 Barakah points added instantly</li>
+						<li>Get your RM29.90 back as platform credit - spend it on a premium business or website listing, banner ads, and more</li>
+						<li>Priority support and early access to new features</li>
+					</ul>
+					<a href="/member/premium/" class="mfa-btn mfa-btn-primary">See Founding Member Details</a>
+				</div>
+				<?php endif; ?>
+			</div>
 		</section>
-		<?php else : ?>
-		<section class="mfa-dash-premium-card">
-			<h3 class="mfa-h3">Become a Founding Member</h3>
-			<p class="mfa-body">One-time RM29.90 - Tier 1 pricing, limited spots left.</p>
-			<ul class="mfa-dash-premium-list">
-				<li>1,000 Barakah points added instantly</li>
-				<li>Get your RM29.90 back as platform credit - spend it on a premium business or website listing, banner ads, and more</li>
-				<li>Priority support and early access to new features</li>
-			</ul>
-			<a href="/member/premium/" class="mfa-btn mfa-btn-primary">See Founding Member Details</a>
-		</section>
-		<?php endif; ?>
 
 		<section class="mfa-dash-summary">
 			<div>

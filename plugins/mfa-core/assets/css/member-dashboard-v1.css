@@ -370,6 +370,15 @@
   padding-bottom: 0;
 }
 
+.mfa-dash-btn-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mfa-space-3);
+}
+.mfa-dash-btn-group .mfa-btn {
+  margin-top: 0;
+}
+
 /* ---------- Security cards ---------- */
 
 .mfa-dash-security-card { scroll-margin-top: 90px; }

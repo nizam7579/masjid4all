@@ -306,8 +306,8 @@ function mfa_member_dashboard_shortcode() {
 			</div>
 		</section>
 
-		<section class="mfa-dash-points-section">
-			<h2 class="mfa-h2">My Community &amp; Business</h2>
+		<section class="mfa-dash-points-section mfa-dash-section-divided">
+			<h2 class="mfa-h2 mfa-dash-section-title-centered">My Community &amp; Business</h2>
 			<div class="mfa-dash-points-row">
 				<div class="mfa-dash-earn-card">
 					<h3 class="mfa-h3 mfa-dash-col-title">My Community</h3>

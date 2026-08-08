@@ -328,6 +328,15 @@
 
 /* ---------- My Community & Business row ---------- */
 
+.mfa-dash-section-divided {
+  padding-top: var(--mfa-space-6);
+  border-top: 1px solid var(--mfa-border);
+}
+
+.mfa-dash-section-title-centered {
+  text-align: center;
+}
+
 .mfa-dash-col-title {
   text-align: center;
   margin: var(--mfa-space-2) 0 var(--mfa-space-3);

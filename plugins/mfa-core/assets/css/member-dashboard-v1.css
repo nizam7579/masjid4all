@@ -370,6 +370,31 @@
   padding-bottom: 0;
 }
 
+.mfa-dash-listing-name {
+  display: flex;
+  align-items: center;
+  gap: var(--mfa-space-2);
+}
+
+.mfa-dash-type-pill {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  padding: 3px 10px;
+  border-radius: var(--mfa-radius-pill);
+  flex-shrink: 0;
+}
+.mfa-dash-type-pill-business {
+  background: color-mix(in srgb, var(--mfa-teal) 14%, transparent);
+  color: var(--mfa-teal-dark);
+}
+.mfa-dash-type-pill-web {
+  background: var(--mfa-border);
+  color: var(--mfa-muted);
+}
+
 .mfa-dash-btn-group {
   display: flex;
   flex-wrap: wrap;

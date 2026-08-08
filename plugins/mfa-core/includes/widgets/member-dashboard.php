@@ -334,7 +334,10 @@ function mfa_member_dashboard_shortcode() {
 						<ul class="mfa-dash-simple-list">
 							<?php foreach ( $my_listings as $listing ) : ?>
 								<li>
-									<span><?php echo esc_html( get_the_title( $listing->post_id ) ); ?></span>
+									<span class="mfa-dash-listing-name">
+										<span class="mfa-dash-type-pill mfa-dash-type-pill-<?php echo esc_attr( $listing->post_type ); ?>"><?php echo esc_html( 'business' === $listing->post_type ? 'Business' : 'Website' ); ?></span>
+										<?php echo esc_html( get_the_title( $listing->post_id ) ); ?>
+									</span>
 									<a href="<?php echo esc_url( home_url( '/member/business/?id=' . $listing->post_id ) ); ?>" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm">View</a>
 								</li>
 							<?php endforeach; ?>

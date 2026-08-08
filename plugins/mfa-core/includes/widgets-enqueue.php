@@ -136,7 +136,11 @@ function mfa_core_enqueue_widget_assets() {
 		wp_enqueue_style( 'mfa-core-brand-page', MFA_CORE_URL . 'assets/css/brand-page-v5.css', array(), $get_version( $css ) );
 	}
 
-	if ( $post && 'member' === $post->post_name ) {
+	// 'member' uses the full [mfa_member_logged_out] (auth tabs + marketing
+	// panel); add-mosque/add-business/add-website use just [mfa_auth_tabs]
+	// for their logged-out visitors (2026-08-09) - same CSS/JS either way.
+	$is_auth_tabs_page = $post && in_array( $post->post_name, array( 'member', 'add-mosque', 'add-business', 'add-website' ), true );
+	if ( $is_auth_tabs_page ) {
 		$css = MFA_CORE_PATH . 'assets/css/member-logged-out-v5.css';
 		wp_enqueue_style( 'mfa-core-member-logged-out', MFA_CORE_URL . 'assets/css/member-logged-out-v5.css', array(), $get_version( $css ) );
 

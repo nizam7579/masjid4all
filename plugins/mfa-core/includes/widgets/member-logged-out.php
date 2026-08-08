@@ -4,21 +4,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * [mfa_member_logged_out] - replaces the "Not LoggedIn" Kadence section on
- * the /member/ page (post 70180) for logged-out visitors. Plain HTML, no
- * Kadence blocks - the "how you can contribute" marketing panel below is
- * kept as-is; the login/register forms above it were reopened 2026-08-08
- * (scoped to just this page, for testing the new registration/login flow -
- * /register/ and the other add-mosque/add-business/claim pages stay closed
- * per the earlier 2026-08-07 decision, that's a separate call). Reuses the existing
- * [niz_login]/[niz_register] shortcodes verbatim (native, no 3rd-party
- * form plugin) behind a tab toggle so both fit on one page without a
- * redirect - see member-auth-toggle-v1.js for the tab-switch + internal
- * cross-link interception (login's "Register" link / register's "Login"
- * link would otherwise navigate to /register/, which is still closed).
+ * [mfa_auth_tabs] - the login/register tab toggle on its own, factored out
+ * of mfa_member_logged_out_shortcode() below (2026-08-09) so /add-mosque/,
+ * /add-business/, /add-website/ can reuse the same markup/CSS/JS
+ * (member-logged-out-v5.css, member-auth-toggle-v1.js) without also
+ * pulling in /member/'s "How You Can Make an Impact" marketing panel,
+ * which would duplicate those pages' own mission copy. /register/ stays
+ * closed for now - a separate call, not part of this reopening.
  */
-add_shortcode( 'mfa_member_logged_out', 'mfa_member_logged_out_shortcode' );
-function mfa_member_logged_out_shortcode() {
+add_shortcode( 'mfa_auth_tabs', 'mfa_auth_tabs_shortcode' );
+function mfa_auth_tabs_shortcode() {
 	ob_start();
 	?>
 	<div class="mfa-member-auth" id="mfa-member-auth">
@@ -33,6 +28,30 @@ function mfa_member_logged_out_shortcode() {
 			<?php echo do_shortcode( '[niz_register]' ); ?>
 		</div>
 	</div>
+	<?php
+	return ob_get_clean();
+}
+
+/**
+ * [mfa_member_logged_out] - replaces the "Not LoggedIn" Kadence section on
+ * the /member/ page (post 70180) for logged-out visitors. Plain HTML, no
+ * Kadence blocks - the "how you can contribute" marketing panel below is
+ * kept as-is; the login/register forms above it were reopened 2026-08-08
+ * (scoped to just this page, for testing the new registration/login flow -
+ * /register/ stays closed per the earlier 2026-08-07 decision, that's a
+ * separate call; add-mosque/add-business/add-website reopened separately
+ * 2026-08-09 via [mfa_auth_tabs] above). Reuses the existing
+ * [niz_login]/[niz_register] shortcodes verbatim (native, no 3rd-party
+ * form plugin) behind a tab toggle so both fit on one page without a
+ * redirect - see member-auth-toggle-v1.js for the tab-switch + internal
+ * cross-link interception (login's "Register" link / register's "Login"
+ * link would otherwise navigate to /register/, which is still closed).
+ */
+add_shortcode( 'mfa_member_logged_out', 'mfa_member_logged_out_shortcode' );
+function mfa_member_logged_out_shortcode() {
+	ob_start();
+	?>
+	<?php echo do_shortcode( '[mfa_auth_tabs]' ); ?>
 
 	<div class="mfa-member-out">
 		<h2 class="mfa-member-out-title">One Ummah. One Platform. Endless Possibilities.</h2>

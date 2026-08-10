@@ -56,6 +56,13 @@ function mfa_member_affiliate_shortcode() {
 					</div>
 				</div>
 				<?php
+				$commission_total = function_exists( 'mfa_get_commission_total' ) ? mfa_get_commission_total( $user_id ) : 0.0;
+				?>
+				<div class="mfa-dash-earn-item mfa-dash-commission-stat">
+					<span class="mfa-dash-earn-count">$<?php echo esc_html( number_format( $commission_total, 2 ) ); ?></span>
+					<p class="mfa-body-muted">Commission earned from Founding Member referrals</p>
+				</div>
+				<?php
 				global $wpdb;
 				$downline = $wpdb->get_results(
 					$wpdb->prepare(

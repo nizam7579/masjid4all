@@ -326,6 +326,10 @@
   font-variant-numeric: tabular-nums;
 }
 
+.mfa-dash-commission-stat {
+  margin: var(--mfa-space-5) 0;
+}
+
 /* ---------- My Community & Business row ---------- */
 
 .mfa-dash-section-divided {

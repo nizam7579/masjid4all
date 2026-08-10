@@ -133,5 +133,12 @@ function mfa_grant_founding_member_benefits( $stripe_session ) {
 		array( '%d', '%s', '%f', '%s', '%f', '%s', '%s', '%s' )
 	);
 
+	if ( function_exists( 'mfa_accrue_commission' ) ) {
+		// Only reachable once per Stripe session - the idempotency check at
+		// the top of this function already returned early for a session
+		// that's been processed before, so this can't double-accrue.
+		mfa_accrue_commission( $user_id, $wpdb->insert_id, $amount );
+	}
+
 	return $user_id;
 }

@@ -22,7 +22,13 @@ function mfa_admin_member_list_shortcode() {
 	global $wpdb;
 	$cct_table = $wpdb->prefix . 'jet_cct_member';
 
-	$search        = isset( $_GET['s'] ) ? sanitize_text_field( wp_unslash( $_GET['s'] ) ) : '';
+	// NOT 's' - that's WordPress's own reserved global search query var;
+	// a GET form posting to the current URL with ?s=... makes WP treat
+	// the whole request as a native search query (is_search() becomes
+	// true) instead of passing it through as a plain custom param, which
+	// sent visitors to the theme's search results template instead of
+	// staying on this page. Confirmed via a live user report.
+	$search        = isset( $_GET['member_search'] ) ? sanitize_text_field( wp_unslash( $_GET['member_search'] ) ) : '';
 	$status_filter = isset( $_GET['status'] ) ? sanitize_text_field( wp_unslash( $_GET['status'] ) ) : '';
 	$rank_filter   = isset( $_GET['rank'] ) ? sanitize_text_field( wp_unslash( $_GET['rank'] ) ) : '';
 	$paged         = isset( $_GET['paged'] ) ? max( 1, absint( $_GET['paged'] ) ) : 1;
@@ -76,7 +82,7 @@ function mfa_admin_member_list_shortcode() {
 		<p class="mfa-body-muted"><?php echo esc_html( number_format_i18n( $total ) ); ?> member<?php echo 1 === $total ? '' : 's'; ?></p>
 
 		<form method="get" class="mfa-admin-member-filters">
-			<input type="text" name="s" value="<?php echo esc_attr( $search ); ?>" placeholder="Search name, phone, or email" class="mfa-admin-member-search">
+			<input type="text" name="member_search" value="<?php echo esc_attr( $search ); ?>" placeholder="Search name, phone, or email" class="mfa-admin-member-search">
 
 			<select name="status" class="mfa-admin-member-select">
 				<option value="">All statuses</option>
@@ -94,7 +100,7 @@ function mfa_admin_member_list_shortcode() {
 
 			<button type="submit" class="mfa-btn mfa-btn-primary mfa-admin-member-filter-btn">Filter</button>
 			<?php if ( '' !== $search || '' !== $status_filter || '' !== $rank_filter ) : ?>
-				<a href="<?php echo esc_url( remove_query_arg( array( 's', 'status', 'rank', 'paged' ) ) ); ?>" class="mfa-admin-member-clear">Clear</a>
+				<a href="<?php echo esc_url( remove_query_arg( array( 'member_search', 'status', 'rank', 'paged' ) ) ); ?>" class="mfa-admin-member-clear">Clear</a>
 			<?php endif; ?>
 		</form>
 

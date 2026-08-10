@@ -278,10 +278,11 @@ function mfa_member_dashboard_shortcode() {
 					<p class="mfa-body-muted">Create a shareable digital business card with your own link and QR code.</p>
 					<a href="/member/digital-card/" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm">Create My Digital Name Card</a>
 				<?php else : ?>
-					<p class="mfa-body-muted">Your card is live at <?php echo esc_html( home_url( '/' . $namecard_slug ) ); ?></p>
+					<?php $namecard_url = function_exists( 'mfa_get_member_namecard_url' ) ? mfa_get_member_namecard_url( $user_id ) : home_url( '/' . $namecard_slug . '/' ); ?>
+					<p class="mfa-body-muted">Your card is live at <?php echo esc_html( $namecard_url ); ?></p>
 					<div class="mfa-dash-btn-group">
 						<a href="/member/digital-card/" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm">Update Name Card</a>
-						<a href="<?php echo esc_url( home_url( '/' . $namecard_slug ) ); ?>" target="_blank" rel="noopener" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm">View Name Card</a>
+						<a href="<?php echo esc_url( $namecard_url ); ?>" target="_blank" rel="noopener" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm">View Name Card</a>
 					</div>
 				<?php endif; ?>
 			</div>

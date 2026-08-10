@@ -35,6 +35,43 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 
 add_shortcode( 'mfa_member_namecard', 'mfa_member_namecard_shortcode' );
+
+/**
+ * Return the canonical public URL for a member's name card post.
+ *
+ * The site permalink structure is authoritative; building /{slug} by hand
+ * can point at the homepage when WordPress uses a different post permalink.
+ */
+function mfa_get_member_namecard_post_id( $user_id ) {
+	$post_id = (int) niz_user_field_by_userid( $user_id, 'post_id' );
+	if ( $post_id && 'publish' === get_post_status( $post_id ) ) {
+		return $post_id;
+	}
+
+	$owned_posts = get_posts( array(
+		'author'         => (int) $user_id,
+		'category_name'  => 'affiliate',
+		'fields'         => 'ids',
+		'posts_per_page' => 1,
+		'post_status'    => 'publish',
+	) );
+
+	return $owned_posts ? (int) $owned_posts[0] : 0;
+}
+
+function mfa_get_member_namecard_url( $user_id ) {
+	$post_id = mfa_get_member_namecard_post_id( $user_id );
+	if ( $post_id ) {
+		$permalink = get_permalink( $post_id );
+		if ( $permalink ) {
+			return $permalink;
+		}
+	}
+
+	$slug = niz_user_field_by_userid( $user_id, 'namecard' );
+	return $slug ? home_url( '/' . ltrim( $slug, '/' ) . '/' ) : '';
+}
+
 function mfa_member_namecard_shortcode() {
 	$user_id = get_current_user_id();
 	if ( ! $user_id ) {
@@ -73,6 +110,7 @@ function mfa_member_namecard_shortcode() {
 					$post_id = wp_insert_post( array(
 						'post_title'    => $name ? $name : 'Name Card',
 						'post_name'     => $candidate_slug,
+						'post_content'  => '[niz_user_namecard]',
 						'post_status'   => 'publish',
 						'post_type'     => 'post',
 						'post_author'   => $user_id,
@@ -127,11 +165,21 @@ function mfa_member_namecard_shortcode() {
 				niz_user_update_field( $user_id, $field, $value );
 			}
 
+			$post_id = mfa_get_member_namecard_post_id( $user_id );
+			if ( $post_id && 'post' === get_post_type( $post_id ) ) {
+				niz_user_update_field( $user_id, 'post_id', $post_id );
+				niz_user_update_field( $user_id, 'namecard', get_post_field( 'post_name', $post_id ) );
+				wp_update_post( array(
+					'ID'           => $post_id,
+					'post_content' => '[niz_user_namecard]',
+				) );
+			}
+
 			$saved_message = 'Your name card has been updated.';
 		}
 	}
 
-	$card_url = home_url( '/' . $slug );
+	$card_url = mfa_get_member_namecard_url( $user_id );
 
 	ob_start();
 	?>

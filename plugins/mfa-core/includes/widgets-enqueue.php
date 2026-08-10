@@ -88,6 +88,11 @@ function mfa_core_enqueue_widget_assets() {
 			$admin_mosque_list_css = MFA_CORE_PATH . 'assets/css/admin-mosque-list-v1.css';
 			wp_enqueue_style( 'mfa-core-admin-mosque-list', MFA_CORE_URL . 'assets/css/admin-mosque-list-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell' ), $get_version( $admin_mosque_list_css ) );
 		}
+
+		if ( $post && 'business' === $post->post_name && 9343 === (int) $post->post_parent ) {
+			$admin_business_list_css = MFA_CORE_PATH . 'assets/css/admin-business-list-v1.css';
+			wp_enqueue_style( 'mfa-core-admin-business-list', MFA_CORE_URL . 'assets/css/admin-business-list-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell' ), $get_version( $admin_business_list_css ) );
+		}
 	}
 
 	if ( ! $is_member_area && ! $is_admin_area ) {
@@ -286,5 +291,6 @@ function mfa_core_litespeed_css_excludes( $excludes ) {
 	$excludes[] = 'mfa-core/assets/css/admin-member-list-v1.css';
 	$excludes[] = 'mfa-core/assets/css/admin-member-info-v1.css';
 	$excludes[] = 'mfa-core/assets/css/admin-mosque-list-v1.css';
+	$excludes[] = 'mfa-core/assets/css/admin-business-list-v1.css';
 	return $excludes;
 }

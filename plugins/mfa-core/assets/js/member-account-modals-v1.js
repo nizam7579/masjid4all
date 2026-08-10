@@ -35,6 +35,18 @@ document.addEventListener('DOMContentLoaded', function () {
 		});
 	});
 
+	document.querySelectorAll('[data-mfa-copy-link]').forEach(function (btn) {
+		btn.addEventListener('click', function () {
+			var link = btn.getAttribute('data-mfa-copy-link');
+			var originalText = btn.textContent;
+
+			navigator.clipboard.writeText(link).then(function () {
+				btn.textContent = 'Copied!';
+				setTimeout(function () { btn.textContent = originalText; }, 1500);
+			});
+		});
+	});
+
 	var overlay = document.querySelector('[data-mfa-modal-overlay]');
 	if (!overlay) return;
 

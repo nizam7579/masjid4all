@@ -154,11 +154,25 @@ function mfa_member_account_modals_shortcode() {
 			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
 		</button>
 		<h3 class="mfa-h3">Invite a Friend</h3>
-		<p class="mfa-body-muted">Share Masjid4All with friends and family on WhatsApp. A personal referral link that tracks who joins through you and rewards you with Barakah points is coming soon - for now, just spread the word.</p>
+		<p class="mfa-body-muted">Share your personal referral link. Anyone who joins Masjid4All through it is linked to you, and you'll earn Barakah points when they register.</p>
 		<?php
-		$share_text = "Assalamualaikum! I'd like to invite you to join Masjid4All, a Muslim community platform with mosque directories, prayer times, and more: " . home_url( '/' );
-		$share_url  = 'https://wa.me/?text=' . rawurlencode( $share_text );
+		// The ?id={user_id} -> affiliateid cookie -> referrer_id capture
+		// mechanism already runs sitewide (enaizi-mfa's niz_mfa_location_init(),
+		// hooked on init) - this was previously only exposed generically via
+		// the floating share button (share-button.php), which builds the same
+		// kind of link client-side for "share the current page". This is the
+		// first place a member's OWN link is shown to them explicitly.
+		$referral_link = home_url( '/?id=' . $user_id );
+		$share_text    = "Assalamualaikum! I'd like to invite you to join Masjid4All, a Muslim community platform with mosque directories, prayer times, and more: " . $referral_link;
+		$share_url     = 'https://wa.me/?text=' . rawurlencode( $share_text );
 		?>
+		<div class="mfa-form-group">
+			<label for="mfa-referral-link">Your Referral Link</label>
+			<div class="mfa-referral-link-row">
+				<input type="text" id="mfa-referral-link" class="mfa-referral-link-input" value="<?php echo esc_attr( $referral_link ); ?>" readonly>
+				<button type="button" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm" data-mfa-copy-link="<?php echo esc_attr( $referral_link ); ?>">Copy</button>
+			</div>
+		</div>
 		<a href="<?php echo esc_url( $share_url ); ?>" target="_blank" rel="noopener" class="mfa-btn mfa-btn-primary">Share on WhatsApp</a>
 	</div>
 

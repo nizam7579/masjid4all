@@ -107,6 +107,20 @@
   margin-top: 4px;
 }
 
+.mfa-referral-link-row {
+  display: flex;
+  gap: var(--mfa-space-2);
+}
+.mfa-referral-link-row .mfa-referral-link-input {
+  flex: 1;
+  min-width: 0;
+  background: var(--mfa-mint-bg);
+  color: var(--mfa-muted);
+}
+.mfa-referral-link-row .mfa-btn {
+  flex-shrink: 0;
+}
+
 .mfa-modal-message {
   margin: 0;
   font-size: 13px;

@@ -42,6 +42,20 @@ function mfa_member_affiliate_shortcode() {
 			<div class="mfa-card mfa-dash-points-card">
 				<h1 class="mfa-h2">My Affiliates</h1>
 				<?php
+				// Same tracked link as the dashboard's "Invite a Friend" modal
+				// (member-account-modals.php) - see that file's comment for how
+				// the underlying ?id={user_id} -> affiliateid cookie ->
+				// referrer_id capture already works sitewide.
+				$referral_link = home_url( '/?id=' . $user_id );
+				?>
+				<div class="mfa-form-group mfa-dash-referral-link-group">
+					<span class="mfa-label">Your Referral Link</span>
+					<div class="mfa-referral-link-row">
+						<input type="text" class="mfa-referral-link-input" value="<?php echo esc_attr( $referral_link ); ?>" readonly>
+						<button type="button" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm" data-mfa-copy-link="<?php echo esc_attr( $referral_link ); ?>">Copy</button>
+					</div>
+				</div>
+				<?php
 				global $wpdb;
 				$downline = $wpdb->get_results(
 					$wpdb->prepare(

@@ -168,6 +168,28 @@ function niz_wa_action_advertise( $user_id, $context ) {
 	return "Interested in advertising with Masjid4All? Learn more here:\nhttps://staging.masjid4all.com/advertise\n\nOr reply here and our team will reach out.";
 }
 
+/**
+ * Personal referral link, same ?id={user_id} format the member dashboard's
+ * "Invite a Friend" modal now shows (member-account-modals.php) - the
+ * capture side (affiliateid cookie -> referrer_id) already runs sitewide
+ * via enaizi-mfa's niz_mfa_location_init(), so this just needs to hand the
+ * link to whoever asks for it over WhatsApp. home_url() (not a hardcoded
+ * staging URL like this file's other action replies) since the link itself
+ * must already be per-user dynamic.
+ */
+function niz_wa_action_share( $user_id, $context ) {
+	$link   = home_url( '/?id=' . $user_id );
+	$status = get_user_meta( $user_id, 'user_status', true );
+
+	$message = "Here's your personal Masjid4All referral link. Share it with friends and family - anyone who joins through it earns you Barakah points:\n\n{$link}";
+
+	if ( ! in_array( $status, array( 'member', 'premium' ), true ) ) {
+		$message .= "\n\nTip: reply REGISTER to become a member first so you can start earning Barakah points from your referrals.";
+	}
+
+	return $message;
+}
+
 /* ---------------- Action registry seeding ---------------- */
 
 add_action( 'admin_init', 'niz_wa_seed_actions' );
@@ -233,6 +255,15 @@ function niz_wa_seed_actions() {
 			'requires_confirmation' => true,
 			'confirm_message'       => 'Are you interested in advertising with Masjid4All?',
 			'callback_function'     => 'niz_wa_action_advertise',
+			'enabled'               => true,
+		),
+		array(
+			'intent_key'            => 'share',
+			'keywords'              => 'share,invite,referral,referral link,my link,kongsi,ajak',
+			'description'           => 'User wants to share/invite friends to Masjid4All or asks for their referral link',
+			'requires_confirmation' => false,
+			'confirm_message'       => '',
+			'callback_function'     => 'niz_wa_action_share',
 			'enabled'               => true,
 		),
 	);

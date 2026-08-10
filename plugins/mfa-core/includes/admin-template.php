@@ -28,15 +28,22 @@ function mfa_is_admin_area( $post_id = 0 ) {
 }
 
 /**
- * Pages that render without the shared [mfa_admin_header]/[mfa_admin_sidebar]
- * chrome - just the content, full-bleed (footer still shows). Currently only
- * /admin/member/info/ (217911), since it's opened from the Members list's
- * "View" button in a new tab for a quick lookup, not primary navigation.
+ * Pages that render without the shared [mfa_admin_header] top nav chrome -
+ * just the content, full-bleed (footer still shows). The left sidebar was
+ * removed entirely (2026-08-10, replaced by the header's horizontal top
+ * nav) so it's no longer part of this decision - only the header is ever
+ * conditional now.
+ *
+ * - 9343 (root /admin/): its own content (mfa_admin_home_shortcode) is
+ *   already a full card grid of every section, so a top nav pointing to
+ *   those same sections would be redundant chrome on top of chrome.
+ * - 217911 (/admin/member/info/): opened from the Members list's "View"
+ *   button in a new tab for a quick lookup, not primary navigation.
  */
 function mfa_admin_page_hides_chrome( $post_id = 0 ) {
 	$post_id = $post_id ? (int) $post_id : get_queried_object_id();
 
-	$chromeless_ids = array( 217911 );
+	$chromeless_ids = array( 9343, 217911 );
 
 	return in_array( $post_id, $chromeless_ids, true );
 }

@@ -8,8 +8,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * in includes/admin-template.php. Same "bypass Kadence entirely" approach
  * as templates/member-page.php (no get_header()/get_footer(), but
  * wp_head()/wp_footer() still run so SEO/analytics/cache plugins keep
- * working) plus a persistent sidebar nav across the 6 sub-sections, which
- * /member/'s chrome deliberately doesn't have.
+ * working). Header is a horizontal top nav across the 7 sub-sections
+ * (2026-08-10 - replaced the old left sidebar, which no longer exists);
+ * some pages hide it entirely, see mfa_admin_page_hides_chrome().
  */
 ?><!DOCTYPE html>
 <html <?php language_attributes(); ?>>
@@ -29,11 +30,7 @@ if ( ! $mfa_admin_hide_chrome ) {
 }
 ?>
 
-<div class="mfa-admin-shell<?php echo $mfa_admin_hide_chrome ? ' mfa-admin-shell-no-sidebar' : ''; ?>">
-<?php if ( ! $mfa_admin_hide_chrome ) : ?>
-<?php echo do_shortcode( '[mfa_admin_sidebar]' ); ?>
-<?php endif; ?>
-
+<div class="mfa-admin-shell">
 <main class="mfa-admin-main">
 <?php
 while ( have_posts() ) :

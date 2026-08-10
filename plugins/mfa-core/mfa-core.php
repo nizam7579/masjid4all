@@ -19,6 +19,7 @@ $mfa_core_includes = array(
 	'includes/identity-email.php',
 	'includes/niz-wa-integration.php',
 	'includes/identity-core.php',
+	'includes/member-cct-core.php',
 	'includes/identity-registration.php',
 	'includes/whatsapp-verify.php',
 	'includes/barakah.php',

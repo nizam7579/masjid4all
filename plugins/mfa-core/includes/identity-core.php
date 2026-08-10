@@ -145,7 +145,8 @@ function niz_user_register( $phone, $name, $send_template = false ) {
 
 /**
  * Helper function to handle JetEngine CCT record creation and validation cleanly.
- * Depends on add_cct_member(), which still lives in enaizi-user/includes/member.php.
+ * Depends on add_cct_member(), which lives in mfa-core/includes/member-cct-core.php
+ * (moved from enaizi-user/includes/member.php 2026-08-10).
  */
 function niz_sync_cct_member_record( $user_id, $name, $phone ) {
     $country     = isset( $_COOKIE['country'] ) ? sanitize_text_field( wp_unslash( $_COOKIE['country'] ) ) : '';

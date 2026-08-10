@@ -71,7 +71,7 @@ function mfa_admin_member_list_shortcode() {
 	$paged       = min( $paged, $total_pages );
 	$offset      = ( $paged - 1 ) * $per_page;
 
-	$data_sql    = "SELECT _ID, user_id, name, phone, email, status, rank, cct_created FROM {$cct_table} WHERE {$where_sql} ORDER BY user_id DESC LIMIT %d OFFSET %d";
+	$data_sql    = "SELECT _ID, user_id, name, status, rank, cct_created FROM {$cct_table} WHERE {$where_sql} ORDER BY user_id DESC LIMIT %d OFFSET %d";
 	$data_params = array_merge( $params, array( $per_page, $offset ) );
 	$rows        = $wpdb->get_results( $wpdb->prepare( $data_sql, $data_params ), ARRAY_A );
 
@@ -109,22 +109,19 @@ function mfa_admin_member_list_shortcode() {
 				<thead>
 					<tr>
 						<th>Name</th>
-						<th>Phone</th>
-						<th>Email</th>
 						<th>Status</th>
 						<th>Rank</th>
 						<th>Registered</th>
+						<th></th>
 					</tr>
 				</thead>
 				<tbody>
 					<?php if ( empty( $rows ) ) : ?>
-						<tr><td colspan="6" class="mfa-admin-member-empty">No members found.</td></tr>
+						<tr><td colspan="5" class="mfa-admin-member-empty">No members found.</td></tr>
 					<?php else : ?>
 						<?php foreach ( $rows as $row ) : ?>
 							<tr>
 								<td data-label="Name"><?php echo esc_html( $row['name'] ? $row['name'] : '—' ); ?></td>
-								<td data-label="Phone"><?php echo esc_html( $row['phone'] ? $row['phone'] : '—' ); ?></td>
-								<td data-label="Email"><?php echo esc_html( $row['email'] ? $row['email'] : '—' ); ?></td>
 								<td data-label="Status">
 									<?php if ( ! empty( $row['status'] ) ) : ?>
 										<span class="mfa-admin-status-badge mfa-admin-status-<?php echo esc_attr( sanitize_html_class( strtolower( str_replace( ' ', '-', $row['status'] ) ) ) ); ?>"><?php echo esc_html( $row['status'] ); ?></span>
@@ -134,6 +131,11 @@ function mfa_admin_member_list_shortcode() {
 								</td>
 								<td data-label="Rank"><?php echo esc_html( trim( (string) $row['rank'] ) ? trim( (string) $row['rank'] ) : '—' ); ?></td>
 								<td data-label="Registered"><?php echo esc_html( $row['cct_created'] ? date_i18n( 'j M Y', strtotime( $row['cct_created'] ) ) : '—' ); ?></td>
+								<td data-label="" class="mfa-admin-member-actions">
+									<?php if ( ! empty( $row['user_id'] ) ) : ?>
+										<a href="<?php echo esc_url( add_query_arg( 'id', (int) $row['user_id'], home_url( '/admin/member/info/' ) ) ); ?>" target="_blank" rel="noopener" class="mfa-btn mfa-btn-solid-dark mfa-admin-member-view-btn">View</a>
+									<?php endif; ?>
+								</td>
 							</tr>
 						<?php endforeach; ?>
 					<?php endif; ?>

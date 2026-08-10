@@ -130,6 +130,17 @@
 .mfa-admin-status-premium-lifetime { background: #fbeee9; color: #b8562f; }
 .mfa-admin-status-none { background: var(--mfa-mint-bg); color: var(--mfa-muted); }
 
+/* ---------- Actions column ---------- */
+
+.mfa-admin-member-actions {
+  text-align: right;
+}
+
+.mfa-admin-member-view-btn {
+  padding: 6px 16px;
+  font-size: 13px;
+}
+
 /* ---------- Pagination ---------- */
 
 .mfa-admin-member-pagination {
@@ -194,5 +205,12 @@
     text-transform: uppercase;
     color: var(--mfa-label);
     margin-right: var(--mfa-space-2);
+  }
+  .mfa-admin-member-actions {
+    text-align: left;
+    margin-top: var(--mfa-space-2);
+  }
+  .mfa-admin-member-actions::before {
+    content: none;
   }
 }

@@ -73,6 +73,16 @@ function mfa_core_enqueue_widget_assets() {
 			$admin_member_list_css = MFA_CORE_PATH . 'assets/css/admin-member-list-v1.css';
 			wp_enqueue_style( 'mfa-core-admin-member-list', MFA_CORE_URL . 'assets/css/admin-member-list-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell' ), $get_version( $admin_member_list_css ) );
 		}
+
+		// /admin/member/info/ - child of the Members page, reuses its
+		// .mfa-admin-status-* badge classes plus its own small layout CSS.
+		if ( $post && 'info' === $post->post_name && 217771 === (int) $post->post_parent ) {
+			$admin_member_list_css = MFA_CORE_PATH . 'assets/css/admin-member-list-v1.css';
+			wp_enqueue_style( 'mfa-core-admin-member-list', MFA_CORE_URL . 'assets/css/admin-member-list-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell' ), $get_version( $admin_member_list_css ) );
+
+			$admin_member_info_css = MFA_CORE_PATH . 'assets/css/admin-member-info-v1.css';
+			wp_enqueue_style( 'mfa-core-admin-member-info', MFA_CORE_URL . 'assets/css/admin-member-info-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell', 'mfa-core-admin-member-list' ), $get_version( $admin_member_info_css ) );
+		}
 	}
 
 	if ( ! $is_member_area && ! $is_admin_area ) {
@@ -269,5 +279,6 @@ function mfa_core_litespeed_css_excludes( $excludes ) {
 	$excludes[] = 'mfa-core/assets/css/global-v2.css';
 	$excludes[] = 'mfa-core/assets/css/admin-shell-v1.css';
 	$excludes[] = 'mfa-core/assets/css/admin-member-list-v1.css';
+	$excludes[] = 'mfa-core/assets/css/admin-member-info-v1.css';
 	return $excludes;
 }

@@ -1,0 +1,34 @@
+/* mfa-core admin-member-info.css — [mfa_admin_member_info] on
+   /admin/member/info/. Builds on global-v2.css tokens; reuses the
+   .mfa-admin-status-* badge classes from admin-member-list-v1.css. */
+
+.mfa-admin-member-info-back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--mfa-space-1);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--mfa-muted);
+  text-decoration: none;
+  margin-bottom: var(--mfa-space-4);
+}
+.mfa-admin-member-info-back:hover {
+  color: var(--mfa-teal-dark);
+}
+
+.mfa-admin-member-info-grid {
+  margin-top: var(--mfa-space-5);
+  background: var(--mfa-white);
+  border: 1px solid var(--mfa-border);
+  border-radius: var(--mfa-radius-md);
+  padding: var(--mfa-space-5);
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--mfa-space-5);
+}
+
+.mfa-admin-member-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mfa-space-1);
+}

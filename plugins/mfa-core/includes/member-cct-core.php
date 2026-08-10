@@ -5,24 +5,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * CCT member record API — moved verbatim from enaizi-user/includes/member.php
- * (2026-08-10 mfa-core consolidation). Same function names/signatures as
- * before, so every existing caller across enaizi/*, enaizi-user/*, mfa-core/*,
- * enaizi-member/*, and enaizi-mfa/* keeps working unchanged — this is a pure
- * relocation, not a rewrite. member_cct_data()/get_cct_member_data() remain
- * literal duplicates of niz_user_field_by_itemid()/niz_user_field_by_userid()
- * respectively (marked "OLD" originally); collapsing that duplication is a
- * separate, not-yet-scoped follow-up since it requires touching every call
- * site across five plugins.
+ * (2026-08-10 mfa-core consolidation; member_cct_data()/get_cct_member_data()
+ * duplicates collapsed into niz_user_field_by_itemid()/niz_user_field_by_userid()
+ * the same day, all callers across enaizi/* and enaizi-user/* updated).
  *
  * - niz_user_member_cct($user_id)     // get or create cct_member
  * - niz_user_itemid_by_phone($phone)  // get item_id from phone
  * - niz_user_field_by_itemid($item_id,$field)
  * - niz_user_field_by_userid($user_id,$field)
  * - niz_user_update_field($user_id, $field, $value)
- * - member_cct_data($item_id, $field) x (OLD, duplicate of niz_user_field_by_itemid)
  * - add_cct_member($data)
  * - update_cct_member($item_id, $user_data)
- * - get_cct_member_data($user_id, $field) (duplicate of niz_user_field_by_userid)
  */
 
 /**
@@ -178,28 +171,6 @@ function niz_user_update_field($user_id, $field, $value) {
 }
 
 /**
- * OLD
- * Get Field from Item ID (Secured via precise column whitelist filtering)
- */
-function member_cct_data($item_id, $field) {
-    global $wpdb;
-
-    // Secure custom dynamic field variables from target structural query drops
-    $allowed_fields = ['_ID', 'name', 'phone', 'status', 'user_id', 'referrer_id', 'partner_id', 'country', 'email', 'sex', 'birthdate'];
-    if (!in_array($field, $allowed_fields, true)) {
-        return null;
-    }
-
-    $table = $wpdb->prefix . 'jet_cct_member';
-    // Use standard concatenation safely since structure inputs have been validated
-    $result = $wpdb->get_var(
-        $wpdb->prepare("SELECT {$field} FROM {$table} WHERE _ID = %d", absint($item_id))
-    );
-
-    return ($result !== null) ? $result : null;
-}
-
-/**
  * Add New CCT Member
  */
 function add_cct_member($data) {
@@ -291,23 +262,4 @@ function update_cct_member($item_id, $user_data) {
     } else {
         return "Record updated successfully.";
     }
-}
-
-/**
- * Function to get a specific field value from CCT securely
- */
-function get_cct_member_data($user_id, $field) {
-    global $wpdb;
-
-    //$allowed_fields = ['_ID', 'name', 'phone', 'status', 'user_id', 'referrer_id', 'partner_id', 'country', 'email', 'sex', 'birthdate'];
-    //if (!in_array($field, $allowed_fields, true)) {
-    //    return "";
-    //}
-
-    $table = $wpdb->prefix . 'jet_cct_member';
-    $result = $wpdb->get_var(
-        $wpdb->prepare("SELECT {$field} FROM {$table} WHERE user_id = %d", absint($user_id))
-    );
-
-    return $result ? $result : "";
 }

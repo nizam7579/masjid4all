@@ -98,7 +98,7 @@ function update_user_info($entryId, $formData, $form) {
     );
     
     // Check update_info
-    $update_info = member_cct_data($item_id, 'chk_update');
+    $update_info = niz_user_field_by_itemid($item_id, 'chk_update');
     if ($update_info!='Yes'){
         // Issue Points
         niz_user_add_points($user_id, 'Update Profile', 50);

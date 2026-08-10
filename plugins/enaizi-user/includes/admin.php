@@ -264,12 +264,12 @@ function niz_user_admin_userinfo_shortcode() {
     }
 
     $user_id = $_GET['user_id'] ;
-    $name    = get_cct_member_data($user_id, 'name');
-    $status  = get_cct_member_data($user_id, 'status');
-    $rank    = get_cct_member_data($user_id, 'rank');
-    $points  = get_cct_member_data($user_id, 'points');
-    $country = get_cct_member_data($user_id, 'country');
-    $phone   = get_cct_member_data($user_id, 'phone');
+    $name    = niz_user_field_by_userid($user_id, 'name');
+    $status  = niz_user_field_by_userid($user_id, 'status');
+    $rank    = niz_user_field_by_userid($user_id, 'rank');
+    $points  = niz_user_field_by_userid($user_id, 'points');
+    $country = niz_user_field_by_userid($user_id, 'country');
+    $phone   = niz_user_field_by_userid($user_id, 'phone');
     
     ob_start();
     ?>

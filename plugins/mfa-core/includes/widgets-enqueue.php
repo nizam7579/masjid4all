@@ -68,6 +68,11 @@ function mfa_core_enqueue_widget_assets() {
 	if ( $is_admin_area ) {
 		$admin_shell_css = MFA_CORE_PATH . 'assets/css/admin-shell-v1.css';
 		wp_enqueue_style( 'mfa-core-admin-shell', MFA_CORE_URL . 'assets/css/admin-shell-v1.css', array( 'mfa-core-global' ), $get_version( $admin_shell_css ) );
+
+		if ( $post && 'member' === $post->post_name ) {
+			$admin_member_list_css = MFA_CORE_PATH . 'assets/css/admin-member-list-v1.css';
+			wp_enqueue_style( 'mfa-core-admin-member-list', MFA_CORE_URL . 'assets/css/admin-member-list-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell' ), $get_version( $admin_member_list_css ) );
+		}
 	}
 
 	if ( ! $is_member_area && ! $is_admin_area ) {
@@ -263,5 +268,6 @@ function mfa_core_litespeed_css_excludes( $excludes ) {
 	$excludes[] = 'mfa-core/assets/css/member-account-modals-v1.css';
 	$excludes[] = 'mfa-core/assets/css/global-v2.css';
 	$excludes[] = 'mfa-core/assets/css/admin-shell-v1.css';
+	$excludes[] = 'mfa-core/assets/css/admin-member-list-v1.css';
 	return $excludes;
 }

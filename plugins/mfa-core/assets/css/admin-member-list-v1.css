@@ -1,0 +1,198 @@
+/* mfa-core admin-member-list.css — [mfa_admin_member_list] on /admin/member/.
+   Builds on global-v2.css tokens + admin-shell-v1.css layout (.mfa-admin-main
+   already provides the flex:1 container this renders inside). */
+
+.mfa-admin-member-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.mfa-admin-member-list > .mfa-body-muted {
+  margin-bottom: var(--mfa-space-4);
+}
+
+/* ---------- Filters ---------- */
+
+.mfa-admin-member-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mfa-space-3);
+  align-items: center;
+  margin-bottom: var(--mfa-space-5);
+}
+
+.mfa-admin-member-search {
+  flex: 1;
+  min-width: 200px;
+  padding: 10px var(--mfa-space-4);
+  border: 1px solid var(--mfa-border);
+  border-radius: var(--mfa-radius-sm);
+  font-size: 14px;
+  color: var(--mfa-ink);
+  background: var(--mfa-white);
+}
+.mfa-admin-member-search:focus {
+  outline: none;
+  border-color: var(--mfa-teal);
+}
+
+.mfa-admin-member-select {
+  padding: 10px var(--mfa-space-4);
+  border: 1px solid var(--mfa-border);
+  border-radius: var(--mfa-radius-sm);
+  font-size: 14px;
+  color: var(--mfa-ink);
+  background: var(--mfa-white);
+}
+
+.mfa-admin-member-filter-btn {
+  padding: 10px var(--mfa-space-5);
+  font-size: 14px;
+}
+
+.mfa-admin-member-clear {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mfa-muted);
+  text-decoration: none;
+}
+.mfa-admin-member-clear:hover {
+  color: var(--mfa-teal-dark);
+}
+
+/* ---------- Table ---------- */
+
+.mfa-admin-member-table-wrap {
+  background: var(--mfa-white);
+  border: 1px solid var(--mfa-border);
+  border-radius: var(--mfa-radius-md);
+  overflow-x: auto;
+}
+
+.mfa-admin-member-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.mfa-admin-member-table th,
+.mfa-admin-member-table td {
+  padding: var(--mfa-space-3) var(--mfa-space-4);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.mfa-admin-member-table th {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--mfa-label);
+  border-bottom: 1px solid var(--mfa-border);
+}
+
+.mfa-admin-member-table tbody tr {
+  border-bottom: 1px solid var(--mfa-border);
+}
+.mfa-admin-member-table tbody tr:last-child {
+  border-bottom: none;
+}
+.mfa-admin-member-table tbody tr:hover {
+  background: var(--mfa-mint-bg);
+}
+
+.mfa-admin-member-table td {
+  color: var(--mfa-ink);
+}
+
+.mfa-admin-member-empty {
+  text-align: center;
+  color: var(--mfa-muted);
+  padding: var(--mfa-space-8) !important;
+  white-space: normal;
+}
+
+/* ---------- Status badges ---------- */
+
+.mfa-admin-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: var(--mfa-radius-pill);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.mfa-admin-status-prospect { background: #fdf3e0; color: #9a6b13; }
+.mfa-admin-status-member { background: #e6f4f2; color: var(--mfa-teal-dark); }
+.mfa-admin-status-premium-member { background: #eee6fb; color: #6a3fb8; }
+.mfa-admin-status-premium-lifetime { background: #fbeee9; color: #b8562f; }
+.mfa-admin-status-none { background: var(--mfa-mint-bg); color: var(--mfa-muted); }
+
+/* ---------- Pagination ---------- */
+
+.mfa-admin-member-pagination {
+  display: flex;
+  gap: var(--mfa-space-2);
+  margin-top: var(--mfa-space-5);
+  flex-wrap: wrap;
+}
+
+.mfa-admin-member-page-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 var(--mfa-space-2);
+  border: 1px solid var(--mfa-border);
+  border-radius: var(--mfa-radius-sm);
+  background: var(--mfa-white);
+  color: var(--mfa-ink);
+  font-weight: 600;
+  font-size: 14px;
+  text-decoration: none;
+}
+.mfa-admin-member-page-link:hover {
+  border-color: var(--mfa-teal);
+  color: var(--mfa-teal-dark);
+}
+.mfa-admin-member-page-link.is-active {
+  background: var(--mfa-green-dark);
+  border-color: var(--mfa-green-dark);
+  color: var(--mfa-white);
+}
+
+/* ---------- Mobile: card-style rows instead of a horizontal-scroll table ---------- */
+
+@media (max-width: 600px) {
+  .mfa-admin-member-table thead {
+    display: none;
+  }
+  .mfa-admin-member-table,
+  .mfa-admin-member-table tbody,
+  .mfa-admin-member-table tr,
+  .mfa-admin-member-table td {
+    display: block;
+    width: 100%;
+  }
+  .mfa-admin-member-table tr {
+    padding: var(--mfa-space-3) var(--mfa-space-4);
+  }
+  .mfa-admin-member-table td {
+    white-space: normal;
+    padding: 4px 0;
+    border: none;
+  }
+  .mfa-admin-member-table td::before {
+    content: attr(data-label);
+    display: inline-block;
+    min-width: 90px;
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--mfa-label);
+    margin-right: var(--mfa-space-2);
+  }
+}

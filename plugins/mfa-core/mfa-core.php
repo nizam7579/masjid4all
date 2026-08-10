@@ -57,6 +57,7 @@ $mfa_core_includes = array(
 	'includes/widgets/admin-shell.php',
 	'includes/widgets/admin-member-list.php',
 	'includes/widgets/admin-member-info.php',
+	'includes/widgets/admin-mosque-list.php',
 	'includes/widgets/coming-soon.php',
 	'includes/widgets/site-header.php',
 	'includes/widgets-enqueue.php',

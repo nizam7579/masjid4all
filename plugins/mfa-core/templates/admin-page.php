@@ -21,10 +21,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 <body <?php body_class( 'mfa-admin-area' ); ?>>
 <?php wp_body_open(); ?>
 
-<?php echo do_shortcode( '[mfa_admin_header]' ); ?>
+<?php
+$mfa_admin_hide_chrome = function_exists( 'mfa_admin_page_hides_chrome' ) && mfa_admin_page_hides_chrome();
 
-<div class="mfa-admin-shell">
+if ( ! $mfa_admin_hide_chrome ) {
+	echo do_shortcode( '[mfa_admin_header]' );
+}
+?>
+
+<div class="mfa-admin-shell<?php echo $mfa_admin_hide_chrome ? ' mfa-admin-shell-no-sidebar' : ''; ?>">
+<?php if ( ! $mfa_admin_hide_chrome ) : ?>
 <?php echo do_shortcode( '[mfa_admin_sidebar]' ); ?>
+<?php endif; ?>
 
 <main class="mfa-admin-main">
 <?php

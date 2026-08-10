@@ -302,8 +302,16 @@ function niz_user_namecard_shortcode() {
     $instagram = niz_user_field_by_userid($user_id, 'affiliate_instagram');
 
 
+    // Default to empty so the foreach loops below are no-ops for everyone
+    // except the hardcoded 'nizamx' case - previously unset entirely
+    // ($external_links) or clobbered back to a string right before its own
+    // foreach ($products = ''; below), which threw a PHP warning for every
+    // other namecard and silently broke the 'nizamx' case's product list too.
+    $products       = array();
+    $external_links = array();
+
     if ($namecard=='nizamx'){
-        // For Premium Card only       
+        // For Premium Card only
         $products = array(
             array(
                 'title' => 'Pewarisan',
@@ -391,7 +399,6 @@ function niz_user_namecard_shortcode() {
 
     // Featured Products (No Title, Top-Aligned, 40/60 Split)
     $featured_html = '';
-    $products = '';
     foreach ( $products as $prod ) {
         if ( empty($prod['title']) || empty($prod['image']) ) {
             continue;

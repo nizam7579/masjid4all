@@ -71,6 +71,27 @@ Pro's modal JS** for popups — replace with our own custom modal pattern (the
 Sofia popup and header mobile menu are the proven template) as those areas
 get touched, rather than leaving the dependency in place indefinitely.
 
+**JetEngine's status is more specific than "approved exception" (refined
+2026-08-07/2026-08-10): keep the tables, stop expanding the usage.** Its
+existing MySQL tables (`wp_jet_cct_*` — member, business, mosque, activity,
+whatsapp, etc.) and PHP runtime stay; they're the underlying data layer for
+these records and aren't going away, and reading/writing them via `$wpdb`
+directly remains correct (see the member CCT rule below, which now applies
+to all JetEngine tables generally, not just that one). But *using more* of
+JetEngine going forward is being phased out, mirroring what's already been
+done on the user's other site: no new JetEngine Custom Content Types, no
+JetEngine Listing Grid/Query Builder blocks, no JetEngine filters for new
+admin or front-end screens. Build against the existing tables directly with
+hand-written PHP + `$wpdb` instead — `/admin/member/`'s
+`[mfa_admin_member_list]` is the reference pattern. Any genuinely new
+data-storage need should be a plain custom WordPress table (the standard
+`dbDelta()`-on-activation pattern, like `niz-wa`'s own `wp_nwa_*` tables),
+never a new JetEngine CCT.
+
+**FluentForm, same direction:** existing FluentForm-based forms keep
+working, but build new forms as hand-written HTML/PHP/JS rather than adding
+more FluentForm forms.
+
 Current custom plugins on disk, for reference:
 - `enaizi`, `enaizi-ads`, `enaizi-identity`, `enaizi-user`, `enaizi-mfa` —
   all being absorbed into `mfa-core` per above. Don't add new functionality
@@ -176,8 +197,13 @@ working copy: `C:\projects\masjid4all`.
   confirming first.
 
 ## Design / Frontend Work
-- Theme: **Kadence Pro** (the theme framework itself stays — this is about
-  moving off Kadence *block-based page building*, not the theme).
+- Theme: **Kadence Pro currently**, but this is now a full phase-out, not
+  just moving off block-based page building. Long-term goal (stated
+  2026-08-10, already executed on the user's other website): replace
+  Kadence entirely with our own lightweight custom theme. Near-term, the
+  standing rule below (every page = one shortcode, zero Kadence blocks)
+  is the concrete step already underway; don't assume the Kadence theme
+  framework itself is permanent infrastructure to design around.
 - **Standing rule (agreed 2026-08-07): every WordPress page renders through
   exactly one shortcode, with zero Kadence blocks.** The shortcode's PHP owns
   the full HTML output, and its own CSS/JS files own all styling/behavior —

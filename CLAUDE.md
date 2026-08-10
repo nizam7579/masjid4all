@@ -31,6 +31,27 @@ needed for reference:
   own docblock: "Replaces enaizi-identity and enaizi-user (phased)").
   Treat any further identity/user/directory work as *continuing* this
   consolidation, not a separate initiative to schedule later.
+  **The full absorption list is five plugins, not three** (confirmed
+  2026-08-10): `enaizi`, `enaizi-ads`, `enaizi-identity`, `enaizi-mfa`, and
+  `enaizi-user` are all initial/legacy plugins being folded into `mfa-core`.
+  `enaizi` in particular (folder `enaizi/`, plugin file `enaizi.php`,
+  "Enaizi - Masjid4all Plugin" v2.0.1) is an older, more monolithic plugin
+  with its own registration flow, admin member panel (`admin-member.php`),
+  and WhatsApp API helpers (`wapi-functions.php`, `wapi-member.php`,
+  including a `whatsapp_send_message()` function — check for overlap with
+  `niz-wa`'s sender before assuming it's redundant). Several of its files
+  (e.g. `member.php`, ~69KB) have large stretches of dead code sitting
+  inside `/* */` block comments — verify liveness with a tokenizer or
+  careful reading, not plain text search, before assuming a function
+  definition or call site is actually executing. Its live code is still
+  depended on elsewhere (e.g. `member_cct_data()`/`get_cct_member_data()`
+  in `enaizi-user/includes/member.php`, despite being marked "OLD", have
+  live callers in `enaizi/admin-member.php`, `user.php`,
+  `wapi-functions.php`, `wapi-member.php`, and `affiliate.php`) — don't
+  delete anything in the `enaizi-*` plugins as an "unused duplicate" without
+  checking for callers across *all five* plugins in this list, not just the
+  plugin the code happens to live in. `enaizi-ads` has not yet been
+  investigated.
 - `niz-pwa` — **planned, not started.** Will eventually be split back out of
   `mfa-core` to own notifications and other PWA-specific features. No urgency
   yet. Note: `plugins/enaizi-mfa/includes/pwa.php` has a dormant (fully
@@ -51,10 +72,10 @@ Sofia popup and header mobile menu are the proven template) as those areas
 get touched, rather than leaving the dependency in place indefinitely.
 
 Current custom plugins on disk, for reference:
-- `enaizi-identity`, `enaizi-user`, `enaizi-mfa` — being absorbed into
-  `mfa-core` per above. Don't add new functionality to these; add it to
-  `mfa-core` instead, even if it means duplicating a small amount of code
-  temporarily during the transition.
+- `enaizi`, `enaizi-ads`, `enaizi-identity`, `enaizi-user`, `enaizi-mfa` —
+  all being absorbed into `mfa-core` per above. Don't add new functionality
+  to these; add it to `mfa-core` instead, even if it means duplicating a
+  small amount of code temporarily during the transition.
 - `mfa-core` — **active**, the consolidation target. Most current work should
   land here.
 - `enaizi_wa` — retired, inactive (see above).

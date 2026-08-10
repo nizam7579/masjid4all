@@ -406,6 +406,10 @@ function mfa_member_dashboard_shortcode() {
 					<span class="mfa-h3">Knowledge Hub</span>
 					<span class="mfa-body-muted">Islamic knowledge and resources.</span>
 				</a>
+				<a href="/member/digital-card/" class="mfa-card mfa-dash-tool-card">
+					<span class="mfa-h3">Digital Name Card</span>
+					<span class="mfa-body-muted">Your shareable digital business card with QR code.</span>
+				</a>
 			</div>
 		</section>
 

@@ -65,6 +65,27 @@ function mfa_admin_member_info_shortcode() {
 						<span class="mfa-body"><?php echo esc_html( $row['cct_created'] ? date_i18n( 'j M Y, g:i a', strtotime( $row['cct_created'] ) ) : '—' ); ?></span>
 					</div>
 				</div>
+
+				<h2 class="mfa-h3 mfa-admin-member-info-activity-heading">Recent Activity</h2>
+				<?php
+				$activity = function_exists( 'mfa_get_member_activity' ) ? mfa_get_member_activity( $user_id ) : array();
+
+				if ( empty( $activity ) ) {
+					echo '<p class="mfa-body-muted">No activity recorded yet.</p>';
+				} else {
+					?>
+					<ul class="mfa-admin-member-info-activity">
+						<?php foreach ( $activity as $entry ) : ?>
+							<li class="mfa-admin-member-info-activity-item">
+								<span class="mfa-admin-activity-type mfa-admin-activity-type-<?php echo esc_attr( $entry['type'] ); ?>"><?php echo esc_html( ucwords( str_replace( '_', ' ', $entry['type'] ) ) ); ?></span>
+								<span class="mfa-body"><?php echo esc_html( $entry['description'] ); ?></span>
+								<span class="mfa-admin-member-info-activity-time"><?php echo esc_html( date_i18n( 'j M Y, g:i a', strtotime( $entry['created_at'] ) ) ); ?></span>
+							</li>
+						<?php endforeach; ?>
+					</ul>
+					<?php
+				}
+				?>
 				<?php
 			}
 		}

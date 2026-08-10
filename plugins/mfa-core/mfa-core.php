@@ -23,6 +23,7 @@ $mfa_core_includes = array(
 	'includes/identity-registration.php',
 	'includes/whatsapp-verify.php',
 	'includes/barakah.php',
+	'includes/activity-log.php',
 	'includes/founding-member.php',
 	'includes/email-verification.php',
 	'includes/member-template.php',

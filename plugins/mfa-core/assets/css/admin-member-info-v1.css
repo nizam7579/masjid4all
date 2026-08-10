@@ -32,3 +32,59 @@
   flex-direction: column;
   gap: var(--mfa-space-1);
 }
+
+.mfa-admin-member-info-activity-heading {
+  margin-top: var(--mfa-space-6);
+  margin-bottom: var(--mfa-space-3);
+}
+
+.mfa-admin-member-info-activity {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--mfa-white);
+  border: 1px solid var(--mfa-border);
+  border-radius: var(--mfa-radius-md);
+  overflow: hidden;
+}
+
+.mfa-admin-member-info-activity-item {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--mfa-space-3);
+  padding: var(--mfa-space-3) var(--mfa-space-4);
+  border-bottom: 1px solid var(--mfa-border);
+}
+
+.mfa-admin-member-info-activity-item:last-child {
+  border-bottom: none;
+}
+
+.mfa-admin-activity-type {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: var(--mfa-radius-pill);
+  background: var(--mfa-mint-bg);
+  color: var(--mfa-muted);
+  white-space: nowrap;
+}
+
+.mfa-admin-activity-type-points {
+  background: var(--mfa-mint-bg);
+  color: var(--mfa-teal-dark);
+}
+
+.mfa-admin-activity-type-login {
+  background: var(--mfa-mint-bg);
+  color: var(--mfa-ink);
+}
+
+.mfa-admin-member-info-activity-time {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 13px;
+  color: var(--mfa-muted);
+}

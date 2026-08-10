@@ -62,6 +62,10 @@ function mfa_award_points( $user_id, $description, $points ) {
 	$total = mfa_get_barakah_points( $user_id );
 	$rank  = mfa_get_barakah_rank( $total );
 
+	if ( function_exists( 'mfa_log_activity' ) ) {
+		mfa_log_activity( $user_id, 'points', $description . ' (+' . (int) $points . ' pts)' );
+	}
+
 	if ( function_exists( 'niz_user_update_field' ) ) {
 		niz_user_update_field( $user_id, 'points', $total );
 		niz_user_update_field( $user_id, 'rank', $rank['rank'] );

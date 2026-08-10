@@ -1,19 +1,34 @@
 /* mfa-core admin-member-info.css — [mfa_admin_member_info] on
    /admin/member/info/. Builds on global-v2.css tokens; reuses the
-   .mfa-admin-status-* badge classes from admin-member-list-v1.css. */
+   .mfa-admin-status-* badge classes and .mfa-admin-member-table component
+   from admin-member-list-v1.css (loaded as a dependency of this file). */
 
-.mfa-admin-member-info-back {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--mfa-space-1);
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--mfa-muted);
-  text-decoration: none;
-  margin-bottom: var(--mfa-space-4);
+.mfa-admin-member-info-layout {
+  display: grid;
+  grid-template-columns: 25% 1fr;
+  gap: var(--mfa-space-6);
+  align-items: start;
 }
-.mfa-admin-member-info-back:hover {
-  color: var(--mfa-teal-dark);
+
+@media (max-width: 900px) {
+  .mfa-admin-member-info-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mfa-admin-member-info-col-left {
+  min-width: 0;
+}
+
+.mfa-admin-member-info-col-right {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--mfa-space-6);
+}
+
+.mfa-admin-member-info-section h2 {
+  margin-bottom: var(--mfa-space-3);
 }
 
 .mfa-admin-member-info-grid {
@@ -22,8 +37,8 @@
   border: 1px solid var(--mfa-border);
   border-radius: var(--mfa-radius-md);
   padding: var(--mfa-space-5);
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: var(--mfa-space-5);
 }
 
@@ -33,32 +48,11 @@
   gap: var(--mfa-space-1);
 }
 
-.mfa-admin-member-info-activity-heading {
-  margin-top: var(--mfa-space-6);
-  margin-bottom: var(--mfa-space-3);
-}
+/* ---------- Activity / WhatsApp table cells ---------- */
 
-.mfa-admin-member-info-activity {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  background: var(--mfa-white);
-  border: 1px solid var(--mfa-border);
-  border-radius: var(--mfa-radius-md);
-  overflow: hidden;
-}
-
-.mfa-admin-member-info-activity-item {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--mfa-space-3);
-  padding: var(--mfa-space-3) var(--mfa-space-4);
-  border-bottom: 1px solid var(--mfa-border);
-}
-
-.mfa-admin-member-info-activity-item:last-child {
-  border-bottom: none;
+.mfa-admin-member-info-wrap-cell {
+  white-space: normal;
+  max-width: 480px;
 }
 
 .mfa-admin-activity-type {
@@ -82,9 +76,12 @@
   color: var(--mfa-ink);
 }
 
-.mfa-admin-member-info-activity-time {
-  margin-left: auto;
-  flex-shrink: 0;
-  font-size: 13px;
-  color: var(--mfa-muted);
+.mfa-admin-activity-type-inbound {
+  background: #eee6fb;
+  color: #6a3fb8;
+}
+
+.mfa-admin-activity-type-outbound {
+  background: var(--mfa-mint-bg);
+  color: var(--mfa-teal-dark);
 }

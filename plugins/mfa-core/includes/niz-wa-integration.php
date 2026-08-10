@@ -176,15 +176,28 @@ function niz_wa_action_advertise( $user_id, $context ) {
  * link to whoever asks for it over WhatsApp. home_url() (not a hardcoded
  * staging URL like this file's other action replies) since the link itself
  * must already be per-user dynamic.
+ *
+ * UX polish (2026-08-10): NWA_Sender::send_message() runs every outgoing
+ * message through format_for_whatsapp() unconditionally (converts
+ * Markdown bold markers to WhatsApp's single-asterisk bold, not just for AI
+ * replies) - confirmed before relying on *bold* below actually rendering.
+ * Also includes a ready-to-forward invite line (same copy as the
+ * dashboard modal's wa.me share text) wrapped in the link itself, so a
+ * WhatsApp user can act in one copy/forward instead of having to write
+ * their own invite message around a bare link.
  */
 function niz_wa_action_share( $user_id, $context ) {
 	$link   = home_url( '/?id=' . $user_id );
 	$status = get_user_meta( $user_id, 'user_status', true );
 
-	$message = "Here's your personal Masjid4All referral link. Share it with friends and family - anyone who joins through it earns you Barakah points:\n\n{$link}";
+	$invite_text = "Assalamualaikum! I'd like to invite you to join Masjid4All, a Muslim community platform with mosque directories, prayer times, and more: {$link}";
+
+	$message  = "Here's your personal Masjid4All referral link:\n\n*{$link}*\n\n";
+	$message .= "Anyone who joins through it earns you Barakah points. Want to invite someone right now? Just forward this message to them:\n\n";
+	$message .= "_{$invite_text}_";
 
 	if ( ! in_array( $status, array( 'member', 'premium' ), true ) ) {
-		$message .= "\n\nTip: reply REGISTER to become a member first so you can start earning Barakah points from your referrals.";
+		$message .= "\n\nTip: reply *REGISTER* to become a member first so you can start earning Barakah points from your referrals.";
 	}
 
 	return $message;

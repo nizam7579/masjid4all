@@ -559,7 +559,6 @@ add_action('fluentform/before_insert_submission', function ($insertData, $data, 
         'affiliate_tiktok'    => $tiktok,
         'affiliate_instagram' => $instagram,
         'affiliate_youtube'   => $youtube,
-        'company_intro'       => $attachment_id,
     ];
  
     if (function_exists('update_cct_member')) {

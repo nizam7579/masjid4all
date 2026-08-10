@@ -121,6 +121,26 @@
   flex-shrink: 0;
 }
 
+.mfa-namecard-manager {
+  max-width: 560px;
+}
+.mfa-namecard-manager .mfa-referral-link-row input {
+  flex: 1;
+  min-width: 0;
+}
+.mfa-namecard-url-prefix {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--mfa-space-3);
+  border: 1px solid var(--mfa-border);
+  border-radius: var(--mfa-radius-sm);
+  background: var(--mfa-mint-bg);
+  color: var(--mfa-muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
 .mfa-modal-message {
   margin: 0;
   font-size: 13px;

@@ -60,6 +60,8 @@ function mfa_member_dashboard_shortcode() {
 	$has_wa_award      = function_exists( 'mfa_has_barakah_award' ) && mfa_has_barakah_award( $user_id, 'Verify WhatsApp' );
 	$has_profile_award = function_exists( 'mfa_has_barakah_award' ) && mfa_has_barakah_award( $user_id, 'Complete Profile' );
 
+	$namecard_slug = function_exists( 'niz_user_field_by_userid' ) ? niz_user_field_by_userid( $user_id, 'namecard' ) : '';
+
 	global $wpdb;
 	$listing_count = (int) $wpdb->get_var(
 		$wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}jet_cct_listing_owner WHERE user_id = %d", $user_id )
@@ -269,6 +271,22 @@ function mfa_member_dashboard_shortcode() {
 			</div>
 		</section>
 
+		<section class="mfa-dash-namecard-section mfa-dash-section-divided">
+			<div class="mfa-card mfa-dash-namecard-card">
+				<h3 class="mfa-h3">Digital Name Card</h3>
+				<?php if ( empty( $namecard_slug ) ) : ?>
+					<p class="mfa-body-muted">Create a shareable digital business card with your own link and QR code.</p>
+					<a href="/member/digital-card/" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm">Create My Digital Name Card</a>
+				<?php else : ?>
+					<p class="mfa-body-muted">Your card is live at <?php echo esc_html( home_url( '/' . $namecard_slug ) ); ?></p>
+					<div class="mfa-dash-btn-group">
+						<a href="/member/digital-card/" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm">Update Name Card</a>
+						<a href="<?php echo esc_url( home_url( '/' . $namecard_slug ) ); ?>" target="_blank" rel="noopener" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm">View Name Card</a>
+					</div>
+				<?php endif; ?>
+			</div>
+		</section>
+
 		<section class="mfa-dash-points-section mfa-dash-section-divided">
 			<h2 class="mfa-h2 mfa-dash-section-title-centered">Help us build Masjid4All and earn Barakah points</h2>
 			<div class="mfa-dash-points-row">
@@ -405,10 +423,6 @@ function mfa_member_dashboard_shortcode() {
 				<a href="/knowledge-hub/" class="mfa-card mfa-dash-tool-card">
 					<span class="mfa-h3">Knowledge Hub</span>
 					<span class="mfa-body-muted">Islamic knowledge and resources.</span>
-				</a>
-				<a href="/member/digital-card/" class="mfa-card mfa-dash-tool-card">
-					<span class="mfa-h3">Digital Name Card</span>
-					<span class="mfa-body-muted">Your shareable digital business card with QR code.</span>
 				</a>
 			</div>
 		</section>

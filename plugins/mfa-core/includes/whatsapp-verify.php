@@ -141,10 +141,19 @@ function niz_wa_handle_verify_override( $override, $user_id, $wa_number, $messag
 	// check the same number could verify against multiple accounts (bug
 	// found 2026-08-08 testing). Excludes $verified_user_id itself so
 	// re-verifying (e.g. after a merge) isn't blocked by your own record.
+	// Also excludes 'prospect' accounts (2026-08-10 fix) - niz-wa auto-marks
+	// a freshly auto-created prospect as niz_whatsapp_verified=Yes the
+	// moment it receives a message (receiving one IS proof of ownership),
+	// which made this query treat that prospect as a genuine "different
+	// account already owns this number" conflict and block verification -
+	// exactly the case niz_wa_merge_prospect_into_verified_user() below
+	// exists to resolve. A prospect is never a real conflict, only a
+	// registered member is.
 	$existing_owner = get_users( array(
 		'meta_query' => array(
 			array( 'key' => 'user_phone', 'value' => $wa_number ),
 			array( 'key' => 'niz_whatsapp_verified', 'value' => 'Yes' ),
+			array( 'key' => 'user_status', 'value' => 'prospect', 'compare' => '!=' ),
 		),
 		'exclude' => array( $verified_user_id ),
 		'number'  => 1,

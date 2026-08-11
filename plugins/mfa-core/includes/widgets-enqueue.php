@@ -292,6 +292,11 @@ function mfa_core_enqueue_widget_assets() {
 		wp_enqueue_style( 'mfa-core-modal', MFA_CORE_URL . 'assets/css/modal-v1.css', array( 'mfa-core-global' ), $get_version( $modal_css ) );
 		$modal_js = MFA_CORE_PATH . 'assets/js/modal-v1.js';
 		wp_enqueue_script( 'mfa-core-modal', MFA_CORE_URL . 'assets/js/modal-v1.js', array(), $get_version( $modal_js ), true );
+
+		$dir_css = MFA_CORE_PATH . 'assets/css/directory-single-v1.css';
+		wp_enqueue_style( 'mfa-core-directory-single', MFA_CORE_URL . 'assets/css/directory-single-v1.css', array( 'mfa-core-global' ), $get_version( $dir_css ) );
+		$dir_js = MFA_CORE_PATH . 'assets/js/directory-single-v1.js';
+		wp_enqueue_script( 'mfa-core-directory-single', MFA_CORE_URL . 'assets/js/directory-single-v1.js', array(), $get_version( $dir_js ), true );
 	}
 }
 

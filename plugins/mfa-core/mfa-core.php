@@ -71,6 +71,7 @@ $mfa_core_includes = array(
 	'includes/widgets/site-header.php',
 	'includes/widgets/site-footer.php',
 	'includes/widgets/modal.php',
+	'includes/widgets/directory-single.php',
 	'includes/widgets-enqueue.php',
 );
 

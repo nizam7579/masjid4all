@@ -5,13 +5,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * [mfa_directory_single] - the shared single-listing component for the
- * directory CPTs (masjid / business / web), replacing the Kadence Theme
- * Builder "Mosque" (875) / "Business" (9151) / "Web" (220902) templates.
+ * directory CPTs (masjid / business / web / city), replacing the Kadence
+ * Theme Builder "Mosque" (875) / "Business" (9151) / "Web" (220902) / "City"
+ * (225556) templates.
  *
  * One component, configured per post type: a header shortcode, a tabbed body
- * (each pane = one existing tab shortcode), an optional sidebar, and an
- * optional gated "generate AI content" action. Auto-detects the current post
- * type, so all three single-{type}.php theme templates just call this.
+ * (each pane = one existing tab shortcode), an optional right-column sidebar
+ * (ads), and an optional gated "generate AI content" action. Auto-detects the
+ * current post type, so all the single-{type}.php theme templates just call
+ * this.
+ *
+ * Layout: two columns (like the knowledge single) - the header/featured image,
+ * the action and the tabbed content sit in the left column (.mfa-dir-main),
+ * the ads sit in the right column (.mfa-dir-sidebar). See directory-single-v1.css.
  *
  * The AI-generate action reuses the existing per-type updater shortcodes
  * (niz_business_ai_updater / niz_web_ai_updater) but only renders them when
@@ -29,7 +35,7 @@ function mfa_directory_single_config() {
 				array( 'Local Business', 'mfa_mosque_local_business_tab' ),
 				array( 'Review', 'niz_review' ),
 			),
-			'sidebar'   => '',
+			'sidebar'   => 'enaizi_ads',
 			'owner_col' => 'cct_author_id',
 			'action'    => null,
 		),
@@ -41,7 +47,7 @@ function mfa_directory_single_config() {
 				array( 'Review', 'niz_review' ),
 				array( 'Claim', 'mfa_claim_business_listing' ),
 			),
-			'sidebar'   => 'mfa_business_sidebar_directory',
+			'sidebar'   => 'enaizi_ads',
 			'owner_col' => 'owner_id',
 			'action'    => array( 'sc' => 'niz_business_ai_updater', 'when_status' => array( 'New', 'Pending' ) ),
 		),
@@ -52,7 +58,7 @@ function mfa_directory_single_config() {
 				array( 'Review', 'niz_review' ),
 				array( 'Claim Website', 'mfa_claim_web_listing' ),
 			),
-			'sidebar'   => 'niz_mfa_web_directory',
+			'sidebar'   => 'enaizi_ads',
 			'owner_col' => 'cct_author_id',
 			'action'    => array( 'sc' => 'niz_web_ai_updater', 'when_status' => array( 'New', 'Pending' ) ),
 		),
@@ -124,11 +130,10 @@ function mfa_directory_single_shortcode() {
 	ob_start();
 	?>
 	<div class="mfa-dir-single mfa-dir-<?php echo esc_attr( $type ); ?>">
-		<?php if ( ! empty( $c['header'] ) ) { echo do_shortcode( '[' . $c['header'] . ']' ); } ?>
-		<?php echo mfa_directory_single_action( $post_id, $type, $c ); ?>
-
 		<div class="mfa-dir-body">
 			<div class="mfa-dir-main">
+				<?php if ( ! empty( $c['header'] ) ) { echo do_shortcode( '[' . $c['header'] . ']' ); } ?>
+				<?php echo mfa_directory_single_action( $post_id, $type, $c ); ?>
 				<div class="mfa-dir-tabs" role="tablist">
 					<?php foreach ( $c['tabs'] as $i => $t ) : ?>
 						<button type="button" class="mfa-dir-tab<?php echo 0 === $i ? ' is-active' : ''; ?>" data-mfa-tab="<?php echo (int) $i; ?>" role="tab"><?php echo esc_html( $t[0] ); ?></button>

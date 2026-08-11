@@ -8,11 +8,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 <?php
 echo do_shortcode( '[mfa_site_footer]' );
 
-// Floating AI chatbot, if the providing plugin registers it (kept sitewide
-// on public pages, matching the previous Kadence "AI Chatbot" element).
-if ( shortcode_exists( 'ai_chat' ) ) {
-	echo do_shortcode( '[ai_chat]' );
-}
+// NOTE: the legacy on-page chat ([ai_chat], enaizi/xai-chat.php) was
+// deliberately dropped here - it's an old, separate chatbot with a hardcoded
+// AI agent, superseded by the niz-wa WhatsApp assistant (Sofia button). If a
+// real on-page website chat is wanted later, build a new one wired to niz-wa.
 
 wp_footer();
 ?>

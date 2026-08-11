@@ -1,0 +1,59 @@
+/* mfa-core contribute-page.css — Add Mosque / Add Business / Add Website
+   page headers (and the Add Website info section). Replaces the Kadence
+   advancedheading / core heading+list blocks these pages used. The add
+   form and logged-out auth tabs bring their own styling. Uses global-v2
+   tokens. */
+
+.mfa-contribute {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: var(--mfa-space-9) var(--mfa-space-5) var(--mfa-space-6);
+}
+
+.mfa-contribute-head {
+  text-align: center;
+  margin-bottom: var(--mfa-space-6);
+}
+.mfa-contribute-head h1 {
+  font-size: clamp(26px, 4vw, 36px);
+  font-weight: 800;
+  color: var(--mfa-green-dark);
+  margin: 0 0 var(--mfa-space-3);
+}
+.mfa-contribute-head p {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--mfa-muted);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.mfa-contribute-info {
+  max-width: 640px;
+  margin: var(--mfa-space-9) auto 0;
+}
+.mfa-contribute-info h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--mfa-ink);
+  text-align: center;
+  margin: var(--mfa-space-7) 0 var(--mfa-space-3);
+}
+.mfa-contribute-info p {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--mfa-ink);
+  text-align: center;
+  margin: 0 0 var(--mfa-space-4);
+}
+.mfa-contribute-info ul {
+  margin: 0 auto var(--mfa-space-4);
+  padding-left: var(--mfa-space-6);
+  max-width: 520px;
+}
+.mfa-contribute-info li {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--mfa-ink);
+  margin-bottom: var(--mfa-space-2);
+}

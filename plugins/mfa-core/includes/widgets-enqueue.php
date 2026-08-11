@@ -157,6 +157,19 @@ function mfa_core_enqueue_widget_assets() {
 		wp_enqueue_style( 'mfa-core-auth-return', MFA_CORE_URL . 'assets/css/auth-return-v1.css', array( 'mfa-core-global' ), $get_version( $auth_return_css ) );
 	}
 
+	// Streamlined Founding Member page at /member/premium/ (member-area page).
+	if ( $post && 'premium' === $post->post_name ) {
+		$premium_css = MFA_CORE_PATH . 'assets/css/premium-page-v1.css';
+		wp_enqueue_style( 'mfa-core-premium', MFA_CORE_URL . 'assets/css/premium-page-v1.css', array( 'mfa-core-global' ), $get_version( $premium_css ) );
+	}
+
+	// Contribute-flow pages: Add Mosque / Add Business / Add Website heading
+	// + Add Website info section (see includes/widgets/contribute-pages.php).
+	if ( $post && in_array( $post->post_name, array( 'add-mosque', 'add-business', 'add-website' ), true ) ) {
+		$contribute_css = MFA_CORE_PATH . 'assets/css/contribute-page-v1.css';
+		wp_enqueue_style( 'mfa-core-contribute', MFA_CORE_URL . 'assets/css/contribute-page-v1.css', array( 'mfa-core-global' ), $get_version( $contribute_css ) );
+	}
+
 	if ( $post && 'homepage' === $post->post_name ) {
 		$css = MFA_CORE_PATH . 'assets/css/homepage-v15.css';
 		wp_enqueue_style( 'mfa-core-homepage', MFA_CORE_URL . 'assets/css/homepage-v15.css', array(), $get_version( $css ) );

@@ -14,11 +14,11 @@
    doesn't survive its pipeline here, class-based rules do. Also needs
    !important: Kadence's own theme.json global-styles-inline-css sets
    `body { padding: 0px; }`. */
-body.wp-theme-kadence { padding-top: 64px !important; }
+body.wp-theme-kadence, body.mfa-site { padding-top: 64px !important; }
 /* Mobile header is shorter (smaller logo, same vertical padding) - see
    the mobile logo-height override below. 10px*2 padding + 32px logo = 52px. */
 @media (max-width: 819px) {
-  body.wp-theme-kadence { padding-top: 52px !important; }
+  body.wp-theme-kadence, body.mfa-site { padding-top: 52px !important; }
 }
 
 /* The mobile popup's own z-index (100011, see .mfa-header-mobile-menu

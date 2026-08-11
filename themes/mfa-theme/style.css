@@ -33,7 +33,11 @@ body.mfa-site {
   -webkit-font-smoothing: antialiased;
 }
 
-.mfa-site img { max-width: 100%; height: auto; }
+/* Responsive-image reset scoped to the main content only — NOT the header/
+   footer chrome, whose logo/icons set their own fixed dimensions (a bare
+   `.mfa-site img { height:auto }` was overriding .mfa-header-logo's fixed
+   44px height and blowing the lazy-loaded logo up to its natural size). */
+.mfa-site-main img { max-width: 100%; height: auto; }
 /* Scope the default link colour so it never overrides button text colour
    (.mfa-btn-primary etc. set their own colour; a bare `.mfa-site a` rule
    outranks them and turns the label the link colour — e.g. teal-on-teal). */

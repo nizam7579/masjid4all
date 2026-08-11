@@ -70,6 +70,7 @@ $mfa_core_includes = array(
 	'includes/widgets/coming-soon.php',
 	'includes/widgets/site-header.php',
 	'includes/widgets/site-footer.php',
+	'includes/widgets/modal.php',
 	'includes/widgets-enqueue.php',
 );
 

@@ -29,6 +29,7 @@ $mfa_core_includes = array(
 	'includes/email-verification.php',
 	'includes/member-template.php',
 	'includes/member-access-control.php',
+	'includes/member-relogin-status.php',
 	'includes/admin-template.php',
 	'includes/admin-access-control.php',
 	'includes/widgets/prayer-times.php',

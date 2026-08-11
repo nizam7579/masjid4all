@@ -59,3 +59,35 @@ body.mfa-site {
 .mfa-notfound { max-width: 640px; margin: 0 auto; padding: var(--mfa-space-10, 64px) var(--mfa-space-5, 20px); text-align: center; }
 .mfa-notfound h1 { font-size: clamp(28px, 5vw, 44px); font-weight: 800; color: var(--mfa-green-dark, #0d4d47); margin: 0 0 var(--mfa-space-3, 12px); }
 .mfa-notfound p { font-size: 16px; color: var(--mfa-muted, #5b6b66); margin: 0 0 var(--mfa-space-6, 24px); }
+
+/* ---------- CPT single layouts (knowledge, blog): content + sidebar ---------- */
+.mfa-cpt-layout {
+  max-width: var(--mfa-container-max, 1400px);
+  margin: 0 auto;
+  padding: var(--mfa-space-7, 32px) var(--mfa-space-5, 20px) var(--mfa-space-9, 48px);
+  display: grid;
+  grid-template-columns: minmax(0, 2.45fr) minmax(0, 1fr);
+  gap: var(--mfa-space-8, 40px);
+  align-items: start;
+}
+.mfa-cpt-featured img { width: 100%; height: auto; border-radius: var(--mfa-radius-md, 16px); margin-bottom: var(--mfa-space-5, 20px); }
+.mfa-cpt-title { font-size: clamp(24px, 4vw, 34px); font-weight: 800; color: var(--mfa-green-dark, #0d4d47); line-height: 1.2; margin: 0 0 var(--mfa-space-5, 20px); }
+.mfa-cpt-content { font-size: 16px; line-height: 1.75; }
+.mfa-cpt-content img { border-radius: var(--mfa-radius-md, 16px); }
+.mfa-cpt-sidebar { background: #f5f8f7; border-radius: var(--mfa-radius-md, 16px); padding: var(--mfa-space-5, 20px); }
+.mfa-cpt-sidebar-title { font-size: 18px; font-weight: 700; color: var(--mfa-ink, #12181f); margin: 0 0 var(--mfa-space-4, 16px); }
+.mfa-cpt-postlist { list-style: none; margin: 0; padding: 0; }
+.mfa-cpt-postlist li { padding: 10px 0; border-bottom: 1px solid #e2eae8; }
+.mfa-cpt-postlist li:last-child { border-bottom: 0; }
+.mfa-cpt-postlist a { color: var(--mfa-ink, #12181f); text-decoration: none; font-size: 15px; line-height: 1.4; }
+.mfa-cpt-postlist a:hover { color: var(--mfa-teal, #25988b); }
+
+@media (max-width: 860px) {
+  .mfa-cpt-layout { grid-template-columns: 1fr; gap: var(--mfa-space-6, 24px); }
+}
+
+/* ---------- Digital name card single ---------- */
+.mfa-namecard-single { max-width: 700px; margin: 0 auto; padding: var(--mfa-space-7, 32px) var(--mfa-space-4, 16px) var(--mfa-space-10, 64px); }
+.mfa-namecard-card { display: flex; flex-direction: column; align-items: center; gap: var(--mfa-space-4, 16px); }
+.mfa-namecard-promo { text-align: center; margin-top: var(--mfa-space-6, 24px); }
+.mfa-namecard-promo h3 { font-size: 15px; font-weight: 400; color: var(--mfa-green-dark, #0d4d47); margin: 0 0 var(--mfa-space-3, 12px); }

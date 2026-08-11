@@ -29,14 +29,14 @@ function mfa_core_enqueue_widget_assets() {
 	// than the raw [niz_mfa_prayer_times] text — has_shortcode() only sees
 	// literal post_content, not shortcodes nested inside another
 	// shortcode's PHP callback. Same class of bug fixed for /quran/ earlier.
-	if ( has_shortcode( $content, 'niz_mfa_prayer_times' ) || 'prayer-times' === $post_name ) {
+	if ( has_shortcode( $content, 'niz_mfa_prayer_times' ) || 'prayer-times' === $post_name || 'homepage' === $post_name ) {
 		$css = MFA_CORE_PATH . 'assets/css/prayer-times-v3.css';
 		$js  = MFA_CORE_PATH . 'assets/js/prayer-times.js';
 		wp_enqueue_style( 'mfa-core-prayer-times', MFA_CORE_URL . 'assets/css/prayer-times-v3.css', array(), $get_version( $css ) );
 		wp_enqueue_script( 'mfa-core-prayer-times', MFA_CORE_URL . 'assets/js/prayer-times.js', array(), $get_version( $js ), true );
 	}
 
-	if ( has_shortcode( $content, 'niz_mfa_qibla' ) || 'qibla-finder' === $post_name ) {
+	if ( has_shortcode( $content, 'niz_mfa_qibla' ) || 'qibla-finder' === $post_name || 'homepage' === $post_name ) {
 		$css = MFA_CORE_PATH . 'assets/css/qibla-v4.css';
 		$js  = MFA_CORE_PATH . 'assets/js/qibla-v2.js';
 		wp_enqueue_style( 'mfa-core-qibla', MFA_CORE_URL . 'assets/css/qibla-v4.css', array(), $get_version( $css ) );
@@ -44,7 +44,7 @@ function mfa_core_enqueue_widget_assets() {
 	}
 
 	$is_quran_page = $post && ( 'quran' === $post->post_name || 'quran' === $post->post_type );
-	if ( has_shortcode( $content, 'daily_quran' ) || has_shortcode( $content, 'quran_surah_selector' ) || $is_quran_page ) {
+	if ( has_shortcode( $content, 'daily_quran' ) || has_shortcode( $content, 'quran_surah_selector' ) || $is_quran_page || 'homepage' === $post_name ) {
 		$css = MFA_CORE_PATH . 'assets/css/quran.css';
 		$js  = MFA_CORE_PATH . 'assets/js/quran.js';
 		wp_enqueue_style( 'mfa-core-quran', MFA_CORE_URL . 'assets/css/quran.css', array(), $get_version( $css ) );

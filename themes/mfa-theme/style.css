@@ -34,7 +34,10 @@ body.mfa-site {
 }
 
 .mfa-site img { max-width: 100%; height: auto; }
-.mfa-site a { color: var(--mfa-teal, #25988b); }
+/* Scope the default link colour so it never overrides button text colour
+   (.mfa-btn-primary etc. set their own colour; a bare `.mfa-site a` rule
+   outranks them and turns the label the link colour — e.g. teal-on-teal). */
+.mfa-site a:not([class*="mfa-btn"]) { color: var(--mfa-teal, #25988b); }
 
 .mfa-site-main { min-height: 40vh; }
 

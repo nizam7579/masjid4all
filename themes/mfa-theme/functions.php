@@ -31,11 +31,27 @@ function mfa_theme_assets() {
 		return file_exists( $path ) ? (string) filemtime( $path ) : '1.0.0';
 	};
 
-	// Base stylesheet — depends on mfa-core's global tokens when available.
-	$deps = wp_style_is( 'mfa-core-global', 'registered' ) ? array( 'mfa-core-global' ) : array();
+	// Lato — the site's default font, previously provided by the Kadence
+	// theme. Google Fonts OFL (weights used across the pages: 400/700/900).
+	wp_enqueue_style( 'mfa-theme-fonts', 'https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&display=swap', array(), null );
+
+	// Base stylesheet — depends on mfa-core's global tokens and the font.
+	$deps = array( 'mfa-theme-fonts' );
+	if ( wp_style_is( 'mfa-core-global', 'registered' ) ) {
+		$deps[] = 'mfa-core-global';
+	}
 	wp_enqueue_style( 'mfa-theme', get_stylesheet_uri(), $deps, $ver( '/style.css' ) );
 
 	// Mobile bottom-nav rendered by [mfa_site_footer].
 	wp_enqueue_style( 'mfa-theme-footer-nav', $uri . '/assets/css/footer-nav.css', array( 'mfa-theme' ), $ver( '/assets/css/footer-nav.css' ) );
 	wp_enqueue_script( 'mfa-theme-footer-nav', $uri . '/assets/js/footer-nav.js', array(), $ver( '/assets/js/footer-nav.js' ), true );
+}
+
+add_filter( 'wp_resource_hints', 'mfa_theme_resource_hints', 10, 2 );
+function mfa_theme_resource_hints( $hints, $relation ) {
+	if ( 'preconnect' === $relation ) {
+		$hints[] = 'https://fonts.googleapis.com';
+		$hints[] = array( 'href' => 'https://fonts.gstatic.com', 'crossorigin' );
+	}
+	return $hints;
 }

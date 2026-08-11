@@ -287,7 +287,7 @@ function mfa_core_enqueue_widget_assets() {
 	// Reusable modal ([mfa_modal]) used by the mfa-theme directory single
 	// component (Share / Edit / Claim / Add New). Enqueued on the directory
 	// CPT singles; harmless while those pages still render via Kadence.
-	if ( $post && in_array( $post->post_type, array( 'masjid', 'business', 'web' ), true ) ) {
+	if ( $post && in_array( $post->post_type, array( 'masjid', 'business', 'web', 'city' ), true ) ) {
 		$modal_css = MFA_CORE_PATH . 'assets/css/modal-v1.css';
 		wp_enqueue_style( 'mfa-core-modal', MFA_CORE_URL . 'assets/css/modal-v1.css', array( 'mfa-core-global' ), $get_version( $modal_css ) );
 		$modal_js = MFA_CORE_PATH . 'assets/js/modal-v1.js';

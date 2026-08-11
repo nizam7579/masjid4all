@@ -56,6 +56,18 @@ function mfa_directory_single_config() {
 			'owner_col' => 'cct_author_id',
 			'action'    => array( 'sc' => 'niz_web_ai_updater', 'when_status' => array( 'New', 'Pending' ) ),
 		),
+		'city'     => array(
+			'header'    => '',
+			'tabs'      => array(
+				array( 'Home', 'niz_mfa_business_info' ),
+				array( 'Community', 'niz_review' ),
+				array( 'Mosques', 'niz_mfa_local_mosques' ),
+				array( 'Businesses', 'niz_mfa_local_business' ),
+			),
+			'sidebar'   => '',
+			'owner_col' => 'cct_author_id',
+			'action'    => null,
+		),
 	);
 }
 
@@ -112,7 +124,7 @@ function mfa_directory_single_shortcode() {
 	ob_start();
 	?>
 	<div class="mfa-dir-single mfa-dir-<?php echo esc_attr( $type ); ?>">
-		<?php echo do_shortcode( '[' . $c['header'] . ']' ); ?>
+		<?php if ( ! empty( $c['header'] ) ) { echo do_shortcode( '[' . $c['header'] . ']' ); } ?>
 		<?php echo mfa_directory_single_action( $post_id, $type, $c ); ?>
 
 		<div class="mfa-dir-body">

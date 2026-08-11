@@ -128,8 +128,8 @@
 /* var(--mfa-teal) text on white is only 3.53:1 - fails 4.5:1 at this
    size/weight. var(--mfa-teal-dark) clears it (~4.96:1). Border/icon uses
    of var(--mfa-teal) elsewhere are fine as-is (3:1 non-text minimum). */
-.mfa-directory-card a { font-size: 14px; font-weight: 700; color: var(--mfa-teal-dark); text-decoration: none; }
-.mfa-directory-card a:hover { text-decoration: underline; }
+.mfa-directory-card a:not(.mfa-btn) { font-size: 14px; font-weight: 700; color: var(--mfa-teal-dark); text-decoration: none; }
+.mfa-directory-card a:not(.mfa-btn):hover { text-decoration: underline; }
 
 /* ---------- Impact: asymmetric bento (not 6 identical boxes) ---------- */
 .mfa-impact-bento {
@@ -166,13 +166,13 @@
    the button's intended white, rendering white-on-white... err teal-on-
    teal text invisible against the button's own teal background. Scoped
    override, one class more specific than the plain-link rule. */
-.mfa-impact-card .mfa-btn { color: var(--mfa-white); font-size: 16px; }
+.mfa-impact-card .mfa-btn { color: var(--mfa-white); font-size: 17px; text-align: center; text-decoration: none; }
 .mfa-impact-card .mfa-btn:hover { color: var(--mfa-white); }
 .mfa-impact-card h3 { font-size: 15.5px; font-weight: 700; color: var(--mfa-ink); margin: 0 0 6px; }
 .mfa-impact-card p { font-size: 13.5px; color: var(--mfa-muted); line-height: 1.5; margin: 0; }
 .mfa-impact-card .mfa-impact-icon { font-size: 20px; margin-bottom: 10px; display: block; }
-.mfa-impact-card a { display: inline-block; margin-top: 10px; font-size: 13px; font-weight: 700; color: var(--mfa-teal-dark); text-decoration: none; }
-.mfa-impact-card a:hover { text-decoration: underline; }
+.mfa-impact-card a:not(.mfa-btn) { display: inline-block; margin-top: 10px; font-size: 13px; font-weight: 700; color: var(--mfa-teal-dark); text-decoration: none; }
+.mfa-impact-card a:not(.mfa-btn):hover { text-decoration: underline; }
 
 /* Icon + title on the same line for the 4 small cards (not the big
    .mfa-impact-feature card, which keeps its own stacked layout above) -

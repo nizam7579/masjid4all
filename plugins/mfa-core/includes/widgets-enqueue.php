@@ -149,6 +149,14 @@ function mfa_core_enqueue_widget_assets() {
 	$coming_soon_css = MFA_CORE_PATH . 'assets/css/coming-soon-v1.css';
 	wp_enqueue_style( 'mfa-core-coming-soon', MFA_CORE_URL . 'assets/css/coming-soon-v1.css', array(), $get_version( $coming_soon_css ) );
 
+	// Auth / confirmation utility pages: return-to-member button + payment
+	// status message (see includes/widgets/auth-pages.php).
+	$is_auth_return_page = $post && in_array( $post->post_name, array( 'email-verified', 'forgot-password', 'reset-password', 'payment-success', 'payment-failed' ), true );
+	if ( $is_auth_return_page ) {
+		$auth_return_css = MFA_CORE_PATH . 'assets/css/auth-return-v1.css';
+		wp_enqueue_style( 'mfa-core-auth-return', MFA_CORE_URL . 'assets/css/auth-return-v1.css', array( 'mfa-core-global' ), $get_version( $auth_return_css ) );
+	}
+
 	if ( $post && 'homepage' === $post->post_name ) {
 		$css = MFA_CORE_PATH . 'assets/css/homepage-v15.css';
 		wp_enqueue_style( 'mfa-core-homepage', MFA_CORE_URL . 'assets/css/homepage-v15.css', array(), $get_version( $css ) );

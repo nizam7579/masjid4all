@@ -1,0 +1,31 @@
+/* mfa-core auth-return.css — return-to-member button + payment-status
+   message on the auth/confirmation utility pages (email-verified,
+   forgot-password, reset-password, payment-success, payment-failed).
+   Replaces the Kadence advancedbtn / advancedheading blocks those pages
+   used. The button look itself comes from .mfa-btn in global-v2.css. */
+
+.mfa-auth-return {
+  text-align: center;
+  margin: var(--mfa-space-6) auto 0;
+}
+
+.mfa-auth-msg {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: var(--mfa-space-9) var(--mfa-space-5);
+  text-align: center;
+}
+
+.mfa-auth-msg h1 {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--mfa-ink);
+  margin: 0 0 var(--mfa-space-3);
+}
+
+.mfa-auth-msg p {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--mfa-muted);
+  margin: 0 0 var(--mfa-space-6);
+}

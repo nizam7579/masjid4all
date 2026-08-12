@@ -32,6 +32,16 @@ function mfa_admin_crawler_shortcode() {
 	$nonce    = wp_create_nonce( 'mfa_crawler' );
 	$cron_cmd = 'cd ' . ABSPATH . ' && wp mfa geohash-cron';
 
+	// Auto-mint the external-cron token on first view so live setup needs no
+	// server access - just copy the URL below into cron-job.org. Per-site, so
+	// staging and live get their own.
+	$cron_token = (string) mfa_crawl_opt( 'cron_token', '' );
+	if ( '' === $cron_token ) {
+		$cron_token = wp_generate_password( 32, false );
+		mfa_crawl_set( 'cron_token', $cron_token );
+	}
+	$trigger_url = home_url( '/wp-json/mfa/v1/crawl-run?token=' . $cron_token . '&limit=3' );
+
 	ob_start();
 	?>
 	<div class="mfa-crawler" data-nonce="<?php echo esc_attr( $nonce ); ?>" data-ajax="<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>">
@@ -95,7 +105,9 @@ function mfa_admin_crawler_shortcode() {
 				</label>
 				<button class="mfa-crawler-btn" data-op="save_cron">Save cron settings</button>
 			</div>
-			<p class="mfa-crawler-hint">Add this as a Hostinger cron job (e.g. every 5 minutes). It respects the toggle, batch size and pause state above:</p>
+			<p class="mfa-crawler-hint"><strong>Recommended &mdash; external cron (reliable, host-independent).</strong> Point cron-job.org (or any external cron) at this URL every 1 minute. Keep the token private; raise <code>limit</code> to go faster:</p>
+			<code class="mfa-crawler-cmd"><?php echo esc_html( $trigger_url ); ?></code>
+			<p class="mfa-crawler-hint">Alternatively, a server cron (WP-CLI) &mdash; only if your host's scheduler is reliable:</p>
 			<code class="mfa-crawler-cmd"><?php echo esc_html( $cron_cmd ); ?></code>
 		</div>
 

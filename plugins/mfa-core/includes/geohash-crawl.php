@@ -184,20 +184,25 @@ function mfa_geohash_upsert_place( $type, $p, $country_fallback = '' ) {
 	$table     = $wpdb->prefix . ( $is_mosque ? 'jet_cct_mosque' : 'jet_cct_business' );
 	$post_type = $is_mosque ? 'masjid' : 'business';
 
-	$existing = $wpdb->get_var( $wpdb->prepare( "SELECT _ID FROM {$table} WHERE place_id = %s LIMIT 1", $f['place_id'] ) );
+	$existing = $wpdb->get_row( $wpdb->prepare( "SELECT _ID, cct_author_id, listing_status FROM {$table} WHERE place_id = %s LIMIT 1", $f['place_id'] ) );
 	if ( $existing ) {
-		// Already listed - refresh a few volatile fields, never duplicate.
-		$wpdb->update(
-			$table,
-			array(
-				'rating'       => $f['rating'],
-				'rating_count' => $f['rating_count'],
-				'phone'        => $f['phone'],
-				'website'      => $f['website'],
-				'cct_modified' => current_time( 'mysql' ),
-			),
-			array( '_ID' => $existing )
-		);
+		// Already listed - never duplicate, and never clobber a user-added or
+		// already-approved/generated listing (a real concern now that live
+		// users add their own mosques/businesses). Only refresh the rating on
+		// records THIS crawler created that are still untouched (author 0 +
+		// 'New'); leave name, phone, website, status and content alone in every
+		// other case - especially user-owned records (cct_author_id > 0).
+		if ( 0 === (int) $existing->cct_author_id && 'New' === $existing->listing_status ) {
+			$wpdb->update(
+				$table,
+				array(
+					'rating'       => $f['rating'],
+					'rating_count' => $f['rating_count'],
+					'cct_modified' => current_time( 'mysql' ),
+				),
+				array( '_ID' => $existing->_ID )
+			);
+		}
 		return 'existing';
 	}
 
@@ -610,6 +615,13 @@ function mfa_geohash_crawl_rest( $req ) {
 	if ( mfa_crawl_is_paused() ) {
 		return new WP_REST_Response( array( 'skipped' => 'paused: ' . mfa_crawl_opt( 'pause_reason', '' ) ), 200 );
 	}
+	// Finish the batch server-side even if the external cron (cron-job.org etc.)
+	// disconnects at its own timeout - otherwise a client abort would kill the
+	// run mid-batch and the caller might mark the job failed. Bounded well under
+	// a 1-minute cron interval so runs can't overlap.
+	ignore_user_abort( true );
+	@set_time_limit( 90 );
+
 	$limit = $req->get_param( 'limit' ) ? (int) $req->get_param( 'limit' ) : (int) mfa_crawl_opt( 'batch_size', 5 );
 	return new WP_REST_Response( mfa_geohash_crawl_run_batch( (string) mfa_crawl_opt( 'country', '' ), $limit ), 200 );
 }

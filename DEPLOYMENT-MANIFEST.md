@@ -175,14 +175,54 @@ itself (Sections B/C don't depend on any option value).
 
 ---
 
-## E. New database tables
+## E. Database schema — auto-synced by our plugins (no DB push needed)
 
-`niz-wa` creates 6 tables (`wp_nwa_conversations`, `wp_nwa_messages`,
-`wp_nwa_actions`, `wp_nwa_knowledge_base`, `wp_nwa_user_profiles`,
-`wp_nwa_contacts`) via `dbDelta()` on `register_activation_hook`
-([class-nwa-db.php](plugins/niz-wa/includes/class-nwa-db.php)). No manual
-migration needed — activating the plugin on live creates them automatically,
-idempotently. `mfa-core` creates no custom tables at all.
+**As of the 2026-08-12 "last DB-inclusive push" cutover:** after this push,
+live is updated by uploading plugin files only (no Hostinger DB sync — there's
+no option to exclude the DB, so a DB sync would clobber live's real data). Our
+plugins therefore self-manage their own schema: on every load they compare a
+stored version option against a code constant and, if it differs, run
+`dbDelta()`. `dbDelta()` is **non-destructive** — it creates missing tables and
+adds missing columns/indexes but never drops columns, indexes, or data — so it
+is safe to run against live data. This runs on `plugins_loaded` (not just
+`register_activation_hook`, which only fires on a fresh activation, not when
+files change under an already-active plugin), so a plain plugin-file upload
+syncs the schema automatically.
+
+**Custom tables we own (all `dbDelta`, version-gated on `plugins_loaded`):**
+
+| Table | Owner plugin | Defined in | Version const → option |
+|-------|--------------|------------|------------------------|
+| `wp_mfa_commission_ledger` | mfa-core | `includes/commission.php` (`mfa_commission_maybe_create_table`) | `MFA_COMMISSION_TABLE_VERSION` → `mfa_commission_table_version` |
+| `wp_mfa_member_activity` | mfa-core | `includes/activity-log.php` (`mfa_activity_maybe_create_table`) | `MFA_ACTIVITY_TABLE_VERSION` → `mfa_activity_table_version` |
+| `wp_nwa_conversations`, `wp_nwa_messages`, `wp_nwa_actions`, `wp_nwa_knowledge_base`, `wp_nwa_user_profiles`, `wp_nwa_contacts` | niz-wa | `includes/class-nwa-db.php` (`NWA_DB::create_tables`) | `NWA_DB_VERSION` → `nwa_db_version` |
+
+(Older Section-E text said "mfa-core creates no custom tables" and that niz-wa
+synced on activation only — both now out of date; corrected here. niz-wa's
+`plugins_loaded` version-gated sync was added 2026-08-12.)
+
+**Recipe — adding a table / column / index so it auto-syncs to live on the
+next plugin upload (without touching live data):**
+
+1. Edit the `dbDelta()` `CREATE TABLE` definition for the table (add the new
+   column, or a new `KEY name (col)` index, or add a whole new
+   `CREATE TABLE`). Follow dbDelta's strict formatting (two spaces after
+   `PRIMARY KEY`, `KEY`/`UNIQUE KEY name (col)`, one field per line).
+2. **Bump the matching version constant** (`*_TABLE_VERSION` / `NWA_DB_VERSION`).
+3. Upload the plugin files to live. On the next admin/page load the stored
+   option ≠ the new constant, so `dbDelta()` runs once and ALTERs the table to
+   match — adding the new column/index, keeping all existing rows.
+4. For genuinely new persistent data, always add **our own** `dbDelta` table
+   (or a column on one of the tables above) — never a new JetEngine CCT and
+   never a new column on a `jet_cct_*` table (JetEngine owns those; per
+   CLAUDE.md we read/write them but don't extend their schema).
+
+**Not ours to sync:** `jet_cct_*` (JetEngine), and all third-party tables
+(BuddyPress `bp_*`, FluentCRM/Cart/Community `fc_*`/`fct_*`/`fcom_*`, RankMath,
+Wordfence `wf*`, Kadence, LiteSpeed, WP All Import `pmxi_*`, Novamira, etc.) —
+each managed by its own plugin's upgrade routine. The final DB-inclusive push
+carries all of these to live in a consistent state; from then on our concern is
+only the tables listed above.
 
 ---
 

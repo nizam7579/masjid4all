@@ -12,6 +12,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 define( 'NWA_VERSION', '1.0.0' );
+// Schema version - bump this whenever NWA_DB::create_tables() changes (new
+// table / column / index). nwa_init() re-runs dbDelta on load when it differs
+// from the stored nwa_db_version option, so a plain plugin-file update
+// auto-syncs the schema in production without touching data.
+define( 'NWA_DB_VERSION', '1.0.0' );
 define( 'NWA_PATH', plugin_dir_path( __FILE__ ) );
 define( 'NWA_URL', plugin_dir_url( __FILE__ ) );
 
@@ -39,6 +44,15 @@ function nwa_init() {
 	// code update — register_activation_hook() only fires on fresh
 	// activation, not on files changing underneath an active plugin.
 	NWA_Roles::activate();
+
+	// Same reasoning for the DB schema: sync it on a code update, not only on
+	// activation. Version-gated (dbDelta is non-destructive — creates tables
+	// and adds missing columns/indexes, never drops), so it is safe to run
+	// against live data. Bump NWA_DB_VERSION when the schema changes.
+	if ( get_option( 'nwa_db_version' ) !== NWA_DB_VERSION ) {
+		NWA_DB::create_tables();
+		update_option( 'nwa_db_version', NWA_DB_VERSION );
+	}
 
 	NWA_Webhook::init();
 	NWA_Admin::init();

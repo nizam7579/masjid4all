@@ -66,3 +66,63 @@
 @media (max-width: 860px) {
   .mfa-dir-body { grid-template-columns: 1fr; gap: var(--mfa-space-6, 24px); }
 }
+
+/* ---------- Single-mosque non-approved states (see mosque-single.php) ----------
+   Pending -> "Click to Update" AI-generate card; New/Rejected/Error/Deleted ->
+   name + address + status + "we're verifying" remark. */
+.mfa-mosque-update,
+.mfa-mosque-pending-card {
+  padding: var(--mfa-space-6, 24px);
+  border: 1px solid var(--mfa-border, #e2eae8);
+  border-radius: var(--mfa-radius-md, 16px);
+  background: #f7faf9;
+}
+.mfa-mosque-update-name,
+.mfa-mosque-pending-name {
+  font-size: clamp(22px, 3.5vw, 30px);
+  font-weight: 800;
+  color: var(--mfa-green-dark, #0d4d47);
+  line-height: 1.2;
+  margin: 0 0 8px;
+}
+.mfa-mosque-update-address,
+.mfa-mosque-pending-address {
+  font-size: 15px;
+  color: var(--mfa-muted, #5b6b66);
+  margin: 0 0 14px;
+}
+.mfa-mosque-update-intro {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--mfa-ink, #12181f);
+  margin: 0 0 18px;
+}
+.mfa-mosque-update-spinner {
+  text-align: center;
+  padding: 20px 0 6px;
+  color: var(--mfa-teal-dark, #1f7d72);
+}
+.mfa-mosque-update-spinner p {
+  margin: 12px 0 0;
+  font-weight: 600;
+}
+.mfa-mosque-update-error {
+  color: #b3261e;
+  font-weight: 600;
+  margin: 12px 0 0;
+}
+.mfa-mosque-pending-status {
+  font-size: 14px;
+  color: var(--mfa-muted, #5b6b66);
+  margin: 0 0 10px;
+}
+.mfa-mosque-pending-status span {
+  font-weight: 700;
+  color: var(--mfa-ink, #12181f);
+}
+.mfa-mosque-pending-remark {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--mfa-ink, #12181f);
+  margin: 0;
+}

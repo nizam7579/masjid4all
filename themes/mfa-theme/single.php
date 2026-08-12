@@ -26,7 +26,7 @@ while ( have_posts() ) :
 			</div>
 			<div class="mfa-namecard-promo">
 				<h3>Digital Namecard by Masjid4All</h3>
-				<a href="/member/digital-card/" class="mfa-btn mfa-btn-primary">Get Your FREE Namecard NOW</a>
+				<a href="/member" class="mfa-namecard-promo-link">Get Your FREE Namecard NOW</a>
 			</div>
 		</div>
 		<?php

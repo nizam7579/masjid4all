@@ -13,7 +13,7 @@
     max-width: none !important;
     min-width: 0 !important;
     margin: 0 !important;
-    padding: 5px !important;
+    padding: 0 !important;
     box-sizing: border-box !important;
 }
 
@@ -29,20 +29,25 @@
    ========================================================================== */
 .niz-card-header {
     text-align: center;
-    margin-bottom: 20px;
+    margin-bottom: 8px;
 }
 
 .niz-card-header h2 {
-    padding: 20px 20px 0px 20px;
-    margin: 0 0 5px;
-    font-size: 26px;
-    font-weight: 700;
+    padding: 4px 0 0;
+    margin: 0 0 6px;
+    font-size: 24px;
+    font-weight: 800;
+    color: #12181f;
+    letter-spacing: -0.01em;
 }
 
 .niz-card-header p {
     margin: 0;
-    font-size: 15px;
-    color: #666;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1f7d72;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
 
 .niz-card-intro {
@@ -64,28 +69,40 @@
    ========================================================================== */
 .niz-buttons-wrapper {
     display: flex !important;
-    flex-wrap: wrap !important;       /* Force rows to drop down cleanly when space runs out */
-    justify-content: center !important; /* This centers the buttons horizontally */
-    gap: 5px;                        /* Perfect gutter tracking between stacked buttons */
-    margin: 30px auto;                /* Added auto to left/right margins for extra safety centering */
+    flex-direction: column !important;   /* Modern full-width stacked "link list" layout */
+    gap: 10px !important;
+    margin: 22px auto 8px !important;
     width: 100% !important;
+    max-width: 380px !important;
 }
 
 .niz-btn {
-    display: inline-flex !important; 
+    display: flex !important;
     align-items: center;
-    justify-content: center;
-    text-align: center;
+    justify-content: flex-start;         /* icon left, label follows */
+    gap: 12px;
+    width: 100%;
     text-decoration: none !important;
-    padding: 6px 12px;    
-    border-radius: 40px;
-    font-weight: 500;
-    font-size: 12px;
-    color: #ffffff !important; 
-    white-space: nowrap !important; /* Locks words like "Website" to 1 row inside button */
-    flex-shrink: 0 !important;      /* ABSOLUTE CRITICAL: Stops browsers squishing buttons to 0px wide */
-    transition: background 0.2s ease-in-out;
+    padding: 13px 18px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 15px;
+    color: #ffffff !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
 }
+.niz-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.16);
+    filter: brightness(1.04);
+}
+.niz-btn i {
+    font-size: 18px;
+    width: 24px;
+    text-align: center;
+    flex-shrink: 0;
+}
+.niz-btn span { flex: 1; }
 
 /* Brand Background Colors */
 .niz-btn-phone      { background: #1E3A8A; }
@@ -185,35 +202,17 @@
    6. RESPONSIVE MEDIA QUERIES (TABLET & MOBILE)
    ========================================================================== */
 
-/* Tablet & Mid-Size Mobile Sizing Configuration */
-@media screen and (max-width: 768px) {
-    .niz-buttons-wrapper {
-        gap: 8px !important;
-    }
-
-    .niz-btn {
-        min-height: 35px; /* Optimal minimum target index profile for mobile gestures */
-        padding: 6px 12px;
-    }
-}
-
-/* Small Smartphone Grid Enhancement */
+/* Stacked full-width buttons need no column math on mobile - just let the
+   wrapper span the card and keep comfortable tap targets. */
 @media screen and (max-width: 480px) {
     .niz-buttons-wrapper {
-        padding:0px 20px;
-        gap: 6px !important; /* Slightly smaller gap so 3 buttons fit cleanly side-by-side */
+        max-width: 100% !important;
+        padding: 0 !important;
     }
 
     .niz-btn {
-        flex-grow: 1 !important;      /* Let buttons grow to fill any remaining space uniformly */
-        
-        /* 33.33% splits the row into 3 columns. 
-           We subtract 4px to give the layout breathing room for the gaps.
-        */
-        min-width: calc(25% - 4px) !important; 
-        
-        padding: 8px 10px;            /* Shrink horizontal padding slightly so text doesn't overflow */
-        font-size: 12px;              /* Drop font down a notch so long words like "WhatsApp" fit nicely */
+        padding: 13px 16px;
+        font-size: 14.5px;
     }
-} 
+}
 

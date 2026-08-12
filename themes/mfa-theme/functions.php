@@ -47,6 +47,20 @@ function mfa_theme_assets() {
 	wp_enqueue_script( 'mfa-theme-footer-nav', $uri . '/assets/js/footer-nav.js', array(), $ver( '/assets/js/footer-nav.js' ), true );
 }
 
+/**
+ * Tag digital name-card pages (category "Affiliate", id 39) with a body class
+ * so style.css can present them chrome-reduced: header hidden on all viewports,
+ * mobile bottom-nav hidden on small screens. Matches single.php's own
+ * has_category( 39 ) branch.
+ */
+add_filter( 'body_class', 'mfa_theme_namecard_body_class' );
+function mfa_theme_namecard_body_class( $classes ) {
+	if ( is_singular( 'post' ) && has_category( 39, get_queried_object_id() ) ) {
+		$classes[] = 'mfa-namecard-page';
+	}
+	return $classes;
+}
+
 add_filter( 'wp_resource_hints', 'mfa_theme_resource_hints', 10, 2 );
 function mfa_theme_resource_hints( $hints, $relation ) {
 	if ( 'preconnect' === $relation ) {

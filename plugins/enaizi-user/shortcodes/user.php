@@ -349,43 +349,43 @@ function niz_user_namecard_shortcode() {
     // Social Buttons
     $buttons_html = '';
     if ( ! empty($phone) ) {
-        $buttons_html .= '<a href="tel:' . esc_attr($phone) . '" class="niz-btn niz-btn-phone">Phone</a>';
+        $buttons_html .= '<a href="tel:' . esc_attr($phone) . '" class="niz-btn niz-btn-phone"><i class="fa-solid fa-phone"></i><span>Phone</span></a>';
     }
     if ( ! empty($whatsapp) ) {
         $wa_url = 'https://wa.me/' . preg_replace('/[^0-9]/', '', $whatsapp);
-        $buttons_html .= '<a href="' . esc_url($wa_url) . '" target="_blank" rel="noopener noreferrer" class="niz-btn niz-btn-wa">WhatsApp</a>';
+        $buttons_html .= '<a href="' . esc_url($wa_url) . '" target="_blank" rel="noopener noreferrer" class="niz-btn niz-btn-wa"><i class="fa-brands fa-whatsapp"></i><span>WhatsApp</span></a>';
     }
     
     if ( ! empty($email) ) {
-        $buttons_html .= '<a href="mailto:' . esc_url($email) . '" target="_blank" rel="noopener noreferrer" class="niz-btn niz-btn-email">Email</a>';
+        $buttons_html .= '<a href="mailto:' . esc_url($email) . '" target="_blank" rel="noopener noreferrer" class="niz-btn niz-btn-email"><i class="fa-solid fa-envelope"></i><span>Email</span></a>';
     } 
    
     if ( ! empty($website) ) {
-        $buttons_html .= '<a href="' . esc_attr($website) . '" class="niz-btn niz-btn-website">Website</a>';
+        $buttons_html .= '<a href="' . esc_attr($website) . '" class="niz-btn niz-btn-website"><i class="fa-solid fa-globe"></i><span>Website</span></a>';
     }
    
      
     if ( ! empty($linkedin) ) {
-        $buttons_html .= '<a href="' . esc_url($linkedin) . '" target="_blank" rel="noopener noreferrer" class="niz-btn niz-btn-linkedin">LinkedIn</a>';
+        $buttons_html .= '<a href="' . esc_url($linkedin) . '" target="_blank" rel="noopener noreferrer" class="niz-btn niz-btn-linkedin"><i class="fa-brands fa-linkedin-in"></i><span>LinkedIn</span></a>';
     }
     if ( ! empty($facebook) ) {
-        $buttons_html .= '<a href="' . esc_url($facebook) . '" target="_blank" rel="noopener noreferrer" class="niz-btn niz-btn-fb">Facebook</a>';
+        $buttons_html .= '<a href="' . esc_url($facebook) . '" target="_blank" rel="noopener noreferrer" class="niz-btn niz-btn-fb"><i class="fa-brands fa-facebook-f"></i><span>Facebook</span></a>';
     }
     
     if ( ! empty($twitter) ) {
-        $buttons_html .= '<a href="' . esc_url($twitter) . '" target="_blank" rel="noopener noreferrer" class="niz-btn niz-btn-twitter">Twitter</a>';
+        $buttons_html .= '<a href="' . esc_url($twitter) . '" target="_blank" rel="noopener noreferrer" class="niz-btn niz-btn-twitter"><i class="fa-brands fa-x-twitter"></i><span>Twitter</span></a>';
     }
     
     if ( ! empty($youtube) ) {
-        $buttons_html .= '<a href="' . esc_url($youtube) . '" target="_blank" rel="noopener noreferrer" class="niz-btn niz-btn-youtube">youtube</a>';
+        $buttons_html .= '<a href="' . esc_url($youtube) . '" target="_blank" rel="noopener noreferrer" class="niz-btn niz-btn-youtube"><i class="fa-brands fa-youtube"></i><span>YouTube</span></a>';
     }
  
     if ( ! empty($tiktok) ) {
-        $buttons_html .= '<a href="' . esc_url($tiktok) . '" target="_blank" rel="noopener noreferrer" class="niz-btn niz-btn-tiktok">TikTok</a>';
+        $buttons_html .= '<a href="' . esc_url($tiktok) . '" target="_blank" rel="noopener noreferrer" class="niz-btn niz-btn-tiktok"><i class="fa-brands fa-tiktok"></i><span>TikTok</span></a>';
     }
     
     if ( ! empty($instagram) ) {
-        $buttons_html .= '<a href="' . esc_url($instagram) . '" target="_blank" rel="noopener noreferrer" class="niz-btn niz-btn-instagram">Instagram</a>';
+        $buttons_html .= '<a href="' . esc_url($instagram) . '" target="_blank" rel="noopener noreferrer" class="niz-btn niz-btn-instagram"><i class="fa-brands fa-instagram"></i><span>Instagram</span></a>';
     }
     
     if ( ! empty($buttons_html) ) {

@@ -32,7 +32,13 @@ while ( have_posts() ) :
 				<?php if ( $mfa_nc_photo ) : ?>
 					<div class="mfa-namecard-avatar<?php echo $mfa_nc_banner ? ' mfa-namecard-avatar--over' : ''; ?>"><img src="<?php echo esc_url( $mfa_nc_photo ); ?>" alt="<?php echo esc_attr( get_the_title() ); ?>"></div>
 				<?php endif; ?>
-				<?php the_content(); ?>
+				<?php
+				// Render the card shortcode fresh rather than the_content(): the
+				// shortcode bakes its own output back into post_content, so
+				// the_content() would show a stale baked copy (old layout / a
+				// duplicate banner) until the next manager save.
+				echo do_shortcode( '[niz_user_namecard]' );
+				?>
 				<?php echo do_shortcode( '[current_page_qr]' ); ?>
 			</div>
 			<div class="mfa-namecard-promo">

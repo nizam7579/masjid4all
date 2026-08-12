@@ -178,6 +178,7 @@ function directory_add_business_shortcode() {
             <input type="hidden" id="wp-business-website" name="business_website">
             <input type="hidden" id="wp-business-phone" name="business_phone">
             <input type="hidden" id="wp-business-editorial-summary" name="business_editorial_summary">
+            <?php wp_nonce_field( 'mfa_add_business', 'mfa_add_business_nonce' ); ?>
 
             <div id="submit-container" style="display: none; margin-top: 20px;">
                 <button type="submit" id="biz-submit-btn" name="submit_business" class="button button-primary" style="padding: 12px 30px; background: #006B3E; color: #fff; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; width:100%;">Add Business to Directory</button>
@@ -199,6 +200,12 @@ function directory_process_business_submission() {
     $user_id = get_current_user_id();
     
     if ( isset($_POST['submit_business']) && is_user_logged_in() ) {
+
+        // CSRF guard: only accept submissions that carry our nonce.
+        if ( ! isset($_POST['mfa_add_business_nonce']) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['mfa_add_business_nonce'] ) ), 'mfa_add_business' ) ) {
+            return;
+        }
+
         $place_id           = sanitize_text_field($_POST['business_place_id']);
         $name               = sanitize_text_field($_POST['business_name']);
         $latitude           = sanitize_text_field($_POST['business_lat']);

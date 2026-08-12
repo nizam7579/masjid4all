@@ -63,6 +63,10 @@ function niz_add_website_shortcode() {
                 return response.json();
             })
             .then(function(res) {
+                if (res.success && res.data && res.data.redirect) {
+                    window.location.href = res.data.redirect;
+                    return;
+                }
                 feedbackContainer.innerHTML = res.data.message;
                 if(res.success) {
                     document.getElementById('nizAddWebsiteForm').reset();
@@ -117,13 +121,17 @@ function mfa_website_submit() {
     $base_url = function_exists('cct_trim_url_to_base') ? cct_trim_url_to_base(rtrim($url, '/')) : rtrim($url, '/');
 
     // Run unified processing core
+    $GLOBALS['mfa_web_added_redirect'] = '';
     $result = mfa_website_process($base_url, false);
 
     if (is_wp_error($result)) {
         wp_send_json_error(array('message' => '<div class="alert alert-error">' . $result->get_error_message() . '</div>'));
     }
 
-    wp_send_json_success(array('message' => $result));
+    wp_send_json_success(array(
+        'message'  => $result,
+        'redirect' => ! empty( $GLOBALS['mfa_web_added_redirect'] ) ? $GLOBALS['mfa_web_added_redirect'] : '',
+    ));
 
 }
 
@@ -166,6 +174,10 @@ function mfa_website_process($base_url, $is_admin_mode = false, $existing_cct_id
         $item_id = $result['item_id'];
         $post_id = $result['post_id'];
         $slug = 'https://staging.masjid4all.com/web/' . get_post_field( 'post_name', $post_id );
+
+        // Expose the new website page URL so the AJAX handler can redirect the
+        // user there (flagged ?added=1 for the one-time success banner).
+        $GLOBALS['mfa_web_added_redirect'] = add_query_arg( 'added', '1', get_permalink( $post_id ) );
         
         $msg .= '✅ <b>Website added to the directory!</b><br><br>';
         $msg .= 'Please click the link to update the content<br>';
@@ -190,14 +202,15 @@ function mfa_insert_web_cct( $name, $url ) {
     // 1. INSERT CCT RECORD
     // ==========================================
     $cct_data = array(
-        'name'          => $clean_name,
-        'url'           => esc_url_raw( $url ),
-        'cct_author_id' => $current_user,
-        'cct_created'   => current_time( 'mysql' ),
-        'cct_status'    => 'publish'
+        'name'           => $clean_name,
+        'url'            => esc_url_raw( $url ),
+        'cct_author_id'  => $current_user,
+        'cct_created'    => current_time( 'mysql' ),
+        'cct_status'     => 'publish',
+        'listing_status' => 'New'
     );
 
-    $inserted = $wpdb->insert( $table_name, $cct_data, array( '%s', '%s', '%d', '%s', '%s' ) );
+    $inserted = $wpdb->insert( $table_name, $cct_data, array( '%s', '%s', '%d', '%s', '%s', '%s' ) );
 
     if ( ! $inserted ) {
         return new WP_Error( 'cct_insert_error', $wpdb->last_error );

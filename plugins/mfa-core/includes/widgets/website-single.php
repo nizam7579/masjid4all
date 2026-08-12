@@ -107,8 +107,74 @@ function mfa_website_home_tab_shortcode() {
 			<?php endif; ?>
 		</div>
 
-		<?php echo do_shortcode( '[mfa_website_info]' ); ?>
+		<?php echo mfa_web_info_display( $post_id ); ?>
 	</div>
 	<?php
+	return ob_get_clean();
+}
+
+/**
+ * mfa_web_info_display() - status-gated body for the single-website Home tab,
+ * replacing the old [mfa_website_info] shortcode. Driven by
+ * jet_cct_web.listing_status:
+ *   - Approved / Verified / Premium -> the actual post content
+ *   - New / Pending / (empty)       -> a "Click to Update" button that triggers
+ *                                      AI content generation (reuses the existing
+ *                                      [mfa_website_update], its own nonce'd AJAX
+ *                                      -> web_update_content). Empty status is
+ *                                      treated as New (crawler-seeded rows).
+ *   - Rejected / Error / Deleted    -> name, url, status + a "we're verifying
+ *                                      the information" remark
+ * Mirrors mfa_business_info_display() / mfa_mosque_info_display() and reuses
+ * their CSS classes (directory-single-v1.css loads on the web single too).
+ */
+function mfa_web_info_display( $post_id ) {
+	global $wpdb;
+	$table = $wpdb->prefix . 'jet_cct_web';
+	$row   = $wpdb->get_row( $wpdb->prepare(
+		"SELECT name, url, listing_status FROM {$table} WHERE cct_single_post_id = %d LIMIT 1",
+		$post_id
+	) );
+
+	$status = $row ? trim( (string) $row->listing_status ) : '';
+	$name   = ( $row && '' !== (string) $row->name ) ? $row->name : get_the_title( $post_id );
+	$url    = $row ? trim( (string) $row->url ) : '';
+
+	ob_start();
+	echo '<div id="web-info-container" class="mosque-info-wrapper">';
+
+	if ( isset( $_GET['added'] ) ) {
+		echo '<div class="mfa-mosque-added-banner" role="status">&#10003; Website added! Help us complete its details below.</div>';
+	}
+
+	if ( in_array( $status, array( 'Approved', 'Verified', 'Premium' ), true ) ) {
+		echo '<div class="mosque-actual-content">' . apply_filters( 'the_content', get_the_content( null, false, $post_id ) ) . '</div>';
+
+	} elseif ( '' === $status || in_array( $status, array( 'New', 'Pending' ), true ) ) {
+		?>
+		<div class="mfa-mosque-update">
+			<h1 class="mfa-mosque-update-name"><?php echo esc_html( $name ); ?></h1>
+			<?php if ( '' !== $url ) : ?>
+				<p class="mfa-mosque-update-address"><a href="<?php echo esc_url( $url ); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html( $url ); ?></a></p>
+			<?php endif; ?>
+			<p class="mfa-mosque-update-intro">Full details for this website haven&rsquo;t been generated yet. Click below to fetch and publish up-to-date information.</p>
+			<?php echo do_shortcode( '[mfa_website_update]' ); ?>
+		</div>
+		<?php
+	} else {
+		$show_status = '' !== $status ? $status : 'New';
+		?>
+		<div class="mfa-mosque-pending-card">
+			<h1 class="mfa-mosque-pending-name"><?php echo esc_html( $name ); ?></h1>
+			<?php if ( '' !== $url ) : ?>
+				<p class="mfa-mosque-pending-address"><a href="<?php echo esc_url( $url ); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html( $url ); ?></a></p>
+			<?php endif; ?>
+			<p class="mfa-mosque-pending-status">Status: <span><?php echo esc_html( $show_status ); ?></span></p>
+			<p class="mfa-mosque-pending-remark">We are verifying the information. For any questions, please contact us.</p>
+		</div>
+		<?php
+	}
+
+	echo '</div>';
 	return ob_get_clean();
 }

@@ -267,7 +267,7 @@ function niz_mfa_load_more_web_handler() {
     $limit    = isset($_POST['limit']) ? intval($_POST['limit']) : 9;
     $exclude  = isset($_POST['current_web_id']) ? intval($_POST['current_web_id']) : 0;
 
-    $where_clauses = ["status = 'Approved'"];
+    $where_clauses = ["listing_status IN ('Approved','Verified','Premium')"];
     $params = [];
 
     if ($exclude > 0) {

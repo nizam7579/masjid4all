@@ -336,8 +336,10 @@ function directory_process_business_submission() {
                     ['%d']
                 );
                 
-                // $post_full_url
-                wp_redirect( $post_full_url );
+                // Land on the new business page (flagged ?added=1 for the
+                // one-time "help complete it" banner) in its New state, where
+                // the Click-to-Update button generates the full details.
+                wp_safe_redirect( add_query_arg( 'added', '1', $post_full_url ) );
                 exit;
 
             } else {

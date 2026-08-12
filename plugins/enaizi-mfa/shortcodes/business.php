@@ -217,7 +217,7 @@ add_shortcode('niz_mfa_nearest_business', function($atts) {
 
     $country_list = get_transient('niz_mfa_biz_country_list');
     if (false === $country_list) {
-        $country_list = $wpdb->get_col("SELECT DISTINCT country FROM $table WHERE country IS NOT NULL AND country != '' ORDER BY country ASC");
+        $country_list = $wpdb->get_col("SELECT DISTINCT country FROM $table WHERE country IS NOT NULL AND country != '' AND listing_status IN ('Approved','Verified','Premium') ORDER BY country ASC");
         set_transient('niz_mfa_biz_country_list', $country_list, 12 * HOUR_IN_SECONDS);
     }
     if (empty($country_list)) $country_list = ['Malaysia'];
@@ -304,6 +304,8 @@ function niz_mfa_load_more_businesses_handler() {
         $params[] = $wildcard;
     }
 
+    // Only surface curated listings in the directory.
+    $where_clauses[] = "listing_status IN ('Approved','Verified','Premium')";
     $where_sql = implode(" AND ", $where_clauses);
 
     // FIX 1: Added cct_single_post_id to the SELECT query
@@ -458,14 +460,15 @@ function niz_mfa_load_local_businesses_handler() {
         SELECT _ID, cct_single_post_id, name, address, introduction, page_url, listing_status,
         ( 6371 * acos( cos( radians(%f) ) * cos( radians( latitude ) ) * cos( radians( longitude ) - radians(%f) ) + sin( radians(%f) ) * sin( radians( latitude ) ) ) ) AS distance
         FROM {$table}
-        ORDER BY 
+        WHERE listing_status IN ('Approved','Verified','Premium')
+        ORDER BY
             CASE listing_status
                 WHEN 'Premium' THEN 1
                 WHEN 'Verified' THEN 2
                 WHEN 'Approved' THEN 3
                 WHEN 'Pending' THEN 4
                 WHEN 'New' THEN 5
-                ELSE 6 
+                ELSE 6
             END ASC,
             distance ASC
         LIMIT %d OFFSET %d

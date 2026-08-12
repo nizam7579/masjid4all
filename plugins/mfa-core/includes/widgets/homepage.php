@@ -133,7 +133,7 @@ function mfa_homepage_shortcode() {
 						<h3>📖 Daily Quran</h3>
 						<p>Recite, listen, and reflect on one short surah every visit — in under five minutes.</p>
 						[daily_quran]
-						<a href="/quran" class="mfa-tool-cta">Explore Daily Quran &rarr;</a>
+						<div class="mfa-tool-cta"><a href="/quran" class="mfa-btn mfa-btn-primary">Explore Daily Quran &rarr;</a></div>
 					</div>
 				</div>
 			</div>

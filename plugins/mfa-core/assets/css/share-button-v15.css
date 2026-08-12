@@ -90,11 +90,11 @@
    tall = 186px) with margin. Mobile clears scroll-up's mobile position
    (bottom:210px + ~26px = 236px) with margin, which is already taller
    than the footer nav bar (~63px + safe-area) it also needs to clear. */
-body.wp-theme-kadence {
+body.wp-theme-kadence, body.mfa-site {
   padding-bottom: 200px;
 }
 @media (max-width: 782px) {
-  body.wp-theme-kadence {
+  body.wp-theme-kadence, body.mfa-site {
     padding-bottom: 260px;
   }
 }

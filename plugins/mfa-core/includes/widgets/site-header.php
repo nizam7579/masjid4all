@@ -100,8 +100,10 @@ function mfa_site_header_shortcode() {
 				</div>
 
 				<?php if ( $is_logged_in ) : ?>
-					<a href="/member/" class="mfa-header-mobile-account">My Account</a>
-					<?php echo do_shortcode( '[niz_user_logout]' ); ?>
+					<div class="mfa-header-mobile-account-row">
+						<a href="/member/" class="mfa-header-mobile-account">My Account</a>
+						<?php echo do_shortcode( '[niz_user_logout]' ); ?>
+					</div>
 				<?php else : ?>
 					<a href="/member/" class="mfa-header-mobile-account">Login/Register to My Account &rarr;</a>
 				<?php endif; ?>

@@ -259,6 +259,40 @@ body.wp-theme-kadence, body.mfa-site { padding-top: 64px !important; }
   margin-bottom: 16px;
 }
 
+/* Logged-in state: "My Account" and the logout button share one row, with
+   the logout given a clear bordered look (was an unclear white glyph on the
+   grey popup background). */
+.mfa-header-mobile-account-row {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.mfa-header-mobile-account-row .mfa-header-mobile-account {
+  flex: 1;
+  margin-bottom: 0;
+}
+.mfa-header-mobile-account-row .niz-user-logout-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 46px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid #cfe2df;
+  background: #ffffff;
+  color: #0d4d47;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+.mfa-header-mobile-account-row .niz-user-logout-btn:hover {
+  background: #0d4d47;
+  color: #ffffff;
+  border-color: #0d4d47;
+}
+
 .mfa-header-mobile-group {
   display: flex;
   flex-direction: column;

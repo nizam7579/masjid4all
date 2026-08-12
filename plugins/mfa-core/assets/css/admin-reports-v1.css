@@ -93,11 +93,12 @@
 .mfa-report-plot {
   position: relative;
   display: flex;
-  align-items: flex-end;
+  align-items: stretch;
   height: 240px;
 }
 .mfa-report-bar-col {
   flex: 1;
+  height: 100%;
   display: flex;
   justify-content: center;
   align-items: flex-end;

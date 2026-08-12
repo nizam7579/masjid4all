@@ -113,6 +113,7 @@ function niz_mfa_mosques_callback() {
     $longitude= get_cct_mosque_data($item_id, 'longitude');
     $website  = get_cct_mosque_data($item_id, 'website');
     $place_id = get_cct_mosque_data($item_id, 'place_id');
+    $old_status = get_cct_mosque_data($item_id, 'listing_status');
     $data     = "Name: $name, Address: $address, Latitude: $latitude, Longitude: $longitude, Website: $website, City: $country, Country: $country, PlaceID: $place_id";
     
     $result = mosques_perplexity($data);
@@ -151,6 +152,12 @@ function niz_mfa_mosques_callback() {
     
     save_cct_mosque_data( $item_id, 'business_status', 'Updated' );
     save_cct_mosque_data( $item_id, 'listing_status', $status );
+
+    // Barakah Point, if newly Approved (mirrors the business/website updaters).
+    if ( ( in_array( $old_status, array( 'New', 'Pending' ), true ) || empty( $old_status ) ) && 'Approved' === $status && function_exists( 'niz_user_add_points' ) ) {
+        $author_id = get_post_field( 'post_author', $post_id );
+        niz_user_add_points( $author_id, 'Add Mosque - ' . $name, 10 );
+    }
 
     if (!empty(trim($country))) {
         save_cct_mosque_data($item_id,'country',sanitize_text_field($country));

@@ -299,9 +299,10 @@ function directory_process_mosque_submission() {
                     'rating_count'    => $rating_count,
                     'business_status' => $mosque_status,
                     'listing_status'  => 'New',
+                    'cct_author_id'   => get_current_user_id(),
                    'opening_hours'   => $opening_hours
                 ),
-                array('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')
+                array('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')
             );
 
             if ( $inserted ) {
@@ -312,6 +313,7 @@ function directory_process_mosque_submission() {
                     'post_title'   => $name,
                     'post_status'  => 'publish',
                     'post_type'    => 'masjid',
+                    'post_author'  => get_current_user_id(),
                     'meta_input'   => array(
                         'item_id'  => $new_cct_id
                     )

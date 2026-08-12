@@ -50,32 +50,15 @@
   box-shadow: var(--mfa-shadow-card, 0 8px 24px rgba(0, 0, 0, 0.06));
   overflow-x: auto;
 }
-/* Legend */
-.mfa-report-legend {
-  display: flex;
-  gap: 20px;
-  margin-bottom: 16px;
-  font-size: 13px;
-  color: var(--mfa-muted, #5b6b66);
+/* Chart card title + spacing between the two stacked charts */
+.mfa-report-chart-title {
+  margin: 0 0 16px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--mfa-ink, #12181f);
 }
-.mfa-report-legend-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-.mfa-report-legend-swatch {
-  width: 16px;
-  height: 12px;
-  border-radius: 3px;
-  flex-shrink: 0;
-}
-.mfa-report-legend-bar {
-  background: linear-gradient(180deg, var(--mfa-teal, #25988b) 0%, var(--mfa-green-dark, #0d4d47) 100%);
-}
-.mfa-report-legend-line {
-  height: 3px;
-  border-radius: 2px;
-  background: #f0932b;
+.mfa-report-chart-card + .mfa-report-chart-card {
+  margin-top: var(--mfa-space-5, 20px);
 }
 
 /* Chart = value row + plot (bars + cumulative line) + month axis, all sharing

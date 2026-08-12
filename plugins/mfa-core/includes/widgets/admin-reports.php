@@ -55,6 +55,11 @@ function mfa_admin_reports_shortcode() {
 	}
 	$line_points = implode( ' ', $line_points );
 
+	// Area under the cumulative line (closed down to the baseline at both ends).
+	$first_x     = round( 0.5 / 12 * 100, 2 );
+	$last_x      = round( 11.5 / 12 * 100, 2 );
+	$area_points = $first_x . ',100 ' . $line_points . ' ' . $last_x . ',100';
+
 	ob_start();
 	?>
 	<div class="mfa-report">
@@ -79,11 +84,8 @@ function mfa_admin_reports_shortcode() {
 		</div>
 
 		<div class="mfa-report-chart-card">
-			<div class="mfa-report-legend">
-				<span class="mfa-report-legend-item"><span class="mfa-report-legend-swatch mfa-report-legend-bar"></span>Monthly registrations</span>
-				<span class="mfa-report-legend-item"><span class="mfa-report-legend-swatch mfa-report-legend-line"></span>Cumulative total</span>
-			</div>
-			<div class="mfa-report-chart" role="img" aria-label="New member registrations by month for <?php echo esc_attr( $year ); ?>, with cumulative total">
+			<h2 class="mfa-report-chart-title">Monthly registrations</h2>
+			<div class="mfa-report-chart" role="img" aria-label="New member registrations by month for <?php echo esc_attr( $year ); ?>">
 				<div class="mfa-report-vals">
 					<?php for ( $i = 1; $i <= 12; $i++ ) : ?>
 						<span class="mfa-report-bar-val"><?php echo esc_html( number_format_i18n( $counts[ $i ] ) ); ?></span>
@@ -97,7 +99,26 @@ function mfa_admin_reports_shortcode() {
 							<div class="mfa-report-bar" style="height: <?php echo esc_attr( $height ); ?>%;"></div>
 						</div>
 					<?php endfor; ?>
+				</div>
+				<div class="mfa-report-xaxis">
+					<?php for ( $i = 1; $i <= 12; $i++ ) : ?>
+						<span class="mfa-report-bar-lbl"><?php echo esc_html( $labels[ $i - 1 ] ); ?></span>
+					<?php endfor; ?>
+				</div>
+			</div>
+		</div>
+
+		<div class="mfa-report-chart-card">
+			<h2 class="mfa-report-chart-title">Cumulative total</h2>
+			<div class="mfa-report-chart" role="img" aria-label="Cumulative member total by month for <?php echo esc_attr( $year ); ?>">
+				<div class="mfa-report-vals">
+					<?php for ( $i = 1; $i <= 12; $i++ ) : ?>
+						<span class="mfa-report-bar-val"><?php echo esc_html( number_format_i18n( $cumulative[ $i ] ) ); ?></span>
+					<?php endfor; ?>
+				</div>
+				<div class="mfa-report-plot mfa-report-plot--line">
 					<svg class="mfa-report-line" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+						<polygon points="<?php echo esc_attr( $area_points ); ?>" fill="rgba(240,147,43,0.14)" stroke="none"></polygon>
 						<polyline points="<?php echo esc_attr( $line_points ); ?>" fill="none" stroke="#f0932b" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"></polyline>
 					</svg>
 				</div>

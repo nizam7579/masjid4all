@@ -274,14 +274,12 @@ function niz_user_namecard_shortcode() {
     }
     
     $post_id   = niz_user_field_by_userid($user_id, 'post_id');
- 
-    $image_url = get_the_post_thumbnail( $post_id, 'large', array(
-        'class' => 'custom-thumbnail-class',
-        'alt'   => get_the_title( $post_id )
-    ) );
-    
-    $ret       = $image_url ;
- 
+
+    // The banner (featured image) + avatar are rendered by the card page
+    // template (single.php, category 39) now, so the shortcode no longer emits
+    // the featured image itself - avoids showing the banner twice.
+    $ret       = '';
+
     $namecard  = niz_user_field_by_userid($user_id, 'namecard');
     $name      = niz_user_field_by_userid($user_id, 'name');
     $job_title = niz_user_field_by_userid($user_id, 'job_title');

@@ -9,11 +9,12 @@ if ( ! defined( 'ABSPATH' ) ) {
  * admin-business-list.php. Reads wp_jet_cct_web directly via $wpdb, never
  * the JetEngine PHP API, per the project's standing rule.
  *
- * Unlike mosque/business, this table has two status-ish fields - checked
- * actual data before picking one: `status` is the well-populated field
- * (593 rows, only 4 blank/null - Approved/Updated/Pending/Failed/Rejected/
- * New) while `listing_status` is 77% null (457 of 593) and looks vestigial.
- * So `status` is used here as the filter/badge field, not listing_status.
+ * This table has two status-ish fields (`status` and `listing_status`).
+ * `listing_status` is now the authoritative field - the web directory,
+ * single template, and add-website flow were all migrated onto it (Approved/
+ * Verified/Premium gate content + directory visibility; New/Pending are
+ * updatable), so the admin filter/badge use listing_status too, consistent
+ * with mosque/business. The older `status` column is left in place untouched.
  *
  * `category` is well distributed here (unlike business's <0.2% fill rate)
  * so it's exposed as a filter. There's no cached page_url column like
@@ -39,7 +40,9 @@ function mfa_admin_website_list_shortcode() {
 	$paged          = isset( $_GET['paged'] ) ? max( 1, absint( $_GET['paged'] ) ) : 1;
 	$per_page       = 25;
 
-	$status_options   = $wpdb->get_col( "SELECT DISTINCT status FROM {$cct_table} WHERE status IS NOT NULL AND TRIM(status) != '' ORDER BY status ASC" );
+	// Fixed managed status set, filtered on listing_status (now the authoritative
+	// field for the web directory/single, same as business/mosque).
+	$status_options   = array( 'New', 'Pending', 'Approved', 'Verified', 'Premium', 'Rejected', 'Error', 'Deleted' );
 	$category_options = $wpdb->get_col( "SELECT DISTINCT category FROM {$cct_table} WHERE category IS NOT NULL AND TRIM(category) != '' ORDER BY category ASC" );
 	$country_options  = $wpdb->get_col( "SELECT DISTINCT country FROM {$cct_table} WHERE country IS NOT NULL AND TRIM(country) != '' ORDER BY country ASC" );
 
@@ -55,7 +58,7 @@ function mfa_admin_website_list_shortcode() {
 	}
 
 	if ( '' !== $status_filter && in_array( $status_filter, $status_options, true ) ) {
-		$where[]  = 'status = %s';
+		$where[]  = 'listing_status = %s';
 		$params[] = $status_filter;
 	}
 
@@ -78,7 +81,7 @@ function mfa_admin_website_list_shortcode() {
 	$paged       = min( $paged, $total_pages );
 	$offset      = ( $paged - 1 ) * $per_page;
 
-	$data_sql    = "SELECT _ID, name, city, country, category, status, cct_single_post_id FROM {$cct_table} WHERE {$where_sql} ORDER BY _ID DESC LIMIT %d OFFSET %d";
+	$data_sql    = "SELECT _ID, name, city, country, category, listing_status, cct_single_post_id FROM {$cct_table} WHERE {$where_sql} ORDER BY _ID DESC LIMIT %d OFFSET %d";
 	$data_params = array_merge( $params, array( $per_page, $offset ) );
 	$rows        = $wpdb->get_results( $wpdb->prepare( $data_sql, $data_params ), ARRAY_A );
 
@@ -148,8 +151,8 @@ function mfa_admin_website_list_shortcode() {
 								<td data-label="Country"><?php echo esc_html( $row['country'] ? $row['country'] : '—' ); ?></td>
 								<td data-label="Category"><?php echo esc_html( $row['category'] ? $row['category'] : '—' ); ?></td>
 								<td data-label="Status">
-									<?php if ( ! empty( $row['status'] ) ) : ?>
-										<span class="mfa-admin-status-badge mfa-admin-status-<?php echo esc_attr( sanitize_html_class( strtolower( $row['status'] ) ) ); ?>"><?php echo esc_html( $row['status'] ); ?></span>
+									<?php if ( ! empty( $row['listing_status'] ) ) : ?>
+										<span class="mfa-admin-status-badge mfa-admin-status-<?php echo esc_attr( sanitize_html_class( strtolower( $row['listing_status'] ) ) ); ?>"><?php echo esc_html( $row['listing_status'] ); ?></span>
 									<?php else : ?>
 										<span class="mfa-admin-status-badge mfa-admin-status-none">—</span>
 									<?php endif; ?>

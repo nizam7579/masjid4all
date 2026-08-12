@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 
 function mfa_admin_mosque_status_options() {
-	return array( 'Pending', 'Approved', 'Rejected' );
+	return array( 'New', 'Pending', 'Approved', 'Active', 'Rejected', 'Error', 'Deleted' );
 }
 
 add_shortcode( 'mfa_admin_mosque_list', 'mfa_admin_mosque_list_shortcode' );

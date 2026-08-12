@@ -32,9 +32,10 @@ function mfa_admin_business_list_shortcode() {
 	$paged          = isset( $_GET['paged'] ) ? max( 1, absint( $_GET['paged'] ) ) : 1;
 	$per_page       = 25;
 
-	// Built from actual data, not hardcoded - business's status set differs
-	// from mosque's (has an extra "New" value).
-	$status_options  = $wpdb->get_col( "SELECT DISTINCT listing_status FROM {$cct_table} WHERE listing_status IS NOT NULL AND TRIM(listing_status) != '' ORDER BY listing_status ASC" );
+	// Fixed managed status set so every status is selectable even when none
+	// exist in the data yet (New/Pending/Approved/Verified/Premium/Rejected/
+	// Error/Deleted).
+	$status_options  = array( 'New', 'Pending', 'Approved', 'Verified', 'Premium', 'Rejected', 'Error', 'Deleted' );
 	$country_options = $wpdb->get_col( "SELECT DISTINCT country FROM {$cct_table} WHERE country IS NOT NULL AND TRIM(country) != '' ORDER BY country ASC" );
 
 	$where  = array( '1=1' );

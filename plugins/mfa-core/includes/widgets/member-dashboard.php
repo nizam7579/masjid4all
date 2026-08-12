@@ -52,15 +52,34 @@ function mfa_member_dashboard_shortcode() {
 	$cct_status   = function_exists( 'niz_user_field_by_userid' ) ? niz_user_field_by_userid( $user_id, 'status' ) : '';
 	$status_label = $cct_status ? $cct_status : 'Free Member';
 
-	$points = function_exists( 'mfa_get_barakah_points' ) ? mfa_get_barakah_points( $user_id ) : 0;
-	$rank   = function_exists( 'mfa_get_barakah_rank' ) ? mfa_get_barakah_rank( $points ) : array( 'rank' => 'Bronze', 'next_rank' => 'Silver', 'next_at' => 500, 'points_to_next' => 500 );
+	$namecard_slug = function_exists( 'niz_user_field_by_userid' ) ? niz_user_field_by_userid( $user_id, 'namecard' ) : '';
 
 	$has_joined_award  = function_exists( 'mfa_has_barakah_award' ) && mfa_has_barakah_award( $user_id, 'Welcome Bonus' );
+
+	// Backfill the Welcome Bonus for members who never received it (registered
+	// before it was wired up, or via a path that skipped it) - award it the
+	// first time they open the dashboard so the checklist reflects reality.
+	// mfa_award_points() is dedup-safe, so this is a no-op once granted.
+	if ( ! $has_joined_award && function_exists( 'mfa_award_points' ) ) {
+		$welcome_award = mfa_award_points( $user_id, 'Welcome Bonus', 50 );
+		if ( ! empty( $welcome_award['success'] ) ) {
+			$has_joined_award = true;
+		}
+	}
+
+	// "Create Name Card" onboarding step: once the member actually has a name
+	// card, grant its +25 (dedup-safe, same backfill pattern as above).
+	$has_namecard_award = ! empty( $namecard_slug );
+	if ( $has_namecard_award && function_exists( 'mfa_award_points' ) ) {
+		mfa_award_points( $user_id, 'Create Name Card', 25 );
+	}
+
 	$has_email_award   = function_exists( 'mfa_has_barakah_award' ) && mfa_has_barakah_award( $user_id, 'Verify Email' );
 	$has_wa_award      = function_exists( 'mfa_has_barakah_award' ) && mfa_has_barakah_award( $user_id, 'Verify WhatsApp' );
 	$has_profile_award = function_exists( 'mfa_has_barakah_award' ) && mfa_has_barakah_award( $user_id, 'Complete Profile' );
 
-	$namecard_slug = function_exists( 'niz_user_field_by_userid' ) ? niz_user_field_by_userid( $user_id, 'namecard' ) : '';
+	$points = function_exists( 'mfa_get_barakah_points' ) ? mfa_get_barakah_points( $user_id ) : 0;
+	$rank   = function_exists( 'mfa_get_barakah_rank' ) ? mfa_get_barakah_rank( $points ) : array( 'rank' => 'Bronze', 'next_rank' => 'Silver', 'next_at' => 500, 'points_to_next' => 500 );
 
 	global $wpdb;
 	$listing_count = (int) $wpdb->get_var(
@@ -268,23 +287,23 @@ function mfa_member_dashboard_shortcode() {
 						</div>
 					<?php endif; ?>
 				</div>
-			</div>
-		</section>
-
-		<section class="mfa-dash-namecard-section mfa-dash-section-divided">
-			<div class="mfa-card mfa-dash-namecard-card">
-				<h3 class="mfa-h3">Digital Name Card</h3>
-				<?php if ( empty( $namecard_slug ) ) : ?>
-					<p class="mfa-body-muted">Create a shareable digital business card with your own link and QR code.</p>
-					<button type="button" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm" data-mfa-modal-open="mfa-namecard-modal">Create My Digital Name Card</button>
-				<?php else : ?>
-					<?php $namecard_url = function_exists( 'mfa_get_member_namecard_url' ) ? mfa_get_member_namecard_url( $user_id ) : home_url( '/' . $namecard_slug . '/' ); ?>
-					<p class="mfa-body-muted">Your card is live at <?php echo esc_html( $namecard_url ); ?></p>
-					<div class="mfa-dash-btn-group">
-						<button type="button" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm" data-mfa-modal-open="mfa-namecard-modal">Update Name Card</button>
-						<a href="<?php echo esc_url( $namecard_url ); ?>" target="_blank" rel="noopener" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm">View Name Card</a>
-					</div>
-				<?php endif; ?>
+				<div class="mfa-card mfa-dash-security-card" id="mfa-dash-namecard">
+					<h3 class="mfa-h3">Digital Name Card</h3>
+					<?php if ( empty( $namecard_slug ) ) : ?>
+						<div class="mfa-dash-card-row">
+							<span class="mfa-body-muted">Not created yet</span>
+							<button type="button" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm" data-mfa-modal-open="mfa-namecard-modal">Create Name Card</button>
+						</div>
+						<p class="mfa-dash-card-note">A shareable digital business card with your own link and QR code.</p>
+					<?php else : ?>
+						<?php $namecard_url = function_exists( 'mfa_get_member_namecard_url' ) ? mfa_get_member_namecard_url( $user_id ) : home_url( '/' . $namecard_slug . '/' ); ?>
+						<div class="mfa-dash-card-row">
+							<span class="mfa-dash-verified">&#10003; Created</span>
+							<button type="button" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm" data-mfa-modal-open="mfa-namecard-modal">Update Card</button>
+						</div>
+						<a href="<?php echo esc_url( $namecard_url ); ?>" target="_blank" rel="noopener" class="mfa-dash-link-btn mfa-dash-change-email-btn">View your card &rarr;</a>
+					<?php endif; ?>
+				</div>
 			</div>
 		</section>
 
@@ -324,11 +343,26 @@ function mfa_member_dashboard_shortcode() {
 						<span>Verify WhatsApp</span>
 						<span class="mfa-dash-check-pts">+25</span>
 					</li>
+						<li class="<?php echo $has_namecard_award ? 'is-done' : ''; ?>">
+							<span class="mfa-dash-check"><?php echo $has_namecard_award ? '&#10003;' : ''; ?></span>
+							<span>Create Name Card</span>
+							<span class="mfa-dash-check-pts">+25</span>
+						</li>
+						<li class="<?php echo $has_affiliate ? 'is-done' : ''; ?>">
+							<span class="mfa-dash-check"><?php echo $has_affiliate ? '&#10003;' : ''; ?></span>
+							<span>Join Affiliate Program</span>
+							<span class="mfa-dash-check-pts">+100</span>
+						</li>
+						<li class="<?php echo $is_premium ? 'is-done' : ''; ?>">
+							<span class="mfa-dash-check"><?php echo $is_premium ? '&#10003;' : ''; ?></span>
+							<span>Join as Founding Member</span>
+							<span class="mfa-dash-check-pts">+1000</span>
+						</li>
 				</ul>
 
 				<div class="mfa-dash-points-actions">
-					<button type="button" class="mfa-dash-link-btn" data-mfa-modal-open="mfa-barakah-history-modal">View My Barakah Points</button>
-					<button type="button" class="mfa-dash-link-btn" data-mfa-modal-open="mfa-barakah-info-modal">About Barakah Points</button>
+					<button type="button" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm" data-mfa-modal-open="mfa-barakah-history-modal">View My Barakah Points</button>
+					<button type="button" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm" data-mfa-modal-open="mfa-barakah-info-modal">About Barakah Points</button>
 				</div>
 			</div>
 

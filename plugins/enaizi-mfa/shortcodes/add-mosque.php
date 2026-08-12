@@ -185,6 +185,7 @@ function directory_add_mosque_shortcode() {
 			<input type="hidden" id="wp-mosque-status" name="mosque_status">
 			<input type="hidden" id="wp-mosque-introduction" name="mosque_introduction">
 			<input type="hidden" id="wp-mosque-opening-hours" name="mosque_opening_hours">
+				<?php wp_nonce_field( 'mfa_add_mosque', 'mfa_add_mosque_nonce' ); ?>
 
 			<div id="mosque-submit-container" style="display: none; margin-top: 20px;">
 				<button type="submit" name="submit_mosque" class="button button-primary" style="padding: 12px 30px; background: #0073aa; color: #fff; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size:1em; width:100%;">Add Mosque to Directory</button>
@@ -205,13 +206,18 @@ function directory_process_mosque_submission() {
     global $wpdb, $directory_form_feedback;
     
     if ( isset($_POST['submit_mosque']) && is_user_logged_in() ) {
-        
+
+        // CSRF guard: only accept submissions that carry our nonce.
+        if ( ! isset($_POST['mfa_add_mosque_nonce']) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['mfa_add_mosque_nonce'] ) ), 'mfa_add_mosque' ) ) {
+            return;
+        }
+
         $place_id        = sanitize_text_field($_POST['mosque_place_id']);
         $name            = sanitize_text_field($_POST['mosque_name']);
         $latitude        = sanitize_text_field($_POST['mosque_lat']);
         $longitude       = sanitize_text_field($_POST['mosque_lng']);
         $type            = sanitize_text_field($_POST['mosque_primary_type']);
-        $types           = $_POST['mosque_all_types']; 
+        $types           = sanitize_text_field( wp_unslash( $_POST['mosque_all_types'] ) );
         $address         = sanitize_text_field($_POST['mosque_address']);
         $city            = sanitize_text_field($_POST['mosque_city']);
         $country         = sanitize_text_field($_POST['mosque_country']);
@@ -220,7 +226,7 @@ function directory_process_mosque_submission() {
         $rating          = sanitize_text_field($_POST['mosque_rating']);
         $rating_count    = sanitize_text_field($_POST['mosque_rating_count']);
         $mosque_status = sanitize_text_field($_POST['mosque_status']);
-        $opening_hours   = $_POST['mosque_opening_hours']; 
+        $opening_hours   = sanitize_text_field( wp_unslash( $_POST['mosque_opening_hours'] ) );
 
         if ( empty($place_id) ) {
             return;
@@ -261,9 +267,16 @@ function directory_process_mosque_submission() {
             );
 
             $mosque_url = !empty($existing_mosque->page_url) ? $existing_mosque->page_url : '#';
+
+            // Already listed: send them straight to the existing mosque page.
+            if ( '#' !== $mosque_url ) {
+                wp_safe_redirect( $mosque_url );
+                exit;
+            }
+
             $directory_form_feedback = '<div style="background-color: #e2f0d9; color: #385723; padding: 15px; border-left: 5px solid #a9d18e; margin-bottom: 20px; border-radius:4px;">';
             $directory_form_feedback .= '<strong>Listing Updated!</strong><br>';
-            $directory_form_feedback .= '<a href="' . esc_url($mosque_url) . '" style="font-weight:bold; text-decoration:underline;">View Business Page</a>';
+            $directory_form_feedback .= '<a href="' . esc_url($mosque_url) . '" style="font-weight:bold; text-decoration:underline;">View Mosque Page</a>';
             $directory_form_feedback .= '</div>';
 
         } else {
@@ -320,11 +333,19 @@ function directory_process_mosque_submission() {
                         array('%d', '%s'),
                         array('%d')
                     );
+
+                    // Take the user straight to their new mosque page, flagged
+                    // ?added=1 so it shows a one-time "help complete it" banner,
+                    // where they can generate the full details (New -> button).
+                    if ( $post_full_url && '#' !== $post_full_url ) {
+                        wp_safe_redirect( add_query_arg( 'added', '1', $post_full_url ) );
+                        exit;
+                    }
                 }
 
                 $directory_form_feedback = '<div style="background-color: #d4edda; color: #155724; padding: 15px; border-left: 5px solid #c3e6cb; margin-bottom: 20px; border-radius:4px;">';
-                $directory_form_feedback .= '<strong>Business Page Created – ' . esc_html($name) . '</strong><br>';
-                $directory_form_feedback .= '<a href="' . esc_url($post_full_url) . '" style="font-weight:bold; text-decoration:underline;">View Business Page</a>';
+                $directory_form_feedback .= '<strong>Mosque Page Created – ' . esc_html($name) . '</strong><br>';
+                $directory_form_feedback .= '<a href="' . esc_url($post_full_url) . '" style="font-weight:bold; text-decoration:underline;">View Mosque Page</a>';
                 $directory_form_feedback .= '</div>';
             }
         }

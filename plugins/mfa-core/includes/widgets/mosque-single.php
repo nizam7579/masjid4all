@@ -98,6 +98,12 @@ function mfa_mosque_info_display( $post_id ) {
 	ob_start();
 	echo '<div id="mosque-info-container" class="mosque-info-wrapper">';
 
+	// One-time confirmation shown right after a fresh /add-mosque submission
+	// (which redirects here with ?added=1).
+	if ( isset( $_GET['added'] ) ) {
+		echo '<div class="mfa-mosque-added-banner" role="status">&#10003; Mosque added! Help us complete its details below.</div>';
+	}
+
 	if ( in_array( $status, array( 'Approved', 'Active' ), true ) ) {
 		echo '<div class="mosque-actual-content">' . apply_filters( 'the_content', get_the_content( null, false, $post_id ) ) . '</div>';
 

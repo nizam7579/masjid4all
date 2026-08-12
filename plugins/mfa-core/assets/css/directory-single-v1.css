@@ -67,6 +67,18 @@
   .mfa-dir-body { grid-template-columns: 1fr; gap: var(--mfa-space-6, 24px); }
 }
 
+/* One-time confirmation banner after a fresh /add-mosque submission
+   (mosque single, ?added=1). */
+.mfa-mosque-added-banner {
+  background: #e7f5ec;
+  border: 1px solid #b6e0c4;
+  color: #17663a;
+  font-weight: 600;
+  padding: 14px 18px;
+  border-radius: var(--mfa-radius-md, 16px);
+  margin: 0 0 20px;
+}
+
 /* ---------- Single-mosque non-approved states (see mosque-single.php) ----------
    Pending -> "Click to Update" AI-generate card; New/Rejected/Error/Deleted ->
    name + address + status + "we're verifying" remark. */

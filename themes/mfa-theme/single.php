@@ -37,7 +37,11 @@ while ( have_posts() ) :
 			</div>
 			<div class="mfa-namecard-promo">
 				<h3>Digital Namecard by Masjid4All</h3>
-				<a href="/member" class="mfa-namecard-promo-link">Get Your FREE Namecard NOW</a>
+				<?php if ( is_user_logged_in() ) : ?>
+					<a href="/member" class="mfa-namecard-promo-link">Back to Dashboard</a>
+				<?php else : ?>
+					<a href="/member" class="mfa-namecard-promo-link">Get Your FREE Namecard NOW</a>
+				<?php endif; ?>
 			</div>
 		</div>
 		<?php

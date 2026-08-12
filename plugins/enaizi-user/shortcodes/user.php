@@ -344,6 +344,11 @@ function niz_user_namecard_shortcode() {
     }
     $ret .= '  </div>';
      
+    // Introduction (rendered above the social buttons).
+    if ( ! empty($intro) ) {
+        $ret .= '<div class="niz-card-intro">' . wpautop(wp_kses_post($intro)) . '</div>';
+    }
+
     // Social Buttons
     $buttons_html = '';
     if ( ! empty($phone) ) {
@@ -390,10 +395,7 @@ function niz_user_namecard_shortcode() {
         $ret .= '  <div class="niz-buttons-wrapper">' . $buttons_html . '</div>';
     }
     
-    // Introduction
-    if ( ! empty($intro) ) {
-        $ret .= '<div class="niz-card-intro">' . wpautop(wp_kses_post($intro)) . '</div>';
-    }
+    // (Introduction is now rendered above the social buttons.)
 
     // Featured Products (No Title, Top-Aligned, 40/60 Split)
     $featured_html = '';

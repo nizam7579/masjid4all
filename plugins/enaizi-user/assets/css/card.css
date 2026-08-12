@@ -68,25 +68,25 @@
    3. SOCIAL BUTTONS GRID SYSTEM (BASE STYLES)
    ========================================================================== */
 .niz-buttons-wrapper {
-    display: flex !important;
-    flex-direction: column !important;   /* Modern full-width stacked "link list" layout */
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;   /* Two-column button grid */
     gap: 10px !important;
-    margin: 22px auto 8px !important;
+    margin: 20px auto 8px !important;
     width: 100% !important;
-    max-width: 380px !important;
+    max-width: 420px !important;
 }
 
 .niz-btn {
     display: flex !important;
     align-items: center;
-    justify-content: flex-start;         /* icon left, label follows */
-    gap: 12px;
+    justify-content: center;             /* icon + label centred as a group */
+    gap: 9px;
     width: 100%;
     text-decoration: none !important;
-    padding: 13px 18px;
+    padding: 12px 12px;
     border-radius: 12px;
     font-weight: 600;
-    font-size: 15px;
+    font-size: 14px;
     color: #ffffff !important;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
     transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
@@ -97,12 +97,12 @@
     filter: brightness(1.04);
 }
 .niz-btn i {
-    font-size: 18px;
-    width: 24px;
+    font-size: 16px;
+    width: 18px;
     text-align: center;
     flex-shrink: 0;
 }
-.niz-btn span { flex: 1; }
+.niz-btn span { flex: 0 0 auto; white-space: nowrap; }
 
 /* Brand Background Colors */
 .niz-btn-phone      { background: #1E3A8A; }
@@ -208,11 +208,14 @@
     .niz-buttons-wrapper {
         max-width: 100% !important;
         padding: 0 !important;
+        gap: 8px !important;
     }
 
     .niz-btn {
-        padding: 13px 16px;
-        font-size: 14.5px;
+        padding: 11px 8px;
+        font-size: 13.5px;
+        gap: 7px;
     }
+    .niz-btn i { font-size: 15px; width: 16px; }
 }
 

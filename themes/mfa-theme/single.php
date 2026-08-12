@@ -21,6 +21,17 @@ while ( have_posts() ) :
 		?>
 		<div class="mfa-namecard-single">
 			<div class="mfa-namecard-card">
+				<?php
+				$mfa_nc_author = (int) get_post_field( 'post_author', get_the_ID() );
+				$mfa_nc_photo  = $mfa_nc_author ? get_user_meta( $mfa_nc_author, 'niz_namecard_photo', true ) : '';
+				$mfa_nc_banner = get_the_post_thumbnail_url( get_the_ID(), 'large' );
+				?>
+				<?php if ( $mfa_nc_banner ) : ?>
+					<div class="mfa-namecard-banner"><img src="<?php echo esc_url( $mfa_nc_banner ); ?>" alt="" loading="lazy"></div>
+				<?php endif; ?>
+				<?php if ( $mfa_nc_photo ) : ?>
+					<div class="mfa-namecard-avatar<?php echo $mfa_nc_banner ? ' mfa-namecard-avatar--over' : ''; ?>"><img src="<?php echo esc_url( $mfa_nc_photo ); ?>" alt="<?php echo esc_attr( get_the_title() ); ?>"></div>
+				<?php endif; ?>
 				<?php the_content(); ?>
 				<?php echo do_shortcode( '[current_page_qr]' ); ?>
 			</div>

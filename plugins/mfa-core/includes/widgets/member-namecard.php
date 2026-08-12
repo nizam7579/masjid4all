@@ -173,9 +173,50 @@ function mfa_member_namecard_shortcode() {
 					'ID'           => $post_id,
 					'post_content' => '[niz_user_namecard]',
 				) );
+
+				// Image uploads (attached to the card post):
+				//  - profile photo -> user meta niz_namecard_photo (shown as the
+				//    avatar on the card),
+				//  - banner        -> the post's featured image (also the card's
+				//    og:image), URL mirrored into affiliate_banner.
+				if ( ! empty( $_FILES['namecard_photo']['name'] ) || ! empty( $_FILES['namecard_banner']['name'] ) ) {
+					require_once ABSPATH . 'wp-admin/includes/image.php';
+					require_once ABSPATH . 'wp-admin/includes/file.php';
+					require_once ABSPATH . 'wp-admin/includes/media.php';
+					$img_overrides = array(
+						'test_form' => false,
+						'mimes'     => array(
+							'jpg|jpeg|jpe' => 'image/jpeg',
+							'png'          => 'image/png',
+							'webp'         => 'image/webp',
+							'gif'          => 'image/gif',
+						),
+					);
+
+					if ( ! empty( $_FILES['namecard_photo']['name'] ) ) {
+						$photo_id = media_handle_upload( 'namecard_photo', $post_id, array(), $img_overrides );
+						if ( is_wp_error( $photo_id ) ) {
+							$error = 'Photo upload failed: ' . $photo_id->get_error_message();
+						} else {
+							update_user_meta( $user_id, 'niz_namecard_photo', esc_url_raw( wp_get_attachment_url( $photo_id ) ) );
+						}
+					}
+
+					if ( ! empty( $_FILES['namecard_banner']['name'] ) ) {
+						$banner_id = media_handle_upload( 'namecard_banner', $post_id, array(), $img_overrides );
+						if ( is_wp_error( $banner_id ) ) {
+							$error = 'Banner upload failed: ' . $banner_id->get_error_message();
+						} else {
+							set_post_thumbnail( $post_id, $banner_id );
+							niz_user_update_field( $user_id, 'affiliate_banner', esc_url_raw( wp_get_attachment_url( $banner_id ) ) );
+						}
+					}
+				}
 			}
 
-			$saved_message = 'Your name card has been updated.';
+			if ( '' === $error ) {
+				$saved_message = 'Your name card has been updated.';
+			}
 		}
 	}
 
@@ -206,8 +247,26 @@ function mfa_member_namecard_shortcode() {
 		<?php else : ?>
 			<p class="mfa-body-muted">Your name card is live at <a href="<?php echo esc_url( $card_url ); ?>" target="_blank" rel="noopener"><?php echo esc_html( $card_url ); ?></a></p>
 
-			<form method="post" class="mfa-modal-form">
+			<form method="post" enctype="multipart/form-data" class="mfa-modal-form">
 				<?php wp_nonce_field( 'mfa_namecard_update', 'mfa_namecard_nonce' ); ?>
+				<div class="mfa-form-row">
+					<div class="mfa-form-group">
+						<label for="namecard_photo">Profile Photo</label>
+						<?php $cur_photo = get_user_meta( $user_id, 'niz_namecard_photo', true ); ?>
+						<?php if ( $cur_photo ) : ?>
+							<img src="<?php echo esc_url( $cur_photo ); ?>" alt="" class="mfa-namecard-form-thumb mfa-namecard-form-thumb-photo">
+						<?php endif; ?>
+						<input type="file" id="namecard_photo" name="namecard_photo" accept="image/*">
+					</div>
+					<div class="mfa-form-group">
+						<label for="namecard_banner">Banner <span class="mfa-body-muted">(featured image)</span></label>
+						<?php $cur_banner = get_the_post_thumbnail_url( mfa_get_member_namecard_post_id( $user_id ), 'medium' ); ?>
+						<?php if ( $cur_banner ) : ?>
+							<img src="<?php echo esc_url( $cur_banner ); ?>" alt="" class="mfa-namecard-form-thumb mfa-namecard-form-thumb-banner">
+						<?php endif; ?>
+						<input type="file" id="namecard_banner" name="namecard_banner" accept="image/*">
+					</div>
+				</div>
 				<div class="mfa-form-group">
 					<label for="job_title">Job Title / Tagline</label>
 					<input type="text" id="job_title" name="job_title" value="<?php echo esc_attr( niz_user_field_by_userid( $user_id, 'job_title' ) ); ?>">

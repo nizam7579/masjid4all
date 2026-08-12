@@ -124,6 +124,30 @@ body.mfa-namecard-page.mfa-site { padding-top: 0; }
   box-shadow: 0 12px 34px rgba(0, 0, 0, 0.10);
   padding: var(--mfa-space-6, 24px);
 }
+/* Banner cover — full-bleed to the card edges, rounded to match the top. */
+.mfa-namecard-banner {
+  width: calc(100% + 2 * var(--mfa-space-6, 24px));
+  margin: calc(-1 * var(--mfa-space-6, 24px)) calc(-1 * var(--mfa-space-6, 24px)) 0;
+  border-radius: 19px 19px 0 0;
+  overflow: hidden;
+  aspect-ratio: 1200 / 400;
+  background: #eef2f1;
+}
+.mfa-namecard-banner img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* Avatar circle — overlaps the banner bottom when a banner is present. */
+.mfa-namecard-avatar {
+  width: 104px;
+  height: 104px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--mfa-white, #fff);
+  border: 4px solid var(--mfa-white, #fff);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
+}
+.mfa-namecard-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.mfa-namecard-avatar--over { margin-top: -66px; }
+
 .mfa-namecard-promo {
   text-align: center;
   margin-top: var(--mfa-space-6, 24px);

@@ -124,6 +124,23 @@
 .mfa-namecard-manager {
   max-width: 560px;
 }
+.mfa-namecard-form-thumb {
+  display: block;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid var(--mfa-border);
+}
+.mfa-namecard-form-thumb-photo {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+}
+.mfa-namecard-form-thumb-banner {
+  width: 100%;
+  max-width: 180px;
+  height: 56px;
+}
 .mfa-namecard-manager .mfa-referral-link-row input {
   flex: 1;
   min-width: 0;

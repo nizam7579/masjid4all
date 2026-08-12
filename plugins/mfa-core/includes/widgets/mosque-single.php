@@ -69,12 +69,15 @@ function mfa_mosque_home_tab_shortcode() {
  * so it never ran and the spinner spun forever).
  *
  * Display is driven by the mosque's jet_cct_mosque.listing_status:
- *   - Approved / Active                     -> the actual post content
- *   - Pending                               -> a "Click to Update" button that
- *                                              triggers AI content generation
- *                                              (mfa_mosque_ai_update below)
- *   - New / Rejected / Error / Deleted / '' -> name, address, status + a
- *                                              "we're verifying" remark
+ *   - Approved / Active            -> the actual post content
+ *   - New / Pending / (empty)      -> a "Click to Update" button that triggers
+ *                                     AI content generation (mfa_mosque_ai_update
+ *                                     below). "New" = freshly added via
+ *                                     /add-mosque or seeded by our crawler; the
+ *                                     public can help fill these in. Empty status
+ *                                     is treated as New for older/imported rows.
+ *   - Rejected / Error / Deleted   -> name, address, status + a "we're
+ *                                     verifying the information" remark
  *
  * The AI generation reuses the existing engine (mosques_perplexity via
  * niz_mfa_mosques_callback), now click-triggered instead of auto-firing on
@@ -98,7 +101,7 @@ function mfa_mosque_info_display( $post_id ) {
 	if ( in_array( $status, array( 'Approved', 'Active' ), true ) ) {
 		echo '<div class="mosque-actual-content">' . apply_filters( 'the_content', get_the_content( null, false, $post_id ) ) . '</div>';
 
-	} elseif ( 'Pending' === $status ) {
+	} elseif ( '' === $status || in_array( $status, array( 'New', 'Pending' ), true ) ) {
 		$nonce = wp_create_nonce( 'mfa_mosque_update_' . $post_id );
 		?>
 		<div class="mfa-mosque-update" id="mfa-mosque-update-<?php echo (int) $post_id; ?>">

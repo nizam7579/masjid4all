@@ -285,9 +285,10 @@ function directory_process_mosque_submission() {
                     'rating'          => $rating,
                     'rating_count'    => $rating_count,
                     'business_status' => $mosque_status,
+                    'listing_status'  => 'New',
                    'opening_hours'   => $opening_hours
                 ),
-                array('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')
+                array('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')
             );
 
             if ( $inserted ) {

@@ -14,10 +14,11 @@ Join thousands of Muslims worldwide
 
 
 
+<?php $niz_google_url = Niz_Google_Provider::login_url(); ?>
+<?php if ( $niz_google_url ) : ?>
+
 <a
-href="<?php echo esc_url(
-    Niz_Google_Provider::login_url()
-); ?>"
+href="<?php echo esc_url( $niz_google_url ); ?>"
 class="niz-google-login">
 
 <img
@@ -34,6 +35,8 @@ Continue with Google
 <div class="niz-divider">
 <span>OR</span>
 </div>
+
+<?php endif; ?>
 
 
 

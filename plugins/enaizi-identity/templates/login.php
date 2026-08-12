@@ -14,10 +14,11 @@
 
 
 
-        <a 
-            href="<?php echo esc_url(
-                Niz_Google_Provider::login_url()
-            ); ?>"
+        <?php $niz_google_url = Niz_Google_Provider::login_url(); ?>
+        <?php if ( $niz_google_url ) : ?>
+
+        <a
+            href="<?php echo esc_url( $niz_google_url ); ?>"
             class="niz-google-login">
 
             <span class="niz-google-icon">
@@ -41,6 +42,8 @@
             </span>
 
         </div>
+
+        <?php endif; ?>
 
 
 

@@ -34,8 +34,15 @@ class Niz_Google_Provider {
         );
 
 
+        if ( ! defined( 'NIZ_GOOGLE_CLIENT_ID' ) || '' === (string) constant( 'NIZ_GOOGLE_CLIENT_ID' ) ) {
+            // Google sign-in not configured on this site (the constant is not
+            // defined in wp-config). Return empty so the caller hides the
+            // button, instead of a fatal "undefined constant" error on PHP 8.
+            return '';
+        }
+
         $client_id = NIZ_GOOGLE_CLIENT_ID;
-       
+
 
         
         $current_page =
@@ -114,6 +121,10 @@ class Niz_Google_Provider {
 
             return;
 
+        }
+
+        if ( ! defined( 'NIZ_GOOGLE_CLIENT_ID' ) || ! defined( 'NIZ_GOOGLE_CLIENT_SECRET' ) ) {
+            return;
         }
 
         // Nest Step

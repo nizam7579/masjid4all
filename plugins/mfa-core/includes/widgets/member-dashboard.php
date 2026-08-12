@@ -276,12 +276,12 @@ function mfa_member_dashboard_shortcode() {
 				<h3 class="mfa-h3">Digital Name Card</h3>
 				<?php if ( empty( $namecard_slug ) ) : ?>
 					<p class="mfa-body-muted">Create a shareable digital business card with your own link and QR code.</p>
-					<a href="/member/digital-card/" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm">Create My Digital Name Card</a>
+					<button type="button" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm" data-mfa-modal-open="mfa-namecard-modal">Create My Digital Name Card</button>
 				<?php else : ?>
 					<?php $namecard_url = function_exists( 'mfa_get_member_namecard_url' ) ? mfa_get_member_namecard_url( $user_id ) : home_url( '/' . $namecard_slug . '/' ); ?>
 					<p class="mfa-body-muted">Your card is live at <?php echo esc_html( $namecard_url ); ?></p>
 					<div class="mfa-dash-btn-group">
-						<a href="/member/digital-card/" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm">Update Name Card</a>
+						<button type="button" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm" data-mfa-modal-open="mfa-namecard-modal">Update Name Card</button>
 						<a href="<?php echo esc_url( $namecard_url ); ?>" target="_blank" rel="noopener" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm">View Name Card</a>
 					</div>
 				<?php endif; ?>

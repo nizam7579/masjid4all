@@ -213,6 +213,36 @@ function mfa_member_account_modals_shortcode() {
 		</ul>
 		<p class="mfa-body-muted">More ways to earn - like sharing with friends and adding mosques, businesses, and websites - are coming soon.</p>
 	</div>
+
+	<div class="mfa-modal mfa-modal-lg" id="mfa-namecard-modal" role="dialog" aria-modal="true" aria-label="Digital Name Card" aria-hidden="true">
+		<button type="button" class="mfa-modal-close" data-mfa-modal-close aria-label="Close">
+			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+		</button>
+		<h3 class="mfa-h3">Digital Name Card</h3>
+		<?php echo do_shortcode( '[mfa_member_namecard]' ); ?>
+	</div>
+
+	<?php
+	// The name card form is POST-based (it reloads /member/ on save). After a
+	// create/update, re-open the modal so the user sees the result without
+	// having navigated away.
+	if ( isset( $_POST['mfa_namecard_create'] ) || isset( $_POST['mfa_namecard_update'] ) ) :
+		?>
+		<script>
+		document.addEventListener( 'DOMContentLoaded', function () {
+			var m = document.getElementById( 'mfa-namecard-modal' );
+			var o = document.querySelector( '[data-mfa-modal-overlay]' );
+			if ( m && o ) {
+				m.classList.add( 'is-open' );
+				m.setAttribute( 'aria-hidden', 'false' );
+				o.classList.add( 'is-open' );
+			}
+		} );
+		</script>
+		<?php
+	endif;
+	?>
+
 	<?php
 	return ob_get_clean();
 }

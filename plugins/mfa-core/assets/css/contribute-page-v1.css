@@ -57,3 +57,31 @@
   color: var(--mfa-ink);
   margin-bottom: var(--mfa-space-2);
 }
+
+/* Logged-in intro above the add form + logged-out "Register / Login" prompt.
+   Both centered and readable rather than raw unstyled paragraphs. */
+.mfa-add-intro {
+  text-align: center;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--mfa-muted);
+  margin: 0 auto var(--mfa-space-4);
+  max-width: 560px;
+}
+.must-login-msg {
+  max-width: 560px;
+  margin: var(--mfa-space-6) auto;
+  padding: var(--mfa-space-5);
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--mfa-green-dark);
+  background: var(--mfa-mint-bg);
+  border: 1px solid var(--mfa-border);
+  border-radius: var(--mfa-radius, 12px);
+}
+.must-login-msg a {
+  color: var(--mfa-teal-dark);
+  font-weight: 700;
+  text-decoration: underline;
+}

@@ -9,7 +9,7 @@ add_shortcode( 'niz_mfa_add_mosque', 'directory_add_mosque_shortcode' );
 
 function directory_add_mosque_shortcode() {
 	if ( ! is_user_logged_in() ) {
-		return '<p class="must-login-msg">You must be <a href="' . wp_login_url( get_permalink() ) . '">logged in</a> to add a mosque.</p>';
+		return '<p class="must-login-msg">Please <a href="/member/">Register / Login</a> to add your Mosque.</p>';
 	}
 
 	global $directory_form_feedback;
@@ -159,6 +159,7 @@ function directory_add_mosque_shortcode() {
 	ob_start();
 	?>
 	<div class="directory-shortcode-wrapper" style="max-width: 600px; margin: 0 auto; padding: 10px;">
+		<p class="mfa-add-intro">Your mosque is not listed? Please search and add it to our directory.</p>
 		<?php echo $output; ?>
 
 		<form id="add-mosque-form" method="POST" action="">

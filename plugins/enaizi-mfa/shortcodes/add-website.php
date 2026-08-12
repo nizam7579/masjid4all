@@ -12,13 +12,14 @@
 add_shortcode('niz_add_website', 'niz_add_website_shortcode');
 function niz_add_website_shortcode() {
     if (!is_user_logged_in()) {
-        return '<div class="alert alert-warning">Please <a href="' . esc_url(wp_login_url(get_permalink())) . '">log in</a> to add a website.</div>';
+        return '<p class="must-login-msg">Please <a href="/member/">Register / Login</a> to add your Website.</p>';
     }
 
     ob_start();
     ?>
     <div class="niz-add-website-form">
         <h3>Add New Website to Directory</h3>
+        <p class="mfa-add-intro">Your website is not listed? Please search and add it to our directory.</p>
         <form method="post" action="" id="nizAddWebsiteForm">
             <?php wp_nonce_field('niz_add_website_action', 'niz_add_website_nonce'); ?>
             <div class="form-group">

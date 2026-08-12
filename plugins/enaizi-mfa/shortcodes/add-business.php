@@ -12,7 +12,7 @@ add_shortcode('niz_mfa_add_business', 'directory_add_business_shortcode');
 
 function directory_add_business_shortcode() {
     if ( ! is_user_logged_in() ) {
-        return '<p>You must be logged in to add a business.</p>';
+        return '<p class="must-login-msg">Please <a href="/member/">Register / Login</a> to add your Business.</p>';
     }
 
     global $directory_form_feedback;
@@ -149,6 +149,7 @@ function directory_add_business_shortcode() {
     ob_start();
     ?>
     <div class="directory-shortcode-wrapper" style="max-width: 600px; margin: 0 auto; padding: 10px;">
+        <p class="mfa-add-intro">Your business is not listed? Please search and add it to our directory.</p>
         <?php echo $output; ?>
         
         <form id="add-business-standard-form" method="POST" action="">

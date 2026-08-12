@@ -4,33 +4,33 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * [mfa_homepage_stats] - live directory counts
- * pulled from the JetEngine CCT tables (the actual directory data store;
- * the masjid/business/web post types are not what the directory listing
- * UI writes to), cached 6h so the homepage doesn't run raw COUNT(*)
- * queries against multi-hundred-thousand-row tables on every pageview.
+ * [mfa_homepage_stats] - live directory + membership counts for the homepage
+ * stats strip, pulled from the JetEngine CCT tables and wp_users (read via
+ * $wpdb per the project's standing rule). Cached 6h so the homepage doesn't
+ * run COUNT(*) against multi-hundred-thousand-row tables on every pageview.
+ *
+ * Directory counts only include "listed" statuses
+ * (New/Pending/Approved/Verified/Premium) - Rejected/Error/Deleted are
+ * excluded. The fourth stat is "Our Members": users registered since
+ * 1 Jan 2026. Each value animates from 0 up to its target (running counter,
+ * see the inline script), degrading to the real number when JS is off.
  */
 function mfa_homepage_live_counts() {
-	$counts = get_transient( 'mfa_homepage_cct_counts' );
+	$counts = get_transient( 'mfa_homepage_stats_counts' );
 
 	if ( false === $counts ) {
 		global $wpdb;
+		$listed = "listing_status IN ('New','Pending','Approved','Verified','Premium')";
 		$counts = array(
-			'mosque'   => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}jet_cct_mosque" ),
-			'business' => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}jet_cct_business" ),
-			'web'      => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}jet_cct_web" ),
+			'mosque'   => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}jet_cct_mosque WHERE {$listed}" ),
+			'business' => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}jet_cct_business WHERE {$listed}" ),
+			'web'      => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}jet_cct_web WHERE {$listed}" ),
+			'members'  => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->users} WHERE user_registered >= '2026-01-01 00:00:00'" ),
 		);
-		set_transient( 'mfa_homepage_cct_counts', $counts, 6 * HOUR_IN_SECONDS );
+		set_transient( 'mfa_homepage_stats_counts', $counts, 6 * HOUR_IN_SECONDS );
 	}
 
 	return $counts;
-}
-
-function mfa_format_count_rounded( $n ) {
-	if ( $n >= 1000 ) {
-		return number_format( floor( $n / 1000 ) * 1000 ) . '+';
-	}
-	return (string) $n;
 }
 
 add_shortcode( 'mfa_homepage_stats', 'mfa_homepage_stats_shortcode' );
@@ -38,10 +38,10 @@ function mfa_homepage_stats_shortcode() {
 	$counts = mfa_homepage_live_counts();
 
 	$items = array(
-		array( 'value' => mfa_format_count_rounded( $counts['mosque'] ), 'label' => 'Mosques Listed' ),
-		array( 'value' => mfa_format_count_rounded( $counts['business'] ), 'label' => 'Halal Businesses' ),
-		array( 'value' => mfa_format_count_rounded( $counts['web'] ), 'label' => 'Trusted Websites' ),
-		array( 'value' => '1,000,000', 'label' => 'Mosque Directory Goal' ),
+		array( 'value' => (int) $counts['mosque'],   'label' => 'Mosques Listed' ),
+		array( 'value' => (int) $counts['business'], 'label' => 'Halal Businesses' ),
+		array( 'value' => (int) $counts['web'],      'label' => 'Trusted Websites' ),
+		array( 'value' => (int) $counts['members'],  'label' => 'Our Members' ),
 	);
 
 	ob_start();
@@ -49,11 +49,53 @@ function mfa_homepage_stats_shortcode() {
 	<div class="mfa-stats-strip">
 		<?php foreach ( $items as $item ) : ?>
 			<div class="mfa-stat-item">
-				<span class="mfa-stat-value"><?php echo esc_html( $item['value'] ); ?></span>
+				<span class="mfa-stat-value" data-target="<?php echo esc_attr( $item['value'] ); ?>"><?php echo esc_html( number_format_i18n( $item['value'] ) ); ?></span>
 				<span class="mfa-stat-label"><?php echo esc_html( $item['label'] ); ?></span>
 			</div>
 		<?php endforeach; ?>
 	</div>
+	<script>
+	(function () {
+		var strip = document.currentScript.previousElementSibling;
+		if ( ! strip || ! strip.classList.contains( 'mfa-stats-strip' ) ) {
+			strip = document.querySelector( '.mfa-stats-strip' );
+		}
+		if ( ! strip ) { return; }
+		var vals = strip.querySelectorAll( '.mfa-stat-value[data-target]' );
+		var ran  = false;
+
+		function animate( el ) {
+			var target = parseInt( el.getAttribute( 'data-target' ), 10 ) || 0;
+			var duration = 1800, start = null;
+			function step( ts ) {
+				if ( ! start ) { start = ts; }
+				var p = Math.min( ( ts - start ) / duration, 1 );
+				var eased = 1 - Math.pow( 1 - p, 3 );
+				el.textContent = Math.floor( eased * target ).toLocaleString( 'en-US' );
+				if ( p < 1 ) { requestAnimationFrame( step ); }
+				else { el.textContent = target.toLocaleString( 'en-US' ); }
+			}
+			requestAnimationFrame( step );
+		}
+
+		function run() {
+			if ( ran ) { return; }
+			ran = true;
+			vals.forEach( animate );
+		}
+
+		if ( 'IntersectionObserver' in window ) {
+			var io = new IntersectionObserver( function ( entries ) {
+				entries.forEach( function ( e ) {
+					if ( e.isIntersecting ) { run(); io.disconnect(); }
+				} );
+			}, { threshold: 0.3 } );
+			io.observe( strip );
+		} else {
+			run();
+		}
+	})();
+	</script>
 	<?php
 	return ob_get_clean();
 }

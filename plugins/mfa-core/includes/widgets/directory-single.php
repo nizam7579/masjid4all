@@ -35,7 +35,7 @@ function mfa_directory_single_config() {
 				array( 'Local Business', 'mfa_mosque_local_business_tab' ),
 				array( 'Review', 'niz_review' ),
 			),
-			'sidebar'   => 'enaizi_ads',
+			'sidebar'   => '[enaizi_ads count="4" layout="vertical"]',
 			'owner_col' => 'cct_author_id',
 			'action'    => null,
 		),
@@ -47,7 +47,7 @@ function mfa_directory_single_config() {
 				array( 'Review', 'niz_review' ),
 				array( 'Claim', 'mfa_claim_business_listing' ),
 			),
-			'sidebar'   => 'enaizi_ads',
+			'sidebar'   => '[enaizi_ads count="4" layout="vertical"]',
 			'owner_col' => 'owner_id',
 			'action'    => array( 'sc' => 'niz_business_ai_updater', 'when_status' => array( 'New', 'Pending' ) ),
 		),
@@ -58,7 +58,7 @@ function mfa_directory_single_config() {
 				array( 'Review', 'niz_review' ),
 				array( 'Claim Website', 'mfa_claim_web_listing' ),
 			),
-			'sidebar'   => 'enaizi_ads',
+			'sidebar'   => '[enaizi_ads count="4" layout="vertical"]',
 			'owner_col' => 'cct_author_id',
 			'action'    => array( 'sc' => 'niz_web_ai_updater', 'when_status' => array( 'New', 'Pending' ) ),
 		),
@@ -147,7 +147,7 @@ function mfa_directory_single_shortcode() {
 			</div>
 
 			<?php if ( ! empty( $c['sidebar'] ) ) : ?>
-				<aside class="mfa-dir-sidebar"><?php echo do_shortcode( '[' . $c['sidebar'] . ']' ); ?></aside>
+				<aside class="mfa-dir-sidebar"><?php echo do_shortcode( $c['sidebar'] ); ?></aside>
 			<?php endif; ?>
 		</div>
 	</div>

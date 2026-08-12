@@ -33,6 +33,29 @@ function mfa_homepage_live_counts() {
 	return $counts;
 }
 
+/**
+ * Flush the cached homepage stat counts so the next homepage view recomputes
+ * instead of waiting out the 6h cache. Wired to:
+ *   - user_register        -> a new member is added ("Our Members" count).
+ *   - save_post_{masjid,business,web} -> a listing is added or approved. The
+ *     add flows (wp_insert_post) and the AI updaters / approval path
+ *     (wp_update_post on the linked post) both fire save_post for these types.
+ */
+function mfa_flush_homepage_stats_cache() {
+	delete_transient( 'mfa_homepage_stats_counts' );
+}
+add_action( 'user_register', 'mfa_flush_homepage_stats_cache' );
+
+function mfa_flush_homepage_stats_cache_on_save( $post_id ) {
+	if ( wp_is_post_autosave( $post_id ) || wp_is_post_revision( $post_id ) ) {
+		return;
+	}
+	mfa_flush_homepage_stats_cache();
+}
+add_action( 'save_post_masjid', 'mfa_flush_homepage_stats_cache_on_save' );
+add_action( 'save_post_business', 'mfa_flush_homepage_stats_cache_on_save' );
+add_action( 'save_post_web', 'mfa_flush_homepage_stats_cache_on_save' );
+
 add_shortcode( 'mfa_homepage_stats', 'mfa_homepage_stats_shortcode' );
 function mfa_homepage_stats_shortcode() {
 	$counts = mfa_homepage_live_counts();

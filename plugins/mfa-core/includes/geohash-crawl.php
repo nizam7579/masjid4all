@@ -605,6 +605,15 @@ add_action( 'rest_api_init', function () {
 	) );
 } );
 function mfa_geohash_crawl_rest( $req ) {
+	// MUST NOT be cached. LiteSpeed will otherwise cache the first response and
+	// serve it to every subsequent identical cron hit, so the crawl runs once
+	// then appears to "skip" forever (each hit returns ~3s with the same stale
+	// report and never executes). Tell LiteSpeed + clients not to cache it.
+	if ( ! headers_sent() ) {
+		header( 'X-LiteSpeed-Cache-Control: no-cache' );
+	}
+	nocache_headers();
+
 	$token = (string) mfa_crawl_opt( 'cron_token', '' );
 	if ( '' === $token || ! hash_equals( $token, (string) $req->get_param( 'token' ) ) ) {
 		return new WP_REST_Response( array( 'error' => 'forbidden' ), 403 );

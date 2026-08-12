@@ -11,9 +11,12 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Directory counts only include "listed" statuses
  * (New/Pending/Approved/Verified/Premium) - Rejected/Error/Deleted are
- * excluded. The fourth stat is "Our Members": users registered since
- * 1 Jan 2026. Each value animates from 0 up to its target (running counter,
- * see the inline script), degrading to the real number when JS is off.
+ * excluded. The fourth stat is "Our Members": users registered from 1 Jan 2026
+ * up to the current moment - the upper bound (<= now, in GMT to match how
+ * wp_users.user_registered is stored) means members dated later in 2026 are
+ * only counted once their day arrives, so the figure climbs day by day. Each
+ * value animates from 0 up to its target (running counter, see the inline
+ * script), degrading to the real number when JS is off.
  */
 function mfa_homepage_live_counts() {
 	$counts = get_transient( 'mfa_homepage_stats_counts' );
@@ -25,7 +28,10 @@ function mfa_homepage_live_counts() {
 			'mosque'   => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}jet_cct_mosque WHERE {$listed}" ),
 			'business' => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}jet_cct_business WHERE {$listed}" ),
 			'web'      => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}jet_cct_web WHERE {$listed}" ),
-			'members'  => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->users} WHERE user_registered >= '2026-01-01 00:00:00'" ),
+			'members'  => (int) $wpdb->get_var( $wpdb->prepare(
+				"SELECT COUNT(*) FROM {$wpdb->users} WHERE user_registered >= '2026-01-01 00:00:00' AND user_registered <= %s",
+				gmdate( 'Y-m-d H:i:s' )
+			) ),
 		);
 		set_transient( 'mfa_homepage_stats_counts', $counts, 6 * HOUR_IN_SECONDS );
 	}

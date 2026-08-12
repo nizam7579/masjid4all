@@ -195,6 +195,7 @@ syncs the schema automatically.
 |-------|--------------|------------|------------------------|
 | `wp_mfa_commission_ledger` | mfa-core | `includes/commission.php` (`mfa_commission_maybe_create_table`) | `MFA_COMMISSION_TABLE_VERSION` → `mfa_commission_table_version` |
 | `wp_mfa_member_activity` | mfa-core | `includes/activity-log.php` (`mfa_activity_maybe_create_table`) | `MFA_ACTIVITY_TABLE_VERSION` → `mfa_activity_table_version` |
+| `wp_mfa_geohash` | mfa-core | `includes/geohash.php` (`mfa_geohash_maybe_create_table`) | `MFA_GEOHASH_TABLE_VERSION` → `mfa_geohash_table_version` |
 | `wp_nwa_conversations`, `wp_nwa_messages`, `wp_nwa_actions`, `wp_nwa_knowledge_base`, `wp_nwa_user_profiles`, `wp_nwa_contacts` | niz-wa | `includes/class-nwa-db.php` (`NWA_DB::create_tables`) | `NWA_DB_VERSION` → `nwa_db_version` |
 
 (Older Section-E text said "mfa-core creates no custom tables" and that niz-wa

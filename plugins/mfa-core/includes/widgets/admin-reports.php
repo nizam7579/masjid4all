@@ -60,6 +60,18 @@ function mfa_admin_reports_shortcode() {
 	$last_x      = round( 11.5 / 12 * 100, 2 );
 	$area_points = $first_x . ',100 ' . $line_points . ' ' . $last_x . ',100';
 
+	// Members by country (top 15 + aggregated remainder).
+	$country_rows = $wpdb->get_results(
+		"SELECT COALESCE(NULLIF(TRIM(country), ''), 'Unknown') AS c, COUNT(*) AS n FROM {$wpdb->prefix}jet_cct_member GROUP BY c ORDER BY n DESC",
+		ARRAY_A
+	);
+	$top_countries = array_slice( $country_rows, 0, 15 );
+	$other_total   = 0;
+	foreach ( array_slice( $country_rows, 15 ) as $r ) {
+		$other_total += (int) $r['n'];
+	}
+	$country_max = ! empty( $top_countries ) ? max( 1, (int) $top_countries[0]['n'] ) : 1;
+
 	ob_start();
 	?>
 	<div class="mfa-report">
@@ -127,6 +139,28 @@ function mfa_admin_reports_shortcode() {
 						<span class="mfa-report-bar-lbl"><?php echo esc_html( $labels[ $i - 1 ] ); ?></span>
 					<?php endfor; ?>
 				</div>
+			</div>
+		</div>
+
+		<div class="mfa-report-chart-card">
+			<h2 class="mfa-report-chart-title">Members by country</h2>
+			<div class="mfa-report-countries">
+				<?php foreach ( $top_countries as $r ) :
+					$w = round( (int) $r['n'] / $country_max * 100, 1 );
+					?>
+					<div class="mfa-report-country-row">
+						<span class="mfa-report-country-name"><?php echo esc_html( $r['c'] ); ?></span>
+						<span class="mfa-report-country-track"><span class="mfa-report-country-bar" style="width: <?php echo esc_attr( $w ); ?>%;"></span></span>
+						<span class="mfa-report-country-val"><?php echo esc_html( number_format_i18n( (int) $r['n'] ) ); ?></span>
+					</div>
+				<?php endforeach; ?>
+				<?php if ( $other_total > 0 ) : ?>
+					<div class="mfa-report-country-row mfa-report-country-row--other">
+						<span class="mfa-report-country-name">Other countries</span>
+						<span class="mfa-report-country-track"><span class="mfa-report-country-bar" style="width: <?php echo esc_attr( round( $other_total / $country_max * 100, 1 ) ); ?>%;"></span></span>
+						<span class="mfa-report-country-val"><?php echo esc_html( number_format_i18n( $other_total ) ); ?></span>
+					</div>
+				<?php endif; ?>
 			</div>
 		</div>
 	</div>

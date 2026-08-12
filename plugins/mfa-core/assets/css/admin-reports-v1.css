@@ -50,17 +50,47 @@
   box-shadow: var(--mfa-shadow-card, 0 8px 24px rgba(0, 0, 0, 0.06));
   overflow-x: auto;
 }
-.mfa-report-chart {
+/* Legend */
+.mfa-report-legend {
   display: flex;
-  align-items: flex-end;
-  gap: 10px;
+  gap: 20px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: var(--mfa-muted, #5b6b66);
+}
+.mfa-report-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.mfa-report-legend-swatch {
+  width: 16px;
+  height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.mfa-report-legend-bar {
+  background: linear-gradient(180deg, var(--mfa-teal, #25988b) 0%, var(--mfa-green-dark, #0d4d47) 100%);
+}
+.mfa-report-legend-line {
+  height: 3px;
+  border-radius: 2px;
+  background: #f0932b;
+}
+
+/* Chart = value row + plot (bars + cumulative line) + month axis, all sharing
+   12 equal columns so the SVG line aligns with the bar centres. */
+.mfa-report-chart {
   min-width: 520px;
 }
-.mfa-report-bar-col {
-  flex: 1;
+.mfa-report-vals,
+.mfa-report-xaxis {
   display: flex;
-  flex-direction: column;
-  align-items: center;
+}
+.mfa-report-vals .mfa-report-bar-val,
+.mfa-report-xaxis .mfa-report-bar-lbl {
+  flex: 1;
+  text-align: center;
   min-width: 0;
 }
 .mfa-report-bar-val {
@@ -70,19 +100,6 @@
   margin-bottom: 6px;
   white-space: nowrap;
 }
-.mfa-report-bar-track {
-  width: 100%;
-  max-width: 46px;
-  height: 240px;
-  display: flex;
-  align-items: flex-end;
-}
-.mfa-report-bar {
-  width: 100%;
-  min-height: 2px;
-  border-radius: 8px 8px 0 0;
-  background: linear-gradient(180deg, var(--mfa-teal, #25988b) 0%, var(--mfa-green-dark, #0d4d47) 100%);
-}
 .mfa-report-bar-lbl {
   font-size: 12px;
   font-weight: 600;
@@ -90,7 +107,36 @@
   margin-top: 8px;
 }
 
+.mfa-report-plot {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  height: 240px;
+}
+.mfa-report-bar-col {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  min-width: 0;
+}
+.mfa-report-bar {
+  width: 58%;
+  max-width: 46px;
+  min-height: 2px;
+  border-radius: 8px 8px 0 0;
+  background: linear-gradient(180deg, var(--mfa-teal, #25988b) 0%, var(--mfa-green-dark, #0d4d47) 100%);
+}
+.mfa-report-line {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
 @media (max-width: 640px) {
   .mfa-report-stats { grid-template-columns: 1fr; }
-  .mfa-report-bar-track { height: 190px; }
+  .mfa-report-plot { height: 190px; }
 }

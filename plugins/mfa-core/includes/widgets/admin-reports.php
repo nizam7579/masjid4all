@@ -38,6 +38,23 @@ function mfa_admin_reports_shortcode() {
 	$total_all  = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->users}" );
 	$peak_month = (int) array_keys( $counts, max( $counts ) )[0];
 
+	// Cumulative running total, and its polyline points (own scale: 0..total).
+	// The SVG uses viewBox 0..100 with preserveAspectRatio="none", so points are
+	// percentages; column i's centre is at (i-0.5)/12 of the width.
+	$cumulative  = array();
+	$running     = 0;
+	for ( $i = 1; $i <= 12; $i++ ) {
+		$running          += $counts[ $i ];
+		$cumulative[ $i ]  = $running;
+	}
+	$line_points = array();
+	for ( $i = 1; $i <= 12; $i++ ) {
+		$x             = round( ( $i - 0.5 ) / 12 * 100, 2 );
+		$y             = round( ( 1 - ( $cumulative[ $i ] / max( 1, $total_year ) ) ) * 100, 2 );
+		$line_points[] = $x . ',' . $y;
+	}
+	$line_points = implode( ' ', $line_points );
+
 	ob_start();
 	?>
 	<div class="mfa-report">
@@ -62,18 +79,33 @@ function mfa_admin_reports_shortcode() {
 		</div>
 
 		<div class="mfa-report-chart-card">
-			<div class="mfa-report-chart" role="img" aria-label="New member registrations by month for <?php echo esc_attr( $year ); ?>">
-				<?php for ( $i = 1; $i <= 12; $i++ ) :
-					$height = round( $counts[ $i ] / $max * 100, 1 );
-					?>
-					<div class="mfa-report-bar-col">
+			<div class="mfa-report-legend">
+				<span class="mfa-report-legend-item"><span class="mfa-report-legend-swatch mfa-report-legend-bar"></span>Monthly registrations</span>
+				<span class="mfa-report-legend-item"><span class="mfa-report-legend-swatch mfa-report-legend-line"></span>Cumulative total</span>
+			</div>
+			<div class="mfa-report-chart" role="img" aria-label="New member registrations by month for <?php echo esc_attr( $year ); ?>, with cumulative total">
+				<div class="mfa-report-vals">
+					<?php for ( $i = 1; $i <= 12; $i++ ) : ?>
 						<span class="mfa-report-bar-val"><?php echo esc_html( number_format_i18n( $counts[ $i ] ) ); ?></span>
-						<div class="mfa-report-bar-track">
+					<?php endfor; ?>
+				</div>
+				<div class="mfa-report-plot">
+					<?php for ( $i = 1; $i <= 12; $i++ ) :
+						$height = round( $counts[ $i ] / $max * 100, 1 );
+						?>
+						<div class="mfa-report-bar-col">
 							<div class="mfa-report-bar" style="height: <?php echo esc_attr( $height ); ?>%;"></div>
 						</div>
+					<?php endfor; ?>
+					<svg class="mfa-report-line" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+						<polyline points="<?php echo esc_attr( $line_points ); ?>" fill="none" stroke="#f0932b" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"></polyline>
+					</svg>
+				</div>
+				<div class="mfa-report-xaxis">
+					<?php for ( $i = 1; $i <= 12; $i++ ) : ?>
 						<span class="mfa-report-bar-lbl"><?php echo esc_html( $labels[ $i - 1 ] ); ?></span>
-					</div>
-				<?php endfor; ?>
+					<?php endfor; ?>
+				</div>
 			</div>
 		</div>
 	</div>

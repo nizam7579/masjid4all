@@ -342,11 +342,11 @@
 }
 
 .mfa-dash-col-title {
-  text-align: center;
+  text-align: left;
   margin: var(--mfa-space-2) 0 var(--mfa-space-3);
 }
 .mfa-dash-col-intro {
-  text-align: center;
+  text-align: left;
   margin: 0 0 var(--mfa-space-4);
 }
 

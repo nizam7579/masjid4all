@@ -57,51 +57,80 @@
 
 /* ---------- Login / Register tab toggle ---------- */
 
+/* The module is the single framed card: rounded border + shadow. The inner
+   login/register form card (.niz-login-box) has its own border/padding/shadow
+   stripped below so it isn't a box-in-a-box. */
 .mfa-member-auth {
   max-width: 480px;
-  margin: 0 auto 32px;
-  padding: 20px 24px 0;
+  margin: 32px auto;
+  padding: 24px;
+  background: var(--mfa-white, #fff);
+  border: 1px solid var(--mfa-border, #e2eae8);
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
 }
 @media (max-width: 782px) {
-  .mfa-member-auth { padding: 20px 20px 0; }
+  .mfa-member-auth { padding: 20px; }
 }
 
+/* Clear segmented pill toggle - the active tab is filled (teal on white text)
+   so it's obvious which of Login / Register is selected. */
 .mfa-member-auth-tabs {
   display: flex;
-  gap: var(--mfa-space-2);
-  border-bottom: 1px solid var(--mfa-border);
-  margin-bottom: var(--mfa-space-5);
+  gap: 6px;
+  background: var(--mfa-mint-bg, #eef6f4);
+  padding: 6px;
+  border-radius: 12px;
+  margin-bottom: 24px;
 }
 
 /* Kadence's sitewide `button:hover, button:focus, ...` rule (LiteSpeed-
-   combined stylesheet) carries !important on both background and color -
-   both need to be overridden explicitly or the hover state falls through
-   to Kadence's default orange, same root cause as the header Tools-button
-   and mobile-menu close-button fixes (see header-v11.css). */
+   combined stylesheet) carries !important on background and color - both need
+   overriding explicitly or the state falls through to Kadence's default
+   orange (same root cause as the header Tools-button / mobile-menu fixes). */
 .mfa-member-auth-tab {
   flex: 1;
-  background: none !important;
+  background: transparent !important;
   border: none !important;
-  border-bottom: 2px solid transparent !important;
+  border-radius: 9px !important;
   box-shadow: none !important;
-  padding: 10px 0 12px;
+  padding: 12px 0;
   font-size: 15px;
   font-weight: 700;
   color: var(--mfa-muted) !important;
   cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 .mfa-member-auth-tab:hover,
 .mfa-member-auth-tab:focus {
-  background: none !important;
-  border-bottom-color: var(--mfa-border) !important;
+  background: rgba(255, 255, 255, 0.6) !important;
   box-shadow: none !important;
   color: var(--mfa-teal-dark) !important;
 }
-.mfa-member-auth-tab.is-active {
-  color: var(--mfa-teal-dark) !important;
-  border-bottom-color: var(--mfa-teal) !important;
+.mfa-member-auth-tab.is-active,
+.mfa-member-auth-tab.is-active:hover,
+.mfa-member-auth-tab.is-active:focus {
+  background: var(--mfa-teal-dark, #1f7d72) !important;
+  color: #fff !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12) !important;
 }
 
 .mfa-member-auth-panel[hidden] {
   display: none;
+}
+
+/* Strip the inner login/register form's own card styling - only inside the
+   auth module, so a standalone [niz_login] elsewhere keeps its card. The
+   module above already provides the border/padding/shadow frame. */
+.mfa-member-auth .niz-login-wrapper {
+  display: block;
+  padding: 0;
+}
+.mfa-member-auth .niz-login-box {
+  max-width: none;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
 }

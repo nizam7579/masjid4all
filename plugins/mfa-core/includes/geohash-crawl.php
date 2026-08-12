@@ -585,6 +585,36 @@ function mfa_geohash_crawl_cron_tick() {
 }
 
 /**
+ * Token-protected REST trigger - a scheduler-independent alternative to the
+ * WP-CLI cron for when the host's own cron scheduler is unreliable. Point an
+ * external cron service (e.g. cron-job.org) at it. Same guards as the CLI cron
+ * (enabled / paused / budget). Being a web request it's subject to PHP /
+ * LiteSpeed timeouts, so keep the per-hit limit small (?limit=3 ~ 25-30s).
+ *   GET /wp-json/mfa/v1/crawl-run?token=XXXX&limit=3
+ */
+add_action( 'rest_api_init', function () {
+	register_rest_route( 'mfa/v1', '/crawl-run', array(
+		'methods'             => 'GET',
+		'permission_callback' => '__return_true',
+		'callback'            => 'mfa_geohash_crawl_rest',
+	) );
+} );
+function mfa_geohash_crawl_rest( $req ) {
+	$token = (string) mfa_crawl_opt( 'cron_token', '' );
+	if ( '' === $token || ! hash_equals( $token, (string) $req->get_param( 'token' ) ) ) {
+		return new WP_REST_Response( array( 'error' => 'forbidden' ), 403 );
+	}
+	if ( ! mfa_crawl_opt( 'enabled', 0 ) ) {
+		return new WP_REST_Response( array( 'skipped' => 'cron disabled' ), 200 );
+	}
+	if ( mfa_crawl_is_paused() ) {
+		return new WP_REST_Response( array( 'skipped' => 'paused: ' . mfa_crawl_opt( 'pause_reason', '' ) ), 200 );
+	}
+	$limit = $req->get_param( 'limit' ) ? (int) $req->get_param( 'limit' ) : (int) mfa_crawl_opt( 'batch_size', 5 );
+	return new WP_REST_Response( mfa_geohash_crawl_run_batch( (string) mfa_crawl_opt( 'country', '' ), $limit ), 200 );
+}
+
+/**
  * WP-CLI:
  *   wp mfa geohash-crawl --country=ID --limit=20
  *   wp mfa geohash-queue --country=ID [--limit=500]

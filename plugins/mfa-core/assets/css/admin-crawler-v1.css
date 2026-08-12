@@ -1,0 +1,211 @@
+/* Directory Crawler admin panel (see includes/widgets/admin-crawler.php).
+   Builds on global-v2.css tokens + admin-shell-v1.css layout. */
+
+.mfa-crawler {
+  max-width: 1000px;
+}
+.mfa-crawler > h1 {
+  margin: 0 0 var(--mfa-space-5);
+}
+
+.mfa-crawler-banner {
+  padding: var(--mfa-space-4) var(--mfa-space-5);
+  border-radius: var(--mfa-radius, 12px);
+  margin-bottom: var(--mfa-space-5);
+  font-weight: 600;
+  font-size: 14px;
+}
+.mfa-crawler-banner.is-paused {
+  background: #fff4e5;
+  color: #8a4b00;
+  border: 1px solid #ffd8a8;
+}
+
+/* ---------- Stat cards ---------- */
+.mfa-crawler-cards {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: var(--mfa-space-3);
+  margin-bottom: var(--mfa-space-4);
+}
+@media (max-width: 820px) {
+  .mfa-crawler-cards { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 480px) {
+  .mfa-crawler-cards { grid-template-columns: repeat(2, 1fr); }
+}
+.mfa-crawler-card {
+  background: var(--mfa-white);
+  border: 1px solid var(--mfa-border);
+  border-radius: var(--mfa-radius, 12px);
+  padding: var(--mfa-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: center;
+}
+.mfa-crawler-card-num {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--mfa-green-dark);
+}
+.mfa-crawler-card-lbl {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--mfa-muted);
+}
+
+/* ---------- Credits bar ---------- */
+.mfa-crawler-credits {
+  margin-bottom: var(--mfa-space-6);
+}
+.mfa-crawler-credit-head {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--mfa-muted);
+  margin-bottom: 6px;
+}
+.mfa-crawler-bar {
+  height: 10px;
+  border-radius: 6px;
+  background: var(--mfa-mint-bg, #eef7f5);
+  overflow: hidden;
+}
+.mfa-crawler-bar span {
+  display: block;
+  height: 100%;
+  background: var(--mfa-teal, #25988b);
+  transition: width 0.3s ease;
+}
+
+/* ---------- Sections ---------- */
+.mfa-crawler-section {
+  background: var(--mfa-white);
+  border: 1px solid var(--mfa-border);
+  border-radius: var(--mfa-radius, 12px);
+  padding: var(--mfa-space-5);
+  margin-bottom: var(--mfa-space-4);
+}
+.mfa-crawler-section h3 {
+  margin: 0 0 var(--mfa-space-3);
+}
+.mfa-crawler-hint {
+  font-size: 12.5px;
+  color: var(--mfa-muted);
+  margin: var(--mfa-space-2) 0 0;
+}
+.mfa-crawler-btns,
+.mfa-crawler-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mfa-space-3);
+  align-items: center;
+}
+.mfa-crawler-row label {
+  font-size: 13px;
+  color: var(--mfa-ink);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.mfa-crawler-row input[type="number"] {
+  width: 110px;
+  padding: 7px 9px;
+  border: 1px solid var(--mfa-border);
+  border-radius: 8px;
+  font-size: 14px;
+}
+.mfa-crawler-row select,
+.mfa-crawler-section select {
+  padding: 7px 9px;
+  border: 1px solid var(--mfa-border);
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--mfa-white);
+}
+
+/* ---------- Buttons ---------- */
+.mfa-crawler-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--mfa-teal, #25988b);
+  background: var(--mfa-white);
+  color: var(--mfa-teal-dark, #0d4d47);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.mfa-crawler-btn:hover:not(:disabled) {
+  background: var(--mfa-teal, #25988b);
+  color: var(--mfa-white);
+}
+.mfa-crawler-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.mfa-crawler-btn-primary {
+  background: var(--mfa-teal, #25988b);
+  color: var(--mfa-white);
+}
+.mfa-crawler-btn-resume {
+  border-color: #c47f00;
+  color: #8a4b00;
+}
+.mfa-crawler-btn-resume:hover:not(:disabled) {
+  background: #c47f00;
+  color: var(--mfa-white);
+}
+
+/* ---------- Country table ---------- */
+.mfa-crawler-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+.mfa-crawler-table th,
+.mfa-crawler-table td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--mfa-border);
+}
+.mfa-crawler-table th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--mfa-muted);
+}
+.mfa-crawler-table td:not(:first-child),
+.mfa-crawler-table th:not(:first-child) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Cron command + log ---------- */
+.mfa-crawler-cmd {
+  display: block;
+  margin-top: var(--mfa-space-3);
+  padding: 10px 12px;
+  background: #0f1f1d;
+  color: #7fe9d8;
+  border-radius: 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12.5px;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+.mfa-crawler-log {
+  padding: var(--mfa-space-4);
+  border-radius: var(--mfa-radius, 12px);
+  background: var(--mfa-mint-bg, #eef7f5);
+  border: 1px solid var(--mfa-border);
+  font-size: 13.5px;
+  color: var(--mfa-ink);
+}
+.mfa-crawler-log.is-busy {
+  opacity: 0.75;
+}

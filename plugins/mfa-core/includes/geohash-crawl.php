@@ -36,6 +36,59 @@ function mfa_serper_key() {
 	return (string) get_option( 'mfa_serper_api_key', '' );
 }
 
+/* -------------------------------------------------------------------------
+ * Config, credit budget, pause state, notifications. All stored as
+ * mfa_crawl_* options so the pipeline is controllable from the admin panel
+ * (and reproducible on live - no DB push, options are set per-site).
+ * ---------------------------------------------------------------------- */
+
+function mfa_crawl_opt( $key, $default = '' ) {
+	return get_option( 'mfa_crawl_' . $key, $default );
+}
+function mfa_crawl_set( $key, $value ) {
+	update_option( 'mfa_crawl_' . $key, $value );
+}
+
+// Serper Maps costs ~3 credits per cell (one mosque + one halal search).
+// Budget + used-counter are tracked locally so we can pause *before* an
+// out-of-credits error and show progress; Serper's own "Not enough credits"
+// (HTTP 400) is the authoritative hard stop.
+function mfa_crawl_credits_per_cell()  { return max( 1, (int) mfa_crawl_opt( 'credits_per_cell', 3 ) ); }
+function mfa_crawl_credits_budget()    { return (int) mfa_crawl_opt( 'credits_budget', 164752 ); }
+function mfa_crawl_credits_used()      { return (int) mfa_crawl_opt( 'credits_used', 0 ); }
+function mfa_crawl_credits_remaining() { return max( 0, mfa_crawl_credits_budget() - mfa_crawl_credits_used() ); }
+function mfa_crawl_credits_add( $n )   { mfa_crawl_set( 'credits_used', mfa_crawl_credits_used() + (int) $n ); }
+
+function mfa_crawl_is_paused() { return (bool) mfa_crawl_opt( 'paused', 0 ); }
+function mfa_crawl_pause( $reason ) {
+	mfa_crawl_set( 'paused', 1 );
+	mfa_crawl_set( 'pause_reason', $reason );
+	mfa_crawl_notify(
+		'Crawler paused: ' . $reason,
+		"The Masjid4All directory crawler has PAUSED.\n\nReason: {$reason}\n\nCredits used: " . mfa_crawl_credits_used() . ' / ' . mfa_crawl_credits_budget() . "\n\nResume from wp-admin: Admin -> Directory Crawler, once resolved (e.g. top up Serper credits and raise the budget)."
+	);
+}
+function mfa_crawl_resume() {
+	mfa_crawl_set( 'paused', 0 );
+	delete_option( 'mfa_crawl_pause_reason' );
+}
+
+// Email alerts on error / out-of-credits. De-duped per-reason for an hour so a
+// repeatedly-firing cron can't spam. Recipient filterable, defaults to the
+// site admin email.
+function mfa_crawl_notify( $subject, $body ) {
+	$to = apply_filters( 'mfa_crawl_notify_email', get_option( 'admin_email' ) );
+	if ( ! $to ) {
+		return;
+	}
+	$k = 'mfa_crawl_notified_' . md5( $subject );
+	if ( get_transient( $k ) ) {
+		return;
+	}
+	set_transient( $k, 1, HOUR_IN_SECONDS );
+	wp_mail( $to, '[Masjid4All Crawler] ' . $subject, $body );
+}
+
 /**
  * One Serper Maps search from a point. Returns an array of place arrays, or a
  * WP_Error (missing key, HTTP error incl. "Not enough credits", transport
@@ -255,6 +308,21 @@ function mfa_geohash_crawl_run_batch( $country_code = '', $limit = 20 ) {
 	$g     = mfa_geohash_table();
 	$limit = max( 1, min( 200, (int) $limit ) );
 
+	$report = array(
+		'queued_found'      => 0,
+		'processed'         => 0,
+		'mosque_new'        => 0,
+		'business_new'      => 0,
+		'stopped'           => '',
+		'credits_used'      => mfa_crawl_credits_used(),
+		'credits_remaining' => mfa_crawl_credits_remaining(),
+	);
+
+	if ( mfa_crawl_is_paused() ) {
+		$report['stopped'] = 'Paused: ' . mfa_crawl_opt( 'pause_reason', 'manually paused' );
+		return $report;
+	}
+
 	if ( $country_code ) {
 		$cells = $wpdb->get_results( $wpdb->prepare(
 			"SELECT * FROM {$g} WHERE status = 'Pending' AND country_code = %s ORDER BY id LIMIT %d",
@@ -267,20 +335,29 @@ function mfa_geohash_crawl_run_batch( $country_code = '', $limit = 20 ) {
 			$limit
 		), ARRAY_A );
 	}
+	$report['queued_found'] = count( $cells );
 
-	$report = array(
-		'queued_found' => count( $cells ),
-		'processed'    => 0,
-		'mosque_new'   => 0,
-		'business_new' => 0,
-		'stopped'      => '',
-	);
+	$per = mfa_crawl_credits_per_cell();
 
 	foreach ( $cells as $cell ) {
+		// Proactive budget stop - pause + notify before Serper's own hard stop.
+		if ( mfa_crawl_credits_remaining() < $per ) {
+			mfa_crawl_pause( 'Out of credits (budget of ' . mfa_crawl_credits_budget() . ' reached)' );
+			$report['stopped'] = 'Out of credits (local budget reached)';
+			break;
+		}
+
 		$res = mfa_geohash_crawl_cell( $cell );
 
 		if ( is_wp_error( $res ) ) {
-			$report['stopped'] = $res->get_error_message();
+			$msg               = $res->get_error_message();
+			$report['stopped'] = $msg;
+			// A credit error is a real pause; anything else is a transient alert.
+			if ( false !== stripos( $msg, 'credit' ) ) {
+				mfa_crawl_pause( 'Serper: ' . $msg );
+			} else {
+				mfa_crawl_notify( 'Crawler error', "The directory crawler hit an error and stopped:\n\n{$msg}" );
+			}
 			break; // leave this and the rest Pending
 		}
 
@@ -297,6 +374,7 @@ function mfa_geohash_crawl_run_batch( $country_code = '', $limit = 20 ) {
 			array( 'geohash' => $cell['geohash'] )
 		);
 
+		mfa_crawl_credits_add( $per );
 		$report['processed']++;
 		$report['mosque_new']   += $res['mosque_new'];
 		$report['business_new'] += $res['business_new'];
@@ -304,6 +382,8 @@ function mfa_geohash_crawl_run_batch( $country_code = '', $limit = 20 ) {
 		usleep( 300000 ); // 0.3s between cells - gentle on Serper's rate limit
 	}
 
+	$report['credits_used']      = mfa_crawl_credits_used();
+	$report['credits_remaining'] = mfa_crawl_credits_remaining();
 	return $report;
 }
 
@@ -356,10 +436,159 @@ function mfa_geohash_crawl_ajax() {
 	wp_send_json_success( mfa_geohash_crawl_run_batch( $country, $limit ) );
 }
 
+/* -------------------------------------------------------------------------
+ * Pipeline seed steps (idempotent). Codified so the whole grid can be
+ * (re)built on live from the admin panel with no DB push - each reads the
+ * current site's own cities / mosque / business tables.
+ * ---------------------------------------------------------------------- */
+
+/** Step 1: seed cells from wp_jet_cct_cities. Returns total cell count. */
+function mfa_geohash_seed_cities() {
+	global $wpdb;
+	$g = mfa_geohash_table();
+	$c = $wpdb->prefix . 'jet_cct_cities';
+	$wpdb->query(
+		"INSERT IGNORE INTO {$g} (geohash,latitude,longitude,country_code,country,status,seed_source,created_at,updated_at)
+		 SELECT geohash, latitude, longitude, country_code, country, 'New', 'city', NOW(), NOW()
+		 FROM {$c}
+		 WHERE geohash IS NOT NULL AND geohash <> '' AND latitude IS NOT NULL AND longitude IS NOT NULL"
+	);
+	return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$g}" );
+}
+
+/** Step 2: fold existing mosque + business counts into their cells. */
+function mfa_geohash_seed_counts() {
+	global $wpdb;
+	$g = mfa_geohash_table();
+	$m = $wpdb->prefix . 'jet_cct_mosque';
+	$b = $wpdb->prefix . 'jet_cct_business';
+	$wpdb->query(
+		"INSERT INTO {$g} (geohash,latitude,longitude,country_code,country,status,mosque,seed_source,created_at,updated_at)
+		 SELECT LEFT(geohash,6), AVG(latitude), AVG(longitude), NULL, MAX(country), 'New', COUNT(*), 'mosque', NOW(), NOW()
+		 FROM {$m} WHERE geohash IS NOT NULL AND geohash <> '' AND latitude IS NOT NULL AND longitude IS NOT NULL
+		 GROUP BY LEFT(geohash,6)
+		 ON DUPLICATE KEY UPDATE mosque=VALUES(mosque), updated_at=NOW()"
+	);
+	$wpdb->query(
+		"INSERT INTO {$g} (geohash,latitude,longitude,country_code,country,status,business,seed_source,created_at,updated_at)
+		 SELECT LEFT(geohash,6), AVG(latitude), AVG(longitude), NULL, MAX(country), 'New', COUNT(*), 'business', NOW(), NOW()
+		 FROM {$b} WHERE geohash IS NOT NULL AND geohash <> '' AND latitude IS NOT NULL AND longitude IS NOT NULL
+		 GROUP BY LEFT(geohash,6)
+		 ON DUPLICATE KEY UPDATE business=VALUES(business), updated_at=NOW()"
+	);
+	return array(
+		'cells_with_mosque'   => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$g} WHERE mosque IS NOT NULL" ),
+		'cells_with_business' => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$g} WHERE business IS NOT NULL" ),
+	);
+}
+
+/** Step 3: tag existing US cells + expand a 5x5 (~5km) grid around each. */
+function mfa_geohash_seed_us() {
+	global $wpdb;
+	$g = mfa_geohash_table();
+	$wpdb->query( "UPDATE {$g} SET country_code='US' WHERE country='United States'" );
+	$base = $wpdb->get_col( "SELECT geohash FROM {$g} WHERE country_code='US'" );
+	$clat = 180 / 32768;
+	$clng = 360 / 32768;
+	$new  = array();
+	foreach ( $base as $bh ) {
+		$c = mfa_geohash_decode( $bh );
+		for ( $i = -2; $i <= 2; $i++ ) {
+			for ( $j = -2; $j <= 2; $j++ ) {
+				if ( 0 === $i && 0 === $j ) {
+					continue;
+				}
+				$la = $c['lat'] + $i * $clat;
+				$lo = $c['lng'] + $j * $clng;
+				$nh = mfa_geohash_encode( $la, $lo, 6 );
+				if ( ! isset( $new[ $nh ] ) ) {
+					$new[ $nh ] = array( $la, $lo );
+				}
+			}
+		}
+	}
+	$ins  = 0;
+	$vals = array();
+	foreach ( $new as $nh => $ll ) {
+		$vals[] = $wpdb->prepare( "(%s,%f,%f,'US','United States','New',NULL,NULL,'us_grid',NOW(),NOW())", $nh, $ll[0], $ll[1] );
+		if ( count( $vals ) >= 2000 ) {
+			$wpdb->query( "INSERT IGNORE INTO {$g} (geohash,latitude,longitude,country_code,country,status,mosque,business,seed_source,created_at,updated_at) VALUES " . implode( ',', $vals ) );
+			$ins += $wpdb->rows_affected;
+			$vals = array();
+		}
+	}
+	if ( $vals ) {
+		$wpdb->query( "INSERT IGNORE INTO {$g} (geohash,latitude,longitude,country_code,country,status,mosque,business,seed_source,created_at,updated_at) VALUES " . implode( ',', $vals ) );
+		$ins += $wpdb->rows_affected;
+	}
+	return array(
+		'base_us_cells'  => count( $base ),
+		'grid_inserted'  => $ins,
+		'us_cells_total' => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$g} WHERE country_code='US'" ),
+	);
+}
+
+/** Snapshot for the admin panel status board. */
+function mfa_geohash_crawl_status() {
+	global $wpdb;
+	$g      = mfa_geohash_table();
+	$exists = (int) $wpdb->get_var( $wpdb->prepare(
+		"SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = %s",
+		$g
+	) );
+	if ( ! $exists ) {
+		return array( 'table_exists' => false );
+	}
+
+	$by_status = array( 'New' => 0, 'Pending' => 0, 'Done' => 0 );
+	foreach ( $wpdb->get_results( "SELECT status, COUNT(*) c FROM {$g} GROUP BY status", ARRAY_A ) as $r ) {
+		$by_status[ $r['status'] ] = (int) $r['c'];
+	}
+
+	$by_country = array();
+	foreach ( $wpdb->get_results( "SELECT country_code, status, COUNT(*) c FROM {$g} WHERE country_code IN ('ID','GB','AU','CA','MY','SG','BN','US') GROUP BY country_code, status", ARRAY_A ) as $r ) {
+		$cc = $r['country_code'];
+		if ( ! isset( $by_country[ $cc ] ) ) {
+			$by_country[ $cc ] = array( 'New' => 0, 'Pending' => 0, 'Done' => 0 );
+		}
+		$by_country[ $cc ][ $r['status'] ] = (int) $r['c'];
+	}
+
+	return array(
+		'table_exists'      => true,
+		'total'             => array_sum( $by_status ),
+		'by_status'         => $by_status,
+		'by_country'        => $by_country,
+		'mosque_total'      => (int) $wpdb->get_var( "SELECT SUM(mosque) FROM {$g}" ),
+		'business_total'    => (int) $wpdb->get_var( "SELECT SUM(business) FROM {$g}" ),
+		'credits_used'      => mfa_crawl_credits_used(),
+		'credits_budget'    => mfa_crawl_credits_budget(),
+		'credits_remaining' => mfa_crawl_credits_remaining(),
+		'credits_per_cell'  => mfa_crawl_credits_per_cell(),
+		'paused'            => mfa_crawl_is_paused(),
+		'pause_reason'      => (string) mfa_crawl_opt( 'pause_reason', '' ),
+		'cron_enabled'      => (bool) mfa_crawl_opt( 'enabled', 0 ),
+		'batch_size'        => (int) mfa_crawl_opt( 'batch_size', 5 ),
+		'cron_country'      => (string) mfa_crawl_opt( 'country', '' ),
+	);
+}
+
+/** Cron entry point (Hostinger server-cron -> `wp mfa geohash-cron`). */
+function mfa_geohash_crawl_cron_tick() {
+	if ( ! mfa_crawl_opt( 'enabled', 0 ) ) {
+		return array( 'skipped' => 'cron disabled' );
+	}
+	if ( mfa_crawl_is_paused() ) {
+		return array( 'skipped' => 'paused: ' . mfa_crawl_opt( 'pause_reason', '' ) );
+	}
+	return mfa_geohash_crawl_run_batch( (string) mfa_crawl_opt( 'country', '' ), (int) mfa_crawl_opt( 'batch_size', 5 ) );
+}
+
 /**
  * WP-CLI:
  *   wp mfa geohash-crawl --country=ID --limit=20
  *   wp mfa geohash-queue --country=ID [--limit=500]
+ *   wp mfa geohash-cron           (respects the admin on/off toggle + batch size)
  */
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
 	WP_CLI::add_command( 'mfa geohash-crawl', function ( $args, $assoc ) {
@@ -380,5 +609,12 @@ if ( defined( 'WP_CLI' ) && WP_CLI ) {
 		$limit = isset( $assoc['limit'] ) ? (int) $assoc['limit'] : 0;
 		$n     = mfa_geohash_queue_country( $assoc['country'], $limit );
 		WP_CLI::success( sprintf( 'Queued %d cells in %s.', $n, strtoupper( $assoc['country'] ) ) );
+	} );
+
+	// Cron entry - what the Hostinger server-cron calls. Honours the admin
+	// on/off toggle, batch size and pause state.
+	WP_CLI::add_command( 'mfa geohash-cron', function () {
+		$r = mfa_geohash_crawl_cron_tick();
+		WP_CLI::log( print_r( $r, true ) );
 	} );
 }

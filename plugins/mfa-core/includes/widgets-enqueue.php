@@ -103,6 +103,13 @@ function mfa_core_enqueue_widget_assets() {
 			$admin_reports_css = MFA_CORE_PATH . 'assets/css/admin-reports-v1.css';
 			wp_enqueue_style( 'mfa-core-admin-reports', MFA_CORE_URL . 'assets/css/admin-reports-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell' ), $get_version( $admin_reports_css ) );
 		}
+
+		if ( $post && 'crawler' === $post->post_name ) {
+			$crawler_css = MFA_CORE_PATH . 'assets/css/admin-crawler-v1.css';
+			$crawler_js  = MFA_CORE_PATH . 'assets/js/admin-crawler-v1.js';
+			wp_enqueue_style( 'mfa-core-admin-crawler', MFA_CORE_URL . 'assets/css/admin-crawler-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell' ), $get_version( $crawler_css ) );
+			wp_enqueue_script( 'mfa-core-admin-crawler', MFA_CORE_URL . 'assets/js/admin-crawler-v1.js', array(), $get_version( $crawler_js ), true );
+		}
 	}
 
 	if ( ! $is_member_area && ! $is_admin_area ) {
@@ -350,5 +357,7 @@ function mfa_core_litespeed_css_excludes( $excludes ) {
 	$excludes[] = 'mfa-core/assets/css/admin-mosque-list-v1.css';
 	$excludes[] = 'mfa-core/assets/css/admin-business-list-v1.css';
 	$excludes[] = 'mfa-core/assets/css/admin-website-list-v1.css';
+	$excludes[] = 'mfa-core/assets/css/admin-reports-v1.css';
+	$excludes[] = 'mfa-core/assets/css/admin-crawler-v1.css';
 	return $excludes;
 }

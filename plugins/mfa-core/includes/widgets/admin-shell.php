@@ -26,6 +26,7 @@ function mfa_admin_nav_items() {
 		array( 'id' => 230657, 'label' => 'Knowledge Base', 'url' => home_url( '/admin/knowledge/' ), 'icon' => 'book' ),
 		array( 'id' => 230658, 'label' => 'Blogs',          'url' => home_url( '/admin/blog/' ),      'icon' => 'edit' ),
 		array( 'id' => 229449, 'label' => 'Reports',        'url' => home_url( '/admin/reports/' ),   'icon' => 'chart' ),
+		array( 'id' => 230695, 'label' => 'Crawler',        'url' => home_url( '/admin/crawler/' ),   'icon' => 'radar' ),
 	);
 }
 
@@ -41,6 +42,7 @@ function mfa_admin_nav_icon_svg( $icon ) {
 		'chart'     => '<line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line>',
 		'book'      => '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>',
 		'edit'      => '<path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>',
+		'radar'     => '<circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle>',
 	);
 	return isset( $icons[ $icon ] ) ? $icons[ $icon ] : '';
 }

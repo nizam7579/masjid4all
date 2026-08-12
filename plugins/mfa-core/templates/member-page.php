@@ -18,10 +18,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <?php wp_head(); ?>
 </head>
-<body <?php body_class( 'mfa-member-area' ); ?>>
+<body <?php body_class( is_user_logged_in() ? 'mfa-member-area' : 'mfa-member-area mfa-site' ); ?>>
 <?php wp_body_open(); ?>
 
-<?php echo do_shortcode( '[mfa_member_header]' ); ?>
+<?php
+// Logged-in members get the minimal member-area chrome; logged-out visitors
+// (the marketing / login panel) get the full public site header instead, so
+// they still have the main nav and Tools menu to explore the site. The
+// [mfa_site_header] is position:fixed and relies on the .mfa-site body class
+// above for its top padding (see header-v11.css).
+if ( is_user_logged_in() ) {
+	echo do_shortcode( '[mfa_member_header]' );
+} else {
+	echo do_shortcode( '[mfa_site_header]' );
+}
+?>
 
 <main class="mfa-member-main">
 <?php

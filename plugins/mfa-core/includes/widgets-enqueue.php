@@ -143,6 +143,17 @@ function mfa_core_enqueue_widget_assets() {
 		) );
 	}
 
+	// Logged-out /member visitors get the full public site header (see
+	// templates/member-page.php) instead of the minimal member header, so
+	// they need its stylesheet + toggle JS - which the public-chrome block
+	// above intentionally skips for the member area.
+	if ( $is_member_area && ! is_user_logged_in() ) {
+		$header_css_path = MFA_CORE_PATH . 'assets/css/header-v11.css';
+		$header_js_path  = MFA_CORE_PATH . 'assets/js/header-v3.js';
+		wp_enqueue_style( 'mfa-core-header', MFA_CORE_URL . 'assets/css/header-v11.css', array(), $get_version( $header_css_path ) );
+		wp_enqueue_script( 'mfa-core-header', MFA_CORE_URL . 'assets/js/header-v3.js', array(), $get_version( $header_js_path ), true );
+	}
+
 	// Reusable content/ad two-column layout utility — sitewide, not tied
 	// to a specific page or shortcode. See page-layout-v2.css for usage.
 	$page_layout_css = MFA_CORE_PATH . 'assets/css/page-layout-v2.css';

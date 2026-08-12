@@ -26,6 +26,7 @@ $mfa_core_includes = array(
 	'includes/activity-log.php',
 	'includes/commission.php',
 	'includes/geohash.php',
+	'includes/geohash-crawl.php',
 	'includes/founding-member.php',
 	'includes/email-verification.php',
 	'includes/member-template.php',

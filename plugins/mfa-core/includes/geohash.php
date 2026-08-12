@@ -73,3 +73,70 @@ function mfa_geohash_maybe_create_table() {
 
 	update_option( 'mfa_geohash_table_version', MFA_GEOHASH_TABLE_VERSION );
 }
+
+/**
+ * Standard geohash (base32) encode - lat/lng -> geohash string. Used to place
+ * a crawled mosque/business into its cell (precision 9) and to resolve a
+ * visitor's coordinates to a coverage cell (precision 6). Kept dependency-free
+ * (no library) - this is the same algorithm the cities/mosque geohashes were
+ * generated with, verified round-trip against the US seed.
+ */
+function mfa_geohash_encode( $lat, $lng, $precision = 6 ) {
+	$base32 = '0123456789bcdefghjkmnpqrstuvwxyz';
+	$lat_i  = array( -90.0, 90.0 );
+	$lng_i  = array( -180.0, 180.0 );
+	$bits   = array( 16, 8, 4, 2, 1 );
+	$hash   = '';
+	$bit    = 0;
+	$ch     = 0;
+	$even   = true;
+
+	while ( strlen( $hash ) < $precision ) {
+		if ( $even ) {
+			$mid = ( $lng_i[0] + $lng_i[1] ) / 2;
+			if ( $lng >= $mid ) { $ch |= $bits[ $bit ]; $lng_i[0] = $mid; } else { $lng_i[1] = $mid; }
+		} else {
+			$mid = ( $lat_i[0] + $lat_i[1] ) / 2;
+			if ( $lat >= $mid ) { $ch |= $bits[ $bit ]; $lat_i[0] = $mid; } else { $lat_i[1] = $mid; }
+		}
+		$even = ! $even;
+		if ( $bit < 4 ) {
+			$bit++;
+		} else {
+			$hash .= $base32[ $ch ];
+			$bit = 0;
+			$ch  = 0;
+		}
+	}
+	return $hash;
+}
+
+/**
+ * Geohash decode -> cell centre array( 'lat' => float, 'lng' => float ).
+ */
+function mfa_geohash_decode( $hash ) {
+	$base32 = '0123456789bcdefghjkmnpqrstuvwxyz';
+	$lat_i  = array( -90.0, 90.0 );
+	$lng_i  = array( -180.0, 180.0 );
+	$even   = true;
+	$len    = strlen( $hash );
+
+	for ( $i = 0; $i < $len; $i++ ) {
+		$cd = strpos( $base32, $hash[ $i ] );
+		for ( $z = 4; $z >= 0; $z-- ) {
+			$bit = ( $cd >> $z ) & 1;
+			if ( $even ) {
+				$mid = ( $lng_i[0] + $lng_i[1] ) / 2;
+				if ( $bit ) { $lng_i[0] = $mid; } else { $lng_i[1] = $mid; }
+			} else {
+				$mid = ( $lat_i[0] + $lat_i[1] ) / 2;
+				if ( $bit ) { $lat_i[0] = $mid; } else { $lat_i[1] = $mid; }
+			}
+			$even = ! $even;
+		}
+	}
+	return array(
+		'lat' => ( $lat_i[0] + $lat_i[1] ) / 2,
+		'lng' => ( $lng_i[0] + $lng_i[1] ) / 2,
+	);
+}

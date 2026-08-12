@@ -1,0 +1,96 @@
+/* admin-reports.css - [mfa_admin_reports] on /admin/reports/. Self-contained
+   CSS bar chart (no chart library) for member-growth reporting. Uses global-v2
+   tokens; loads after admin-shell-v1.css. */
+
+.mfa-report {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.mfa-report-head {
+  margin-bottom: var(--mfa-space-6, 24px);
+}
+.mfa-report-head h1 {
+  margin: 0 0 4px;
+}
+
+/* ---------- Summary stat cards ---------- */
+.mfa-report-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--mfa-space-4, 16px);
+  margin-bottom: var(--mfa-space-6, 24px);
+}
+.mfa-report-stat {
+  background: var(--mfa-white, #fff);
+  border: 1px solid var(--mfa-border, #e2eae8);
+  border-radius: 14px;
+  padding: 18px 20px;
+}
+.mfa-report-stat-num {
+  display: block;
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--mfa-green-dark, #0d4d47);
+  line-height: 1.1;
+}
+.mfa-report-stat-lbl {
+  display: block;
+  font-size: 13px;
+  color: var(--mfa-muted, #5b6b66);
+  margin-top: 6px;
+}
+
+/* ---------- Bar chart ---------- */
+.mfa-report-chart-card {
+  background: var(--mfa-white, #fff);
+  border: 1px solid var(--mfa-border, #e2eae8);
+  border-radius: 16px;
+  padding: 24px 20px 16px;
+  box-shadow: var(--mfa-shadow-card, 0 8px 24px rgba(0, 0, 0, 0.06));
+  overflow-x: auto;
+}
+.mfa-report-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  min-width: 520px;
+}
+.mfa-report-bar-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+}
+.mfa-report-bar-val {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--mfa-ink, #12181f);
+  margin-bottom: 6px;
+  white-space: nowrap;
+}
+.mfa-report-bar-track {
+  width: 100%;
+  max-width: 46px;
+  height: 240px;
+  display: flex;
+  align-items: flex-end;
+}
+.mfa-report-bar {
+  width: 100%;
+  min-height: 2px;
+  border-radius: 8px 8px 0 0;
+  background: linear-gradient(180deg, var(--mfa-teal, #25988b) 0%, var(--mfa-green-dark, #0d4d47) 100%);
+}
+.mfa-report-bar-lbl {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mfa-muted, #5b6b66);
+  margin-top: 8px;
+}
+
+@media (max-width: 640px) {
+  .mfa-report-stats { grid-template-columns: 1fr; }
+  .mfa-report-bar-track { height: 190px; }
+}

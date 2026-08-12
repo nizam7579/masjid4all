@@ -98,6 +98,11 @@ function mfa_core_enqueue_widget_assets() {
 			$admin_website_list_css = MFA_CORE_PATH . 'assets/css/admin-website-list-v1.css';
 			wp_enqueue_style( 'mfa-core-admin-website-list', MFA_CORE_URL . 'assets/css/admin-website-list-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell' ), $get_version( $admin_website_list_css ) );
 		}
+
+		if ( $post && 'reports' === $post->post_name ) {
+			$admin_reports_css = MFA_CORE_PATH . 'assets/css/admin-reports-v1.css';
+			wp_enqueue_style( 'mfa-core-admin-reports', MFA_CORE_URL . 'assets/css/admin-reports-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell' ), $get_version( $admin_reports_css ) );
+		}
 	}
 
 	if ( ! $is_member_area && ! $is_admin_area ) {

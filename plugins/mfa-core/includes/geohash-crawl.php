@@ -990,10 +990,109 @@ function mfa_geohash_crawl_rest( $req ) {
 }
 
 /**
+ * One-time bulk correction for EXISTING mosque/business rows inserted
+ * before mfa_geohash_guess_country() existed (2026-08-13) - re-runs the
+ * same address-derived country logic against already-stored records and
+ * fixes any whose `country` field doesn't match what their own address
+ * actually says (the Dayr Yusuf/Jordan-tagged-as-Israel class of bug).
+ * Scoped to a single starting country at a time (the mislabeled records
+ * all currently sit under one wrong country, e.g. 'Israel') rather than
+ * scanning the whole table, which would be slow and mostly pointless
+ * (interior, non-border listings are already correct).
+ *
+ * For rows still 'New' (i.e. holding only the lightweight placeholder
+ * content mfa_geohash_default_seo() wrote, not real AI-generated content),
+ * the post's title/content/RankMath meta are refreshed with the corrected
+ * country too, so the displayed page stays consistent. Rows already past
+ * 'New' (AI-generated or user-edited) have their CCT `country` field
+ * fixed but their post content is left alone - regenerating real content
+ * is the existing "Click to Update" flow's job, not this bulk fix's.
+ *
+ * @param string $from_country  Current (wrong) country value to scan, e.g. 'Israel'.
+ * @param bool   $apply         false = dry run (report only), true = write the fixes.
+ * @param int    $limit         0 = no cap.
+ * @return array Report: scanned, mismatched, fixed (if applied), samples.
+ */
+function mfa_geohash_fix_existing_countries( $from_country, $apply = false, $limit = 0 ) {
+	global $wpdb;
+	$from_country = trim( $from_country );
+	$report       = array(
+		'from_country' => $from_country,
+		'scanned'      => 0,
+		'mismatched'   => 0,
+		'applied'      => 0,
+		'samples'      => array(),
+	);
+
+	if ( '' === $from_country ) {
+		$report['error'] = 'from_country is required.';
+		return $report;
+	}
+
+	foreach ( array(
+		'mosque'   => array( $wpdb->prefix . 'jet_cct_mosque', 'masjid' ),
+		'business' => array( $wpdb->prefix . 'jet_cct_business', 'business' ),
+	) as $type => $tbl ) {
+		list( $table, $post_type ) = $tbl;
+
+		$sql = $wpdb->prepare( "SELECT _ID, name, address, country, listing_status, cct_single_post_id FROM {$table} WHERE country = %s", $from_country );
+		if ( $limit > 0 ) {
+			$sql .= $wpdb->prepare( ' LIMIT %d', $limit );
+		}
+		$rows = $wpdb->get_results( $sql, ARRAY_A );
+
+		foreach ( $rows as $row ) {
+			$report['scanned']++;
+
+			$real_country = mfa_geohash_guess_country( (string) $row['address'] );
+			if ( '' === $real_country || $real_country === $from_country ) {
+				continue; // no country in the address, or it agrees - nothing to fix.
+			}
+
+			$report['mismatched']++;
+			if ( count( $report['samples'] ) < 30 ) {
+				$report['samples'][] = array(
+					'type'    => $type,
+					'name'    => $row['name'],
+					'address' => $row['address'],
+					'from'    => $from_country,
+					'to'      => $real_country,
+				);
+			}
+
+			if ( ! $apply ) {
+				continue;
+			}
+
+			$wpdb->update( $table, array( 'country' => $real_country ), array( '_ID' => $row['_ID'] ) );
+
+			$post_id = (int) $row['cct_single_post_id'];
+			if ( $post_id && 'New' === $row['listing_status'] ) {
+				$city    = mfa_geohash_guess_city( (string) $row['address'], $real_country );
+				$default = mfa_geohash_default_seo( $type, $row['name'], (string) $row['address'], $city, $real_country );
+				wp_update_post( array(
+					'ID'           => $post_id,
+					'post_content' => $default['content'],
+				) );
+				update_post_meta( $post_id, 'rank_math_title', $default['title'] );
+				update_post_meta( $post_id, 'rank_math_description', $default['description'] );
+				update_post_meta( $post_id, 'rank_math_focus_keyword', $default['keywords'] );
+			}
+
+			$report['applied']++;
+		}
+	}
+
+	return $report;
+}
+
+/**
  * WP-CLI:
  *   wp mfa geohash-crawl --country=ID --limit=20
  *   wp mfa geohash-queue --country=ID [--limit=500]
  *   wp mfa geohash-cron           (respects the admin on/off toggle + batch size)
+ *   wp mfa geohash-fix-country --from="Israel" [--limit=N] [--apply]
+ *       Dry-run by default (reports what would change); pass --apply to write.
  */
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
 	WP_CLI::add_command( 'mfa geohash-crawl', function ( $args, $assoc ) {
@@ -1021,5 +1120,31 @@ if ( defined( 'WP_CLI' ) && WP_CLI ) {
 	WP_CLI::add_command( 'mfa geohash-cron', function () {
 		$r = mfa_geohash_crawl_cron_tick();
 		WP_CLI::log( print_r( $r, true ) );
+	} );
+
+	WP_CLI::add_command( 'mfa geohash-fix-country', function ( $args, $assoc ) {
+		if ( empty( $assoc['from'] ) ) {
+			WP_CLI::error( '--from="Israel" is required (the wrong country value currently stored).' );
+		}
+		$apply = isset( $assoc['apply'] );
+		$limit = isset( $assoc['limit'] ) ? (int) $assoc['limit'] : 0;
+
+		$r = mfa_geohash_fix_existing_countries( $assoc['from'], $apply, $limit );
+		if ( ! empty( $r['error'] ) ) {
+			WP_CLI::error( $r['error'] );
+		}
+
+		foreach ( $r['samples'] as $s ) {
+			WP_CLI::log( sprintf( '[%s] %s -> %s :: %s | %s', $s['type'], $s['from'], $s['to'], $s['name'], $s['address'] ) );
+		}
+		if ( $r['mismatched'] > count( $r['samples'] ) ) {
+			WP_CLI::log( sprintf( '... and %d more not shown.', $r['mismatched'] - count( $r['samples'] ) ) );
+		}
+
+		if ( $apply ) {
+			WP_CLI::success( sprintf( 'Scanned %d, fixed %d.', $r['scanned'], $r['applied'] ) );
+		} else {
+			WP_CLI::success( sprintf( 'DRY RUN - scanned %d, would fix %d. Re-run with --apply to write.', $r['scanned'], $r['mismatched'] ) );
+		}
 	} );
 }

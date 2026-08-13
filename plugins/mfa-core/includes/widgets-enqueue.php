@@ -104,11 +104,12 @@ function mfa_core_enqueue_widget_assets() {
 			wp_enqueue_style( 'mfa-core-admin-reports', MFA_CORE_URL . 'assets/css/admin-reports-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell' ), $get_version( $admin_reports_css ) );
 		}
 
-		if ( $post && 'crawler' === $post->post_name ) {
+		// Crawler overview page, plus its child /admin/crawler/start/ page -
+		// both are plain PHP-rendered forms (no JS), sharing one stylesheet.
+		$is_crawler_start = $post && 'start' === $post->post_name && 230695 === (int) $post->post_parent;
+		if ( $post && ( 'crawler' === $post->post_name || $is_crawler_start ) ) {
 			$crawler_css = MFA_CORE_PATH . 'assets/css/admin-crawler-v1.css';
-			$crawler_js  = MFA_CORE_PATH . 'assets/js/admin-crawler-v1.js';
 			wp_enqueue_style( 'mfa-core-admin-crawler', MFA_CORE_URL . 'assets/css/admin-crawler-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell' ), $get_version( $crawler_css ) );
-			wp_enqueue_script( 'mfa-core-admin-crawler', MFA_CORE_URL . 'assets/js/admin-crawler-v1.js', array(), $get_version( $crawler_js ), true );
 		}
 	}
 

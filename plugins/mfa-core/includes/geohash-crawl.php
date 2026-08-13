@@ -49,6 +49,22 @@ function mfa_crawl_set( $key, $value ) {
 	update_option( 'mfa_crawl_' . $key, $value );
 }
 
+// The 8 English-first / SEA-core countries in scope (see project notes) -
+// shared between the overview page and the start page so both list the same
+// set from one place.
+function mfa_crawl_country_list() {
+	return array(
+		'ID' => 'Indonesia',
+		'GB' => 'United Kingdom',
+		'AU' => 'Australia',
+		'CA' => 'Canada',
+		'MY' => 'Malaysia',
+		'SG' => 'Singapore',
+		'BN' => 'Brunei',
+		'US' => 'United States',
+	);
+}
+
 // Serper Maps costs ~3 credits per cell (one mosque + one halal search).
 // Budget + used-counter are tracked locally so we can pause *before* an
 // out-of-credits error and show progress; Serper's own "Not enough credits"
@@ -421,6 +437,110 @@ function mfa_geohash_queue_country( $country_code, $limit = 0 ) {
 		$now,
 		$country_code
 	) );
+}
+
+/** Total cells + Done count for one country (for the /admin/crawler/start/ page). */
+function mfa_geohash_country_totals( $country_code ) {
+	global $wpdb;
+	$g = mfa_geohash_table();
+	$r = $wpdb->get_row( $wpdb->prepare(
+		"SELECT COUNT(*) total, SUM(status = 'Done') done FROM {$g} WHERE country_code = %s",
+		strtoupper( $country_code )
+	), ARRAY_A );
+	return array( 'total' => (int) $r['total'], 'done' => (int) $r['done'] );
+}
+
+/**
+ * Claim and crawl exactly one non-Done cell for a country - the engine behind
+ * /admin/crawler/start/, which drives itself via full page reloads (one cell
+ * per page load) instead of an in-page AJAX loop, so several browser tabs can
+ * run in parallel with no client-side JS. Claiming happens inside a short
+ * transaction with SELECT ... FOR UPDATE so two tabs hitting this at once
+ * never grab the same cell and double-spend Serper credits on it.
+ *
+ * Works directly off status <> 'Done' (New or Pending), so there is no
+ * separate "queue a country" step - opening a start page for a country is
+ * enough to begin crawling it.
+ *
+ * @return array One of:
+ *   array('state'=>'paused', 'reason'=>string)
+ *   array('state'=>'done_all', 'totals'=>array)
+ *   array('state'=>'error', 'message'=>string, 'geohash'=>string)
+ *   array('state'=>'ok', 'cell'=>array, 'result'=>array, 'totals'=>array)
+ */
+function mfa_geohash_crawl_claim_and_run_one( $country_code ) {
+	global $wpdb;
+	$g            = mfa_geohash_table();
+	$country_code = strtoupper( sanitize_text_field( $country_code ) );
+
+	if ( mfa_crawl_is_paused() ) {
+		return array( 'state' => 'paused', 'reason' => (string) mfa_crawl_opt( 'pause_reason', '' ) );
+	}
+
+	$per = mfa_crawl_credits_per_cell();
+	if ( mfa_crawl_credits_remaining() < $per ) {
+		mfa_crawl_pause( 'Out of credits (budget of ' . mfa_crawl_credits_budget() . ' reached)' );
+		return array( 'state' => 'paused', 'reason' => (string) mfa_crawl_opt( 'pause_reason', '' ) );
+	}
+
+	// Claim into a third status ('Claimed') distinct from both 'New' and
+	// 'Pending' (legacy queued-but-untouched cells from the old batch flow) -
+	// selecting on status <> 'Done' alone would still match a cell another
+	// tab just claimed as 'Pending', letting two tabs grab the same cell.
+	$wpdb->query( 'START TRANSACTION' );
+	$cell = $wpdb->get_row( $wpdb->prepare(
+		"SELECT * FROM {$g} WHERE country_code = %s AND status IN ('New','Pending') ORDER BY id LIMIT 1 FOR UPDATE",
+		$country_code
+	), ARRAY_A );
+	if ( $cell ) {
+		$wpdb->update( $g, array( 'status' => 'Claimed', 'updated_at' => current_time( 'mysql' ) ), array( 'geohash' => $cell['geohash'] ) );
+	}
+	$wpdb->query( 'COMMIT' );
+
+	if ( ! $cell ) {
+		return array( 'state' => 'done_all', 'totals' => mfa_geohash_country_totals( $country_code ) );
+	}
+
+	// The browser tab's own page load initiated this request - a client-side
+	// navigation away must not cut a cell's Serper calls / DB write off
+	// mid-way (same reasoning as the REST cron trigger's abort-safety).
+	ignore_user_abort( true );
+	@set_time_limit( 30 );
+
+	$res = mfa_geohash_crawl_cell( $cell );
+
+	if ( is_wp_error( $res ) ) {
+		$msg = $res->get_error_message();
+		// Un-claim so the cell is retried later instead of stuck as 'Claimed'.
+		$wpdb->update( $g, array( 'status' => 'Pending', 'updated_at' => current_time( 'mysql' ) ), array( 'geohash' => $cell['geohash'] ) );
+		if ( false !== stripos( $msg, 'credit' ) ) {
+			mfa_crawl_pause( 'Serper: ' . $msg );
+		} else {
+			mfa_crawl_notify( 'Crawler error', "The directory crawler hit an error and stopped:\n\n{$msg}" );
+		}
+		return array( 'state' => 'error', 'message' => $msg, 'geohash' => $cell['geohash'] );
+	}
+
+	$wpdb->update(
+		$g,
+		array(
+			'mosque'              => $res['mosque_found'],
+			'business'            => $res['business_found'],
+			'status'              => 'Done',
+			'mosque_crawled_at'   => current_time( 'mysql' ),
+			'business_crawled_at' => current_time( 'mysql' ),
+			'updated_at'          => current_time( 'mysql' ),
+		),
+		array( 'geohash' => $cell['geohash'] )
+	);
+	mfa_crawl_credits_add( $per );
+
+	return array(
+		'state'  => 'ok',
+		'cell'   => $cell,
+		'result' => $res,
+		'totals' => mfa_geohash_country_totals( $country_code ),
+	);
 }
 
 /**

@@ -4,13 +4,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * [mfa_admin_crawler] - the /admin/crawler/ control panel for the Serper
+ * [mfa_admin_crawler] - the /admin/crawler/ overview for the Serper
  * directory-build pipeline (see includes/geohash.php + geohash-crawl.php).
- * Drives every stage as a button so the whole grid can be (re)built and
- * crawled on live with no DB push: seed from cities -> fold mosque/business
- * counts -> seed US -> queue a country -> run batches / enable the cron.
- * Shows a live status board (cells by status + country, credit budget) and a
- * paused banner. Admin-only; all actions go through one nonce'd AJAX endpoint.
+ * The grid itself (seed from cities, fold mosque/business counts, seed US)
+ * is a one-time setup step already done on this site - see
+ * mfa_geohash_seed_cities()/_seed_counts()/_seed_us() if it's ever needed
+ * again (e.g. rebuilding after a fresh live deploy), but there's no button
+ * for it here now that it's routine.
+ *
+ * Actual crawling happens on the child page /admin/crawler/start/ (see
+ * admin-crawler-start.php) - this page just shows where things stand and
+ * links out to start a crawl. No AJAX/JS: every action here is a plain
+ * GET/POST form, since a full page reload is all any of these need.
  */
 
 add_shortcode( 'mfa_admin_crawler', 'mfa_admin_crawler_shortcode' );
@@ -19,191 +24,138 @@ function mfa_admin_crawler_shortcode() {
 		return '<p>You do not have permission to view this page.</p>';
 	}
 
-	$countries = array(
-		'ID' => 'Indonesia',
-		'GB' => 'United Kingdom',
-		'AU' => 'Australia',
-		'CA' => 'Canada',
-		'MY' => 'Malaysia',
-		'SG' => 'Singapore',
-		'BN' => 'Brunei',
-		'US' => 'United States',
-	);
-	$nonce    = wp_create_nonce( 'mfa_crawler' );
-	$cron_cmd = 'cd ' . ABSPATH . ' && wp mfa geohash-cron';
+	$notice    = mfa_admin_crawler_handle_form();
+	$countries = mfa_crawl_country_list();
+	$status    = mfa_geohash_crawl_status();
+	$start_url = home_url( '/admin/crawler/start/' );
 
-	// Auto-mint the external-cron token on first view so live setup needs no
-	// server access - just copy the URL below into cron-job.org. Per-site, so
-	// staging and live get their own.
-	$cron_token = (string) mfa_crawl_opt( 'cron_token', '' );
-	if ( '' === $cron_token ) {
-		$cron_token = wp_generate_password( 32, false );
-		mfa_crawl_set( 'cron_token', $cron_token );
+	if ( ! $status['table_exists'] ) {
+		return '<div class="mfa-crawler"><h1 class="mfa-h2">Directory Crawler</h1><p class="mfa-crawler-hint">Grid table not found.</p></div>';
 	}
-	$trigger_url = home_url( '/wp-json/mfa/v1/crawl-run?token=' . $cron_token . '&limit=3' );
 
 	ob_start();
 	?>
-	<div class="mfa-crawler" data-nonce="<?php echo esc_attr( $nonce ); ?>" data-ajax="<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>">
+	<div class="mfa-crawler">
 		<h1 class="mfa-h2">Directory Crawler</h1>
 
-		<div class="mfa-crawler-banner" id="mfa-crawler-banner" hidden></div>
+		<?php if ( $notice ) : ?>
+			<p class="mfa-crawler-hint"><?php echo esc_html( $notice ); ?></p>
+		<?php endif; ?>
 
-		<div class="mfa-crawler-cards" id="mfa-crawler-cards"></div>
-		<div class="mfa-crawler-credits" id="mfa-crawler-credits"></div>
+		<?php if ( $status['paused'] ) : ?>
+			<div class="mfa-crawler-banner is-paused">
+				&#9208; Paused &mdash; <?php echo esc_html( $status['pause_reason'] ); ?>
+				<form method="post" class="mfa-crawler-inline-form">
+					<?php wp_nonce_field( 'mfa_crawler_action', 'mfa_crawler_nonce' ); ?>
+					<input type="hidden" name="mfa_crawler_op" value="resume">
+					<button class="mfa-crawler-btn mfa-crawler-btn-resume" type="submit">Resume</button>
+				</form>
+			</div>
+		<?php endif; ?>
+
+		<?php
+		$st = $status['by_status'];
+		$cards = array(
+			array( $status['total'], 'Total locations' ),
+			array( $st['Done'], 'Done' ),
+			array( $status['total'] - $st['Done'], 'Balance' ),
+			array( $status['mosque_total'], 'Mosques' ),
+			array( $status['business_total'], 'Businesses' ),
+		);
+		?>
+		<div class="mfa-crawler-cards">
+			<?php foreach ( $cards as $c ) : ?>
+				<div class="mfa-crawler-card"><span class="mfa-crawler-card-num"><?php echo number_format_i18n( $c[0] ); ?></span><span class="mfa-crawler-card-lbl"><?php echo esc_html( $c[1] ); ?></span></div>
+			<?php endforeach; ?>
+		</div>
+
+		<?php
+		$used = (int) $status['credits_used'];
+		$bud  = (int) $status['credits_budget'];
+		$pct  = $bud ? min( 100, round( $used / $bud * 100 ) ) : 0;
+		?>
+		<div class="mfa-crawler-credits">
+			<div class="mfa-crawler-credit-head">
+				<span><strong><?php echo number_format_i18n( $used ); ?></strong> credits used &middot; <strong><?php echo number_format_i18n( $status['credits_remaining'] ); ?></strong> remaining</span>
+				<span>budget <?php echo number_format_i18n( $bud ); ?> &middot; ~<?php echo (int) $status['credits_per_cell']; ?>/cell</span>
+			</div>
+			<div class="mfa-crawler-bar"><span style="width:<?php echo (int) $pct; ?>%"></span></div>
+		</div>
 
 		<div class="mfa-crawler-section">
 			<h3 class="mfa-h3">Coverage by country</h3>
-			<div id="mfa-crawler-countries"></div>
+			<table class="mfa-crawler-table">
+				<thead><tr><th>Country</th><th>Locations</th><th>Done</th><th>Balance</th></tr></thead>
+				<tbody>
+					<?php foreach ( $countries as $cc => $name ) :
+						$d          = isset( $status['by_country'][ $cc ] ) ? $status['by_country'][ $cc ] : array();
+						$done       = isset( $d['Done'] ) ? $d['Done'] : 0;
+						$locations  = array_sum( $d );
+						$balance    = $locations - $done;
+						?>
+						<tr>
+							<td><?php echo esc_html( $name . ' (' . $cc . ')' ); ?></td>
+							<td><?php echo number_format_i18n( $locations ); ?></td>
+							<td><?php echo number_format_i18n( $d['Done'] ); ?></td>
+							<td><?php echo number_format_i18n( $balance ); ?></td>
+						</tr>
+					<?php endforeach; ?>
+				</tbody>
+			</table>
 		</div>
 
 		<div class="mfa-crawler-section">
-			<h3 class="mfa-h3">1 &middot; Build / refresh the grid</h3>
-			<p class="mfa-crawler-hint">Idempotent &mdash; safe to re-run. Reads this site's own cities / mosque / business tables, so this is how you build the grid on live too.</p>
-			<div class="mfa-crawler-btns">
-				<button class="mfa-crawler-btn" data-op="seed_cities">Import cities &rarr; grid</button>
-				<button class="mfa-crawler-btn" data-op="seed_counts">Fold mosque + business counts</button>
-				<button class="mfa-crawler-btn" data-op="seed_us">Seed US grid</button>
-			</div>
-		</div>
-
-		<div class="mfa-crawler-section">
-			<h3 class="mfa-h3">2 &middot; Queue a country for crawling</h3>
-			<div class="mfa-crawler-row">
-				<select id="mfa-crawler-queue-country">
+			<h3 class="mfa-h3">Start crawl now</h3>
+			<form method="get" action="<?php echo esc_url( $start_url ); ?>" target="_blank" class="mfa-crawler-row">
+				<select name="country">
 					<?php foreach ( $countries as $cc => $name ) : ?>
 						<option value="<?php echo esc_attr( $cc ); ?>"><?php echo esc_html( $name . ' (' . $cc . ')' ); ?></option>
 					<?php endforeach; ?>
 				</select>
-				<input type="number" id="mfa-crawler-queue-limit" value="1000" min="0" placeholder="cells (0 = all)">
-				<button class="mfa-crawler-btn" data-op="queue">Queue &rarr; Pending</button>
-			</div>
-			<p class="mfa-crawler-hint">Flips New cells to Pending. 0 = the whole country.</p>
-		</div>
-
-		<div class="mfa-crawler-section">
-			<h3 class="mfa-h3">3 &middot; Run a crawl batch now</h3>
-			<div class="mfa-crawler-row">
-				<select id="mfa-crawler-run-country">
-					<option value="">All queued</option>
-					<?php foreach ( $countries as $cc => $name ) : ?>
-						<option value="<?php echo esc_attr( $cc ); ?>"><?php echo esc_html( $name . ' (' . $cc . ')' ); ?></option>
-					<?php endforeach; ?>
-				</select>
-				<input type="number" id="mfa-crawler-run-limit" value="5" min="1" max="50">
-				<label><input type="checkbox" id="mfa-crawler-run-auto"> Auto-repeat until done</label>
-				<button class="mfa-crawler-btn mfa-crawler-btn-primary" data-op="run">Run batch (mosque + halal)</button>
-				<span class="mfa-crawler-hint">~17s per cell &mdash; keep this small in the browser. Pick a country here and open this page in another tab to run multiple countries in parallel; tick "Auto-repeat" to keep a tab going without re-clicking.</span>
-			</div>
-		</div>
-
-		<div class="mfa-crawler-section">
-			<h3 class="mfa-h3">4 &middot; Automated cron</h3>
-			<div class="mfa-crawler-row">
-				<label><input type="checkbox" id="mfa-crawler-cron-enabled"> Cron enabled</label>
-				<label>Batch size <input type="number" id="mfa-crawler-cron-size" value="5" min="1" max="50"></label>
-				<label>Country
-					<select id="mfa-crawler-cron-country">
-						<option value="">All queued</option>
-						<?php foreach ( $countries as $cc => $name ) : ?>
-							<option value="<?php echo esc_attr( $cc ); ?>"><?php echo esc_html( $name ); ?></option>
-						<?php endforeach; ?>
-					</select>
-				</label>
-				<button class="mfa-crawler-btn" data-op="save_cron">Save cron settings</button>
-			</div>
-			<p class="mfa-crawler-hint"><strong>Recommended &mdash; external cron (reliable, host-independent).</strong> Point cron-job.org (or any external cron) at this URL every 1 minute. Keep the token private; raise <code>limit</code> to go faster:</p>
-			<code class="mfa-crawler-cmd"><?php echo esc_html( $trigger_url ); ?></code>
-			<p class="mfa-crawler-hint">Alternatively, a server cron (WP-CLI) &mdash; only if your host's scheduler is reliable:</p>
-			<code class="mfa-crawler-cmd"><?php echo esc_html( $cron_cmd ); ?></code>
+				<button class="mfa-crawler-btn mfa-crawler-btn-primary" type="submit">Start crawl now &rarr;</button>
+			</form>
+			<p class="mfa-crawler-hint">Opens in a new tab and indexes one location at a time for that country, moving to the next automatically. Open several tabs (same or different countries) to run in parallel &mdash; each tab claims a different location, so they never collide.</p>
 		</div>
 
 		<div class="mfa-crawler-section">
 			<h3 class="mfa-h3">Credit budget</h3>
-			<div class="mfa-crawler-row">
-				<label>Budget <input type="number" id="mfa-crawler-budget" min="0"></label>
-				<label>Credits / cell <input type="number" id="mfa-crawler-percell" min="1"></label>
-				<button class="mfa-crawler-btn" data-op="save_budget">Save</button>
-				<button class="mfa-crawler-btn" data-op="reset_used">Reset used counter</button>
-				<button class="mfa-crawler-btn mfa-crawler-btn-resume" data-op="resume" id="mfa-crawler-resume" hidden>Resume (clear pause)</button>
-			</div>
-			<p class="mfa-crawler-hint">After topping up Serper, raise the budget (and/or reset the used counter), then Resume.</p>
+			<form method="post" class="mfa-crawler-row">
+				<?php wp_nonce_field( 'mfa_crawler_action', 'mfa_crawler_nonce' ); ?>
+				<input type="hidden" name="mfa_crawler_op" value="save_budget">
+				<label>Budget <input type="number" name="budget" value="<?php echo esc_attr( $bud ); ?>" min="0"></label>
+				<label>Credits / cell <input type="number" name="per_cell" value="<?php echo esc_attr( $status['credits_per_cell'] ); ?>" min="1"></label>
+				<button class="mfa-crawler-btn" type="submit">Save</button>
+			</form>
+			<form method="post" class="mfa-crawler-row">
+				<?php wp_nonce_field( 'mfa_crawler_action', 'mfa_crawler_nonce' ); ?>
+				<input type="hidden" name="mfa_crawler_op" value="reset_used">
+				<button class="mfa-crawler-btn" type="submit">Reset used counter</button>
+			</form>
+			<p class="mfa-crawler-hint">After topping up Serper, raise the budget (and/or reset the used counter), then Resume above.</p>
 		</div>
-
-		<div class="mfa-crawler-log" id="mfa-crawler-log" hidden></div>
 	</div>
 	<?php
 	return ob_get_clean();
 }
 
 /**
- * Single nonce'd, admin-only AJAX endpoint for every panel action. Each op
- * runs its pipeline function and returns a fresh status snapshot so the board
- * re-renders.
+ * Handles the overview page's plain POST forms (resume / save budget / reset
+ * counter) - no admin-ajax.php, the page just re-renders after the redirect.
+ * Returns a short notice string for the next render, or ''.
  */
-add_action( 'wp_ajax_mfa_admin_crawler_action', 'mfa_admin_crawler_ajax' );
-function mfa_admin_crawler_ajax() {
-	if ( ! current_user_can( 'manage_options' ) ) {
-		wp_send_json_error( 'forbidden' );
+function mfa_admin_crawler_handle_form() {
+	if ( empty( $_POST['mfa_crawler_op'] ) || ! current_user_can( 'manage_options' ) ) {
+		return '';
 	}
-	check_ajax_referer( 'mfa_crawler', 'nonce' );
+	if ( ! isset( $_POST['mfa_crawler_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['mfa_crawler_nonce'] ) ), 'mfa_crawler_action' ) ) {
+		return 'Security check failed - please try again.';
+	}
 
-	$op     = isset( $_POST['op'] ) ? sanitize_key( $_POST['op'] ) : '';
-	$msg    = '';
-	$result = null;
-
+	$op = sanitize_key( $_POST['mfa_crawler_op'] );
 	switch ( $op ) {
-		case 'status':
-			break;
-
-		case 'seed_cities':
-			$n   = mfa_geohash_seed_cities();
-			$msg = 'Cities imported. Total cells: ' . number_format_i18n( $n ) . '.';
-			break;
-
-		case 'seed_counts':
-			$r   = mfa_geohash_seed_counts();
-			$msg = 'Counts folded: ' . number_format_i18n( $r['cells_with_mosque'] ) . ' cells with a mosque, ' . number_format_i18n( $r['cells_with_business'] ) . ' with a business.';
-			break;
-
-		case 'seed_us':
-			$r   = mfa_geohash_seed_us();
-			$msg = 'US seeded: ' . number_format_i18n( $r['us_cells_total'] ) . ' US cells (' . number_format_i18n( $r['grid_inserted'] ) . ' grid cells added).';
-			break;
-
-		case 'queue':
-			$cc    = isset( $_POST['country'] ) ? strtoupper( sanitize_text_field( wp_unslash( $_POST['country'] ) ) ) : '';
-			$limit = isset( $_POST['limit'] ) ? (int) $_POST['limit'] : 0;
-			$n     = mfa_geohash_queue_country( $cc, $limit );
-			$msg   = 'Queued ' . number_format_i18n( $n ) . ' cells in ' . $cc . '.';
-			break;
-
-		case 'run':
-			$cc     = isset( $_POST['country'] ) ? strtoupper( sanitize_text_field( wp_unslash( $_POST['country'] ) ) ) : '';
-			$limit  = isset( $_POST['limit'] ) ? (int) $_POST['limit'] : 5;
-			$r      = mfa_geohash_crawl_run_batch( $cc, $limit );
-			$result = $r;
-			$msg    = 'Ran ' . $r['processed'] . '/' . $r['queued_found'] . ' cells. +' . $r['mosque_new'] . ' mosques, +' . $r['business_new'] . ' businesses.';
-			if ( ! empty( $r['stopped'] ) ) {
-				$msg .= ' STOPPED: ' . $r['stopped'];
-			}
-			break;
-
 		case 'resume':
 			mfa_crawl_resume();
-			$msg = 'Crawler resumed.';
-			break;
-
-		case 'save_cron':
-			mfa_crawl_set( 'enabled', ( isset( $_POST['enabled'] ) && '1' === $_POST['enabled'] ) ? 1 : 0 );
-			if ( isset( $_POST['batch_size'] ) ) {
-				mfa_crawl_set( 'batch_size', max( 1, min( 50, (int) $_POST['batch_size'] ) ) );
-			}
-			if ( isset( $_POST['cron_country'] ) ) {
-				mfa_crawl_set( 'country', strtoupper( sanitize_text_field( wp_unslash( $_POST['cron_country'] ) ) ) );
-			}
-			$msg = 'Cron settings saved.';
-			break;
+			return 'Crawler resumed.';
 
 		case 'save_budget':
 			if ( isset( $_POST['budget'] ) ) {
@@ -212,21 +164,11 @@ function mfa_admin_crawler_ajax() {
 			if ( isset( $_POST['per_cell'] ) ) {
 				mfa_crawl_set( 'credits_per_cell', max( 1, (int) $_POST['per_cell'] ) );
 			}
-			$msg = 'Budget saved.';
-			break;
+			return 'Budget saved.';
 
 		case 'reset_used':
 			mfa_crawl_set( 'credits_used', 0 );
-			$msg = 'Used counter reset to 0.';
-			break;
-
-		default:
-			wp_send_json_error( 'unknown op' );
+			return 'Used counter reset to 0.';
 	}
-
-	wp_send_json_success( array(
-		'message' => $msg,
-		'status'  => mfa_geohash_crawl_status(),
-		'result'  => $result,
-	) );
+	return '';
 }

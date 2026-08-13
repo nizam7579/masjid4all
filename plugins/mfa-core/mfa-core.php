@@ -72,6 +72,7 @@ $mfa_core_includes = array(
 	'includes/widgets/admin-website-list.php',
 	'includes/widgets/admin-reports.php',
 	'includes/widgets/admin-crawler.php',
+	'includes/widgets/admin-crawler-start.php',
 	'includes/widgets/coming-soon.php',
 	'includes/widgets/site-header.php',
 	'includes/widgets/site-footer.php',

@@ -120,3 +120,60 @@
 }
 
 body.kt-modal-open { overflow: hidden; }
+
+/* ---------- [mfa_website_update_form] fields (inside [mfa_modal]) ----------
+   Same collision reasoning as business-single-v5.css's copy of this block:
+   member-account-modals-v1.css defines .mfa-modal-overlay/.mfa-modal-close
+   for a DIFFERENT modal system, which collides with modal-v1.css's own
+   definitions (the [mfa_modal] component actually used here) if both
+   stylesheets load on the same page - so these field classes are defined
+   locally instead of enqueuing that stylesheet. */
+.mfa-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mfa-space-4, 16px);
+}
+.mfa-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--mfa-space-4, 16px);
+}
+.mfa-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.mfa-form-group label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--mfa-muted, #56655f);
+}
+.mfa-form-group input,
+.mfa-form-group select,
+.mfa-form-group textarea {
+  border: 1px solid var(--mfa-border, #d7e4e1);
+  border-radius: var(--mfa-radius-sm, 8px);
+  padding: 10px 12px;
+  font-size: 14px;
+  color: var(--mfa-ink, #12181f);
+  font-family: inherit;
+  background: var(--mfa-white, #ffffff);
+}
+.mfa-form-group textarea { resize: vertical; }
+.mfa-form-group input:focus,
+.mfa-form-group select:focus,
+.mfa-form-group textarea:focus {
+  outline: 2px solid var(--mfa-teal, #0d8f83);
+  outline-offset: 1px;
+}
+.mfa-modal-submit { width: 100%; margin-top: 4px; }
+.mfa-modal-message {
+  margin: 0;
+  font-size: 13px;
+  min-height: 18px;
+  color: #b3261e;
+}
+.mfa-modal-message.is-success { color: var(--mfa-teal-dark, #0d4d47); }
+@media (max-width: 480px) {
+  .mfa-form-row { grid-template-columns: 1fr; }
+}

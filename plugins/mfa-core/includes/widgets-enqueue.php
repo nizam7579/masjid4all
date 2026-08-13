@@ -305,6 +305,10 @@ function mfa_core_enqueue_widget_assets() {
 		$css = MFA_CORE_PATH . 'assets/css/website-single-v2.css';
 		wp_enqueue_style( 'mfa-core-website-single', MFA_CORE_URL . 'assets/css/website-single-v2.css', array(), $get_version( $css ) );
 
+		// [mfa_website_update_form]'s AJAX submit (replaces FluentForm 69).
+		$web_form_js = MFA_CORE_PATH . 'assets/js/website-update-form-v1.js';
+		wp_enqueue_script( 'mfa-core-website-update-form', MFA_CORE_URL . 'assets/js/website-update-form-v1.js', array(), $get_version( $web_form_js ), true );
+
 		if ( wp_script_is( 'kadence-blocks-pro-modal', 'registered' ) ) {
 			wp_enqueue_script( 'kadence-blocks-pro-modal' );
 			wp_add_inline_script( 'kadence-blocks-pro-modal', "document.addEventListener('click',function(e){var c=e.target.closest('.mfa-web-modal-wrap [data-modal-close]');if(!c)return;var m=c.closest('.kadence-block-pro-modal');if(!m)return;setTimeout(function(){m.classList.remove('is-open');},350);});" );

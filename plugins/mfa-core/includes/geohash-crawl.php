@@ -286,6 +286,19 @@ function mfa_geohash_default_seo( $type, $name, $address, $city, $country ) {
 }
 
 /**
+ * The Serper Maps "halal" query (used for the business search) is a loose
+ * text/keyword match, not an actual halal-certification filter - it happily
+ * returns places whose own name says the opposite (e.g. a listing titled
+ * "... Non-Halal ..." or "... (Not Halal) ..."), which would otherwise get
+ * auto-added to the directory as if it were a verified halal business. This
+ * is a name-only phrase check per explicit user direction (2026-08-13), not
+ * a full cuisine/category classifier.
+ */
+function mfa_geohash_is_non_halal( $name ) {
+	return (bool) preg_match( '/\bnon[\s\-]*halal\b|\bnot\s+halal\b|\bno\s+halal\b/i', $name );
+}
+
+/**
  * Upsert one place into the mosque or business directory, dedup by place_id.
  * Returns 'new' | 'existing' | 'skip'.
  *
@@ -298,6 +311,10 @@ function mfa_geohash_upsert_place( $type, $p, $country_fallback = '' ) {
 
 	$f = mfa_geohash_map_place( $p );
 	if ( '' === $f['place_id'] || '' === $f['name'] ) {
+		return 'skip';
+	}
+
+	if ( 'business' === $type && mfa_geohash_is_non_halal( $f['name'] ) ) {
 		return 'skip';
 	}
 

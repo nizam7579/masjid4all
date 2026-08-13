@@ -149,12 +149,25 @@ function mfa_web_extract_insert( $row, $url ) {
 }
 
 /**
- * @param bool $apply false = dry run (report only), true = write the inserts.
- * @param int  $limit Row cap, 0 = no cap.
+ * @param bool $apply  false = dry run (report only), true = write the inserts.
+ * @param int  $limit  Row cap for this call, 0 = no cap (scan everything
+ *   from $offset onward - only safe for a dry run or a small dataset;
+ *   large --apply runs must be chunked via $offset/$limit across several
+ *   calls, since each insert also publishes a real post via
+ *   wp_insert_post(), which is far slower than a raw SQL insert).
+ * @param int    $offset Skip this many source rows first (stable order via
+ *   ORDER BY _ID), so repeated calls can advance through the full table
+ *   instead of re-scanning the same first N rows every time.
+ * @param string $since  MySQL datetime - only scan business rows crawled
+ *   at or after this time (cct_created >= $since). Used by the daily cron
+ *   (see mfa_web_extract_daily_run()) so an ever-growing business table
+ *   doesn't mean an ever-slower daily scan - only rows added since the
+ *   last successful run are looked at. '' = no time filter (the full
+ *   one-time backfill scan).
  * @return array Report: scanned, social_excluded, duplicate_existing,
  *   duplicate_in_batch, eligible (would-insert / applied count), samples.
  */
-function mfa_web_extract_from_business( $apply = false, $limit = 0 ) {
+function mfa_web_extract_from_business( $apply = false, $limit = 0, $offset = 0, $since = '' ) {
 	global $wpdb;
 	$table = $wpdb->prefix . 'jet_cct_business';
 
@@ -172,8 +185,12 @@ function mfa_web_extract_from_business( $apply = false, $limit = 0 ) {
 	$seen_this_run  = array();
 
 	$sql = "SELECT name, website, country, city, address FROM {$table} WHERE website IS NOT NULL AND website <> ''";
+	if ( '' !== $since ) {
+		$sql .= $wpdb->prepare( ' AND cct_created >= %s', $since );
+	}
+	$sql .= ' ORDER BY _ID';
 	if ( $limit > 0 ) {
-		$sql .= $wpdb->prepare( ' LIMIT %d', $limit );
+		$sql .= $wpdb->prepare( ' LIMIT %d OFFSET %d', $limit, $offset );
 	}
 	$rows = $wpdb->get_results( $sql, ARRAY_A );
 
@@ -227,16 +244,22 @@ function mfa_web_extract_from_business( $apply = false, $limit = 0 ) {
 
 /**
  * WP-CLI:
- *   wp mfa web-extract [--limit=N] [--apply]
+ *   wp mfa web-extract [--limit=N] [--offset=N] [--since="Y-m-d H:i:s"] [--apply]
  *       Dry-run by default (reports what would be inserted); pass --apply
- *       to write. --limit caps rows scanned, not the total inserted.
+ *       to write. --limit caps rows scanned per call; --offset skips that
+ *       many source rows first (stable order) so a large --apply run can
+ *       be chunked across several calls instead of one long-running one.
+ *       --since only scans business rows crawled at/after that time
+ *       (matches what the daily cron does automatically - see below).
  */
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
 	WP_CLI::add_command( 'mfa web-extract', function ( $args, $assoc ) {
-		$apply = isset( $assoc['apply'] );
-		$limit = isset( $assoc['limit'] ) ? (int) $assoc['limit'] : 0;
+		$apply  = isset( $assoc['apply'] );
+		$limit  = isset( $assoc['limit'] ) ? (int) $assoc['limit'] : 0;
+		$offset = isset( $assoc['offset'] ) ? (int) $assoc['offset'] : 0;
+		$since  = isset( $assoc['since'] ) ? $assoc['since'] : '';
 
-		$r = mfa_web_extract_from_business( $apply, $limit );
+		$r = mfa_web_extract_from_business( $apply, $limit, $offset, $since );
 
 		foreach ( $r['samples'] as $s ) {
 			WP_CLI::log( sprintf( '%s :: %s (%s)', $s['name'], $s['url'], $s['country'] ) );
@@ -256,4 +279,67 @@ if ( defined( 'WP_CLI' ) && WP_CLI ) {
 			WP_CLI::success( 'DRY RUN - re-run with --apply to write.' );
 		}
 	} );
+
+	WP_CLI::add_command( 'mfa web-extract-cron', function () {
+		WP_CLI::log( print_r( mfa_web_extract_daily_run(), true ) );
+	} );
+}
+
+/**
+ * Daily incremental run: only scans business rows crawled since the last
+ * successful run (tracked in the mfa_web_extract_last_run option), so the
+ * scan stays cheap as the business table keeps growing (~10K/day per user
+ * report, 2026-08-14) instead of re-scanning the whole table every day.
+ * The checkpoint is captured BEFORE the scan runs (not after), so any
+ * business crawled while this run is executing gets picked up on the
+ * NEXT run rather than silently skipped.
+ */
+function mfa_web_extract_daily_run() {
+	$since      = get_option( 'mfa_web_extract_last_run', '1970-01-01 00:00:00' );
+	$checkpoint = current_time( 'mysql' );
+
+	$r = mfa_web_extract_from_business( true, 0, 0, $since );
+
+	update_option( 'mfa_web_extract_last_run', $checkpoint );
+
+	$r['since']      = $since;
+	$r['checkpoint'] = $checkpoint;
+	return $r;
+}
+
+/**
+ * Token-protected REST trigger for an external daily cron (cron-job.org,
+ * same tool already driving the mosque/business crawl - see geohash-crawl.
+ * php's crawl-run endpoint, which this mirrors exactly, including the
+ * LiteSpeed no-cache headers: without them LiteSpeed caches the first
+ * response and serves it to every later hit, so the job runs once then
+ * appears to "skip" forever - cost an hour to debug the first time this
+ * bit the geohash cron, not repeating that here).
+ *   GET /wp-json/mfa/v1/web-extract-run?token=XXXX
+ */
+add_action( 'rest_api_init', function () {
+	register_rest_route( 'mfa/v1', '/web-extract-run', array(
+		'methods'             => 'GET',
+		'permission_callback' => '__return_true',
+		'callback'            => 'mfa_web_extract_rest_run',
+	) );
+} );
+function mfa_web_extract_rest_run( $req ) {
+	if ( ! headers_sent() ) {
+		header( 'X-LiteSpeed-Cache-Control: no-cache' );
+	}
+	nocache_headers();
+
+	$token = (string) get_option( 'mfa_web_extract_cron_token', '' );
+	if ( '' === $token || ! hash_equals( $token, (string) $req->get_param( 'token' ) ) ) {
+		return new WP_REST_Response( array( 'error' => 'forbidden' ), 403 );
+	}
+
+	// Finish server-side even if the external cron client disconnects at its
+	// own timeout - daily volume is small enough this should finish in
+	// seconds, but this is a safety net, not a design assumption.
+	ignore_user_abort( true );
+	@set_time_limit( 90 );
+
+	return new WP_REST_Response( mfa_web_extract_daily_run(), 200 );
 }

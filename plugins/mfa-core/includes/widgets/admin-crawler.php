@@ -117,6 +117,16 @@ function mfa_admin_crawler_shortcode() {
 		</div>
 
 		<div class="mfa-crawler-section">
+			<h3 class="mfa-h3">Website directory</h3>
+			<form method="post" class="mfa-crawler-row">
+				<?php wp_nonce_field( 'mfa_crawler_action', 'mfa_crawler_nonce' ); ?>
+				<input type="hidden" name="mfa_crawler_op" value="extract_websites">
+				<button class="mfa-crawler-btn mfa-crawler-btn-primary" type="submit">Add website from Business</button>
+			</form>
+			<p class="mfa-crawler-hint">Pulls the `website` field already captured on crawled business listings into the website directory as New listings pending review. Only scans businesses added since the last time this ran (or since ever, the first time) - safe to click as often as you like, it never re-adds the same site twice.</p>
+		</div>
+
+		<div class="mfa-crawler-section">
 			<h3 class="mfa-h3">Credit budget</h3>
 			<form method="post" class="mfa-crawler-row">
 				<?php wp_nonce_field( 'mfa_crawler_action', 'mfa_crawler_nonce' ); ?>
@@ -172,6 +182,20 @@ function mfa_admin_crawler_handle_form() {
 		case 'reset_used':
 			mfa_crawl_set( 'credits_used', 0 );
 			return 'Used counter reset to 0.';
+
+		case 'extract_websites':
+			if ( ! function_exists( 'mfa_web_extract_daily_run' ) ) {
+				return 'Website extraction is unavailable.';
+			}
+			$r = mfa_web_extract_daily_run();
+			return sprintf(
+				'Added %d new website listing%s (scanned %s, %s already listed, %s social-media links skipped).',
+				$r['applied'],
+				1 === $r['applied'] ? '' : 's',
+				number_format_i18n( $r['scanned'] ),
+				number_format_i18n( $r['duplicate_existing'] ),
+				number_format_i18n( $r['social_excluded'] )
+			);
 	}
 	return '';
 }

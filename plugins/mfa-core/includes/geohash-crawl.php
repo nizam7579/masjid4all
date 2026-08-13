@@ -236,41 +236,51 @@ function mfa_geohash_guess_city( $address, $country ) {
 }
 
 /**
- * Does a Serper place's address actually belong to the search cell's own
- * country? A geohash cell's Serper search (q=mosque / q=halal, zoom 13) is
- * NOT country-aware - a cell right on a border can and does return real
- * places physically in the neighbouring country (found 2026-08-13: mosques
- * in Jordan returned by a border-adjacent Israel-tagged cell, inserted with
- * country='Israel' because mfa_geohash_upsert_place() blindly trusted the
- * cell's own country instead of checking the place itself).
+ * The real country a Serper place belongs to, read from the place's OWN
+ * address rather than trusted from the search cell's nominal country. A
+ * geohash cell's Serper search (q=mosque / q=halal, zoom 13) is NOT
+ * country-aware - a cell right on a border can and does return real places
+ * physically in the neighbouring country (found 2026-08-13: a mosque in
+ * Dayr Yusuf, Jordan returned by a border-adjacent Israel-tagged cell,
+ * inserted with country='Israel' because mfa_geohash_upsert_place() used
+ * to just take the cell's own country on faith).
  *
  * Reuses mfa_get_country_list() (member-account-modals.php) as the set of
- * "known country names" to check for. Logic: if the expected country's name
- * appears anywhere in the address, trust it. Otherwise, if some OTHER known
- * country's name appears in the address, that's a real mismatch. If the
- * address names no country at all (common - many Serper addresses are just
- * "City" or "Street, City" with no country suffix), there's nothing to
- * verify, so it's allowed through rather than blocked on missing data.
+ * known country names. Checks comma-separated address segments from the
+ * end first (country is conventionally the last segment), then falls back
+ * to a full-string scan (rightmost match) for addresses that don't cleanly
+ * comma-split. Returns '' when no known country name appears anywhere -
+ * caller should fall back to the search cell's own country in that case,
+ * since many Serper addresses are just "City" or "Street, City" with no
+ * country suffix at all.
  */
-function mfa_geohash_address_country_mismatch( $address, $expected_country ) {
-	if ( '' === $address || '' === $expected_country || ! function_exists( 'mfa_get_country_list' ) ) {
-		return false;
+function mfa_geohash_guess_country( $address ) {
+	if ( '' === $address || ! function_exists( 'mfa_get_country_list' ) ) {
+		return '';
 	}
 
-	if ( false !== stripos( $address, $expected_country ) ) {
-		return false;
-	}
+	$countries = mfa_get_country_list();
+	$parts     = array_values( array_filter( array_map( 'trim', explode( ',', $address ) ) ) );
 
-	foreach ( mfa_get_country_list() as $other_country ) {
-		if ( $other_country === $expected_country ) {
-			continue;
-		}
-		if ( false !== stripos( $address, $other_country ) ) {
-			return true;
+	for ( $i = count( $parts ) - 1; $i >= 0; $i-- ) {
+		foreach ( $countries as $c ) {
+			if ( 0 === strcasecmp( $parts[ $i ], $c ) ) {
+				return $c;
+			}
 		}
 	}
 
-	return false;
+	$best_pos = -1;
+	$best     = '';
+	foreach ( $countries as $c ) {
+		$pos = stripos( $address, $c );
+		if ( false !== $pos && $pos > $best_pos ) {
+			$best_pos = $pos;
+			$best     = $c;
+		}
+	}
+
+	return $best;
 }
 
 /**
@@ -356,8 +366,13 @@ function mfa_geohash_upsert_place( $type, $p, $country_fallback = '' ) {
 		return 'skip';
 	}
 
-	if ( mfa_geohash_address_country_mismatch( $f['address'], $country_fallback ) ) {
-		return 'skip';
+	// Prefer the country named in the place's own address (see
+	// mfa_geohash_guess_country()'s docblock for why the search cell's
+	// nominal country can't be trusted blindly); only fall back to the
+	// cell's country when Serper's address doesn't name one at all.
+	$country = mfa_geohash_guess_country( $f['address'] );
+	if ( '' === $country ) {
+		$country = $country_fallback;
 	}
 
 	$is_mosque = ( 'mosque' === $type );
@@ -395,7 +410,7 @@ function mfa_geohash_upsert_place( $type, $p, $country_fallback = '' ) {
 			'latitude'       => $f['latitude'],
 			'longitude'      => $f['longitude'],
 			'address'        => $f['address'],
-			'country'        => $country_fallback,
+			'country'        => $country,
 			'phone'          => $f['phone'],
 			'website'        => $f['website'],
 			'rating'         => $f['rating'],
@@ -415,8 +430,8 @@ function mfa_geohash_upsert_place( $type, $p, $country_fallback = '' ) {
 		return 'skip';
 	}
 
-	$city    = mfa_geohash_guess_city( $f['address'], $country_fallback );
-	$default = mfa_geohash_default_seo( $type, $f['name'], $f['address'], $city, $country_fallback );
+	$city    = mfa_geohash_guess_city( $f['address'], $country );
+	$default = mfa_geohash_default_seo( $type, $f['name'], $f['address'], $city, $country );
 
 	$post_id = wp_insert_post( array(
 		'post_type'    => $post_type,

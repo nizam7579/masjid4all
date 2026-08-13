@@ -28,51 +28,60 @@ if ( ! defined( 'ABSPATH' ) ) {
 function mfa_directory_single_config() {
 	return array(
 		'masjid'   => array(
-			'header'    => 'niz_mfa_masjid_header',
-			'tabs'      => array(
+			'header'        => 'niz_mfa_masjid_header',
+			'tabs'          => array(
 				array( 'Home', 'mfa_mosque_home_tab' ),
 				array( 'Community', 'mosque_community' ),
 				array( 'Local Business', 'mfa_mosque_local_business_tab' ),
 				array( 'Review', 'niz_review' ),
 			),
-			'sidebar'   => '[enaizi_ads count="4" layout="vertical"]',
-			'owner_col' => 'cct_author_id',
-			'action'    => null,
+			'sidebar'       => '[enaizi_ads count="4" layout="vertical"]',
+			'owner_col'     => 'cct_author_id',
+			'action'        => null,
+			// Matches mfa_mosque_info_display()'s own "actual content" gate.
+			'live_statuses' => array( 'Approved', 'Active' ),
 		),
 		'business' => array(
-			'header'    => 'niz_business_header',
-			'tabs'      => array(
+			'header'        => 'niz_business_header',
+			'tabs'          => array(
 				array( 'Home', 'mfa_business_home_tab' ),
 				array( 'Nearby Mosques', 'mfa_business_nearby_mosques_tab' ),
 				array( 'Review', 'niz_review' ),
 				array( 'Claim', 'mfa_claim_business_listing' ),
 			),
-			'sidebar'   => '[enaizi_ads count="4" layout="vertical"]',
-			'owner_col' => 'owner_id',
-			'action'    => array( 'sc' => 'niz_business_ai_updater', 'when_status' => array( 'New', 'Pending' ) ),
+			'sidebar'       => '[enaizi_ads count="4" layout="vertical"]',
+			'owner_col'     => 'owner_id',
+			'action'        => array( 'sc' => 'niz_business_ai_updater', 'when_status' => array( 'New', 'Pending' ) ),
+			// Matches mfa_business_info_display()'s own "actual content" gate.
+			'live_statuses' => array( 'Approved', 'Verified', 'Premium' ),
 		),
 		'web'      => array(
-			'header'    => 'mfa_website_header',
-			'tabs'      => array(
+			'header'        => 'mfa_website_header',
+			'tabs'          => array(
 				array( 'Home', 'mfa_website_home_tab' ),
 				array( 'Review', 'niz_review' ),
 				array( 'Claim Website', 'mfa_claim_web_listing' ),
 			),
-			'sidebar'   => '[enaizi_ads count="4" layout="vertical"]',
-			'owner_col' => 'cct_author_id',
-			'action'    => array( 'sc' => 'niz_web_ai_updater', 'when_status' => array( 'New', 'Pending' ) ),
+			'sidebar'       => '[enaizi_ads count="4" layout="vertical"]',
+			'owner_col'     => 'cct_author_id',
+			'action'        => array( 'sc' => 'niz_web_ai_updater', 'when_status' => array( 'New', 'Pending' ) ),
+			// Matches mfa_web_info_display()'s own "actual content" gate.
+			'live_statuses' => array( 'Approved', 'Verified', 'Premium' ),
 		),
 		'city'     => array(
-			'header'    => '',
-			'tabs'      => array(
+			'header'        => '',
+			'tabs'          => array(
 				array( 'Home', 'niz_mfa_business_info' ),
 				array( 'Community', 'niz_review' ),
 				array( 'Mosques', 'niz_mfa_local_mosques' ),
 				array( 'Businesses', 'niz_mfa_local_business' ),
 			),
-			'sidebar'   => '',
-			'owner_col' => 'cct_author_id',
-			'action'    => null,
+			'sidebar'       => '',
+			'owner_col'     => 'cct_author_id',
+			'action'        => null,
+			// No claim/approval workflow for city pages - always show the
+			// full tab UI regardless of any status field.
+			'live_statuses' => null,
 		),
 	);
 }
@@ -98,13 +107,13 @@ function mfa_directory_single_record( $post_id, $type, $owner_col ) {
 
 /**
  * Render the gated AI-generate action, or '' if it shouldn't show.
+ * Takes the already-fetched $rec (see mfa_directory_single_shortcode()) so
+ * this doesn't re-query the CCT table a second time per page load.
  */
-function mfa_directory_single_action( $post_id, $type, $cfg ) {
+function mfa_directory_single_action( $rec, $cfg ) {
 	if ( empty( $cfg['action'] ) ) {
 		return '';
 	}
-	$rec = mfa_directory_single_record( $post_id, $type, $cfg['owner_col'] );
-
 	if ( ! in_array( $rec['status'], $cfg['action']['when_status'], true ) ) {
 		return '';
 	}
@@ -127,23 +136,44 @@ function mfa_directory_single_shortcode() {
 	}
 	$c = $config[ $type ];
 
+	$rec = mfa_directory_single_record( $post_id, $type, $c['owner_col'] );
+
+	// Only masjid/business/web (city has 'live_statuses' => null) go through
+	// a claimable approval workflow - each type's own "live" statuses match
+	// what its info-display function already treats as "actual content"
+	// (mosque: Approved/Active; business/web: Approved/Verified/Premium).
+	// Below that, hide the featured image and every tab except Home (which
+	// already shows its own status-appropriate content - a "Click to
+	// Update" prompt for New/Pending, a "we're verifying" card for anything
+	// else) - a Rejected or not-yet-reviewed listing shouldn't let visitors
+	// into its Community/Nearby Mosques/Review/Claim tabs (2026-08-13,
+	// explicit user direction: don't let people "join community" etc. on
+	// unverified listings).
+	$is_live = empty( $c['live_statuses'] ) || in_array( $rec['status'], $c['live_statuses'], true );
+
 	ob_start();
 	?>
 	<div class="mfa-dir-single mfa-dir-<?php echo esc_attr( $type ); ?>">
 		<div class="mfa-dir-body">
 			<div class="mfa-dir-main">
-				<?php if ( ! empty( $c['header'] ) ) { echo do_shortcode( '[' . $c['header'] . ']' ); } ?>
-				<?php echo mfa_directory_single_action( $post_id, $type, $c ); ?>
-				<div class="mfa-dir-tabs" role="tablist">
-					<?php foreach ( $c['tabs'] as $i => $t ) : ?>
-						<button type="button" class="mfa-dir-tab<?php echo 0 === $i ? ' is-active' : ''; ?>" data-mfa-tab="<?php echo (int) $i; ?>" role="tab"><?php echo esc_html( $t[0] ); ?></button>
-					<?php endforeach; ?>
-				</div>
-				<?php foreach ( $c['tabs'] as $i => $t ) : ?>
-					<div class="mfa-dir-pane<?php echo 0 === $i ? ' is-active' : ''; ?>" data-mfa-pane="<?php echo (int) $i; ?>">
-						<?php echo do_shortcode( '[' . $t[1] . ']' ); ?>
+				<?php if ( $is_live && ! empty( $c['header'] ) ) { echo do_shortcode( '[' . $c['header'] . ']' ); } ?>
+				<?php echo mfa_directory_single_action( $rec, $c ); ?>
+				<?php if ( $is_live ) : ?>
+					<div class="mfa-dir-tabs" role="tablist">
+						<?php foreach ( $c['tabs'] as $i => $t ) : ?>
+							<button type="button" class="mfa-dir-tab<?php echo 0 === $i ? ' is-active' : ''; ?>" data-mfa-tab="<?php echo (int) $i; ?>" role="tab"><?php echo esc_html( $t[0] ); ?></button>
+						<?php endforeach; ?>
 					</div>
-				<?php endforeach; ?>
+					<?php foreach ( $c['tabs'] as $i => $t ) : ?>
+						<div class="mfa-dir-pane<?php echo 0 === $i ? ' is-active' : ''; ?>" data-mfa-pane="<?php echo (int) $i; ?>">
+							<?php echo do_shortcode( '[' . $t[1] . ']' ); ?>
+						</div>
+					<?php endforeach; ?>
+				<?php elseif ( ! empty( $c['tabs'] ) ) : ?>
+					<div class="mfa-dir-pane is-active">
+						<?php echo do_shortcode( '[' . $c['tabs'][0][1] . ']' ); ?>
+					</div>
+				<?php endif; ?>
 			</div>
 
 			<?php if ( ! empty( $c['sidebar'] ) ) : ?>

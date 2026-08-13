@@ -404,7 +404,7 @@ function niz_mfa_load_more_mosques_handler() {
                     </div>
                 <?php endif; ?>
                 <div class="mosque-card-content">
-                    <div class="mosque-meta-body
+                    <div class="mosque-meta-body">
                         <h3 class="mosque-name"><?php echo esc_html($m['name'] ?? 'Masjid'); ?></h3>
                         <p class="mosque-excerpt"><?php echo esc_html($m['address'] ?? ''); ?></p>
                     </div>

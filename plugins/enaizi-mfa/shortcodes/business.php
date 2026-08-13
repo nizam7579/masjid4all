@@ -324,9 +324,10 @@ function niz_mfa_load_more_businesses_handler() {
                 WHEN 'Approved' THEN 3
                 WHEN 'Pending' THEN 4
                 WHEN 'New' THEN 5
-                ELSE 6 
+                ELSE 6
             END ASC,
-            distance ASC
+            distance ASC,
+            _ID ASC
         LIMIT %d OFFSET %d
     ", array_merge([$latitude, $longitude, $latitude], $params, [$limit, $offset]));
 
@@ -473,7 +474,8 @@ function niz_mfa_load_local_businesses_handler() {
                 WHEN 'New' THEN 5
                 ELSE 6
             END ASC,
-            distance ASC
+            distance ASC,
+            _ID ASC
         LIMIT %d OFFSET %d
     ", [$bLat, $bLng, $bLat, $limit, $offset]);
 

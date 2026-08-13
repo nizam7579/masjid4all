@@ -379,7 +379,7 @@ function niz_mfa_load_more_mosques_handler() {
         ( 6371 * acos( cos( radians(%f) ) * cos( radians( latitude ) ) * cos( radians( longitude ) - radians(%f) ) + sin( radians(%f) ) * sin( radians( latitude ) ) ) ) AS distance
         FROM {$table}
         WHERE {$where_sql}
-        ORDER BY distance ASC
+        ORDER BY distance ASC, _ID ASC
         LIMIT %d OFFSET %d
     ", array_merge([$latitude, $longitude, $latitude], $params, [$limit, $offset]));
 
@@ -524,7 +524,7 @@ function niz_mfa_load_local_mosques_handler() {
         ( 6371 * acos( cos( radians(%f) ) * cos( radians( latitude ) ) * cos( radians( longitude ) - radians(%f) ) + sin( radians(%f) ) * sin( radians( latitude ) ) ) ) AS distance
         FROM {$table}
         WHERE {$where_sql}
-        ORDER BY distance ASC
+        ORDER BY distance ASC, _ID ASC
         LIMIT %d OFFSET %d
     ", array_merge([$bLat, $bLng, $bLat], $params, [$limit, $offset]));
 

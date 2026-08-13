@@ -969,19 +969,31 @@ function mfa_geohash_seed_country_codes() {
  * per code for display; country_code stays the canonical filter key
  * everywhere else. Sorted alphabetically by that display name.
  *
+ * mosque/business are REAL distinct listing counts from wp_jet_cct_mosque/
+ * business (joined via country_code<->country name pairs from this same
+ * grid, so alias spellings still match correctly), NOT summed from the
+ * grid's own mosque/business columns. That column stores each cell's raw
+ * Serper "found" count, and since cells are only ~1km apart while a single
+ * search has a wider radius, the same physical mosque gets "found" (and
+ * counted) by many overlapping neighbouring cells - summing it across a
+ * country wildly overcounts (found 2026-08-13: Israel showed 13,041/8,504
+ * mosque/business in this table vs 1,626/~1,xxx actual distinct listings).
+ * locations/done are still grid-based (they describe crawl coverage, not
+ * listing counts, so overlap there is fine/expected).
+ *
  * @return array country_code => array('name','locations','done','mosque','business')
  */
 function mfa_geohash_country_summary() {
 	global $wpdb;
 	$g = mfa_geohash_table();
+	$m = $wpdb->prefix . 'jet_cct_mosque';
+	$b = $wpdb->prefix . 'jet_cct_business';
 
 	$rows = $wpdb->get_results(
 		"SELECT country_code,
 		        MAX(country) AS name,
 		        COUNT(*) AS locations,
-		        SUM(status = 'Done') AS done,
-		        SUM(mosque) AS mosque_total,
-		        SUM(business) AS business_total
+		        SUM(status = 'Done') AS done
 		 FROM {$g}
 		 WHERE country_code <> ''
 		 GROUP BY country_code
@@ -989,14 +1001,32 @@ function mfa_geohash_country_summary() {
 		ARRAY_A
 	);
 
+	$name_map_sql = "SELECT DISTINCT country_code, country FROM {$g} WHERE country_code <> '' AND country IS NOT NULL AND country <> ''";
+
+	$mosque_counts = $wpdb->get_results(
+		"SELECT map.country_code AS cc, COUNT(*) AS n
+		 FROM {$m} rec
+		 INNER JOIN ( {$name_map_sql} ) map ON rec.country = map.country
+		 GROUP BY map.country_code",
+		OBJECT_K
+	);
+	$business_counts = $wpdb->get_results(
+		"SELECT map.country_code AS cc, COUNT(*) AS n
+		 FROM {$b} rec
+		 INNER JOIN ( {$name_map_sql} ) map ON rec.country = map.country
+		 GROUP BY map.country_code",
+		OBJECT_K
+	);
+
 	$out = array();
 	foreach ( $rows as $r ) {
-		$out[ $r['country_code'] ] = array(
-			'name'      => $r['name'] ? $r['name'] : $r['country_code'],
+		$cc = $r['country_code'];
+		$out[ $cc ] = array(
+			'name'      => $r['name'] ? $r['name'] : $cc,
 			'locations' => (int) $r['locations'],
 			'done'      => (int) $r['done'],
-			'mosque'    => (int) $r['mosque_total'],
-			'business'  => (int) $r['business_total'],
+			'mosque'    => isset( $mosque_counts[ $cc ] ) ? (int) $mosque_counts[ $cc ]->n : 0,
+			'business'  => isset( $business_counts[ $cc ] ) ? (int) $business_counts[ $cc ]->n : 0,
 		);
 	}
 	return $out;

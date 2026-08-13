@@ -39,16 +39,28 @@ function mfa_is_admin_area( $post_id = 0 ) {
  *   those same sections would be redundant chrome on top of chrome.
  * - 217911 (/admin/member/info/): opened from the Members list's "View"
  *   button in a new tab for a quick lookup, not primary navigation.
- * - 231047 (/admin/crawler/start/): meant to be opened in several tabs at
- *   once, each reloading itself every few seconds - the nav chrome would
- *   just be re-rendered dead weight on every cycle.
+ *
+ * /admin/crawler/start/ hides chrome too (meant to be opened in several tabs
+ * at once, each reloading itself every few seconds - the nav would just be
+ * re-rendered dead weight on every cycle) but is matched by slug, not a
+ * fixed ID: staging and live created this page independently, so it has a
+ * different numeric ID on each - a straight folder copy between
+ * environments must not require hand-editing an ID here.
  */
 function mfa_admin_page_hides_chrome( $post_id = 0 ) {
 	$post_id = $post_id ? (int) $post_id : get_queried_object_id();
 
-	$chromeless_ids = array( 9343, 217911, 231047 );
+	$chromeless_ids = array( 9343, 217911 );
+	if ( in_array( $post_id, $chromeless_ids, true ) ) {
+		return true;
+	}
 
-	return in_array( $post_id, $chromeless_ids, true );
+	$post = get_post( $post_id );
+	if ( $post && 'start' === $post->post_name && $post->post_parent ) {
+		return 'crawler' === get_post_field( 'post_name', $post->post_parent );
+	}
+
+	return false;
 }
 
 add_filter( 'template_include', 'mfa_admin_template_include' );

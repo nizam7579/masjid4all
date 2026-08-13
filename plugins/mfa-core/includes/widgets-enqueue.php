@@ -106,7 +106,10 @@ function mfa_core_enqueue_widget_assets() {
 
 		// Crawler overview page, plus its child /admin/crawler/start/ page -
 		// both are plain PHP-rendered forms (no JS), sharing one stylesheet.
-		$is_crawler_start = $post && 'start' === $post->post_name && 230695 === (int) $post->post_parent;
+		// Matched by slug, not a fixed parent ID, since staging/live created
+		// this page independently and it has a different ID on each site.
+		$is_crawler_start = $post && 'start' === $post->post_name && $post->post_parent
+			&& 'crawler' === get_post_field( 'post_name', $post->post_parent );
 		if ( $post && ( 'crawler' === $post->post_name || $is_crawler_start ) ) {
 			$crawler_css = MFA_CORE_PATH . 'assets/css/admin-crawler-v1.css';
 			wp_enqueue_style( 'mfa-core-admin-crawler', MFA_CORE_URL . 'assets/css/admin-crawler-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell' ), $get_version( $crawler_css ) );

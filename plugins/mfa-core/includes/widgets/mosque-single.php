@@ -34,24 +34,10 @@ function mfa_mosque_home_tab_shortcode() {
 	<div class="mfa-mosque-home">
 		<?php if ( $can_upload_image ) : ?>
 			<div class="mfa-mosque-actions">
-				<div class="mfa-mosque-modal-wrap">
-					<div id="mfa-mosque-modal-image-<?php echo esc_attr( $post_id ); ?>" class="kadence-block-pro-modal kt-m-animate-in-fadeup kt-m-animate-out-fadeout" aria-hidden="true">
-						<div class="kt-modal-overlay" tabindex="-1" data-modal-close="true">
-							<div class="kt-modal-container kt-modal-height-fittocontent kt-close-position-inside" role="dialog" aria-modal="true">
-								<button class="kt-modal-close" aria-label="Close Modal" data-modal-close="true">
-									<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-								</button>
-								<div class="kt-modal-content">
-									<?php echo do_shortcode( '[cpt_image_manager]' ); ?>
-								</div>
-							</div>
-						</div>
-					</div>
-					<button type="button" class="mfa-mosque-action-btn" data-modal-open="mfa-mosque-modal-image-<?php echo esc_attr( $post_id ); ?>">
-						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
-						Upload Image
-					</button>
-				</div>
+				<?php
+				$upload_icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>';
+				echo do_shortcode( '[mfa_modal id="mosque-image-' . esc_attr( $post_id ) . '" title="Upload Image" label="Upload Image" button_class="mfa-mosque-action-btn" icon=\'' . $upload_icon . '\'][cpt_image_manager][/mfa_modal]' );
+				?>
 			</div>
 		<?php endif; ?>
 

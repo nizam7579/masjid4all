@@ -292,17 +292,14 @@ function mfa_core_enqueue_widget_assets() {
 	}
 
 	// Single mosque post (Kadence Theme Builder "Mosque" template,
-	// [mfa_mosque_home_tab] / [mfa_mosque_local_business_tab]). Same
-	// post_type-based detection and modal safety-net pattern as the
-	// business post block above.
+	// [mfa_mosque_home_tab] / [mfa_mosque_local_business_tab]). No
+	// Kadence-modal safety-net needed here (unlike business/web below):
+	// post 875's own content has zero wp:kadence/modal blocks left
+	// anywhere (verified via DB query 2026-08-13) - Upload Image was the
+	// only modal this template ever had, and it's [mfa_modal]-based now.
 	if ( $post && 'masjid' === $post->post_type ) {
 		$css = MFA_CORE_PATH . 'assets/css/mosque-single-v2.css';
 		wp_enqueue_style( 'mfa-core-mosque-single', MFA_CORE_URL . 'assets/css/mosque-single-v2.css', array(), $get_version( $css ) );
-
-		if ( wp_script_is( 'kadence-blocks-pro-modal', 'registered' ) ) {
-			wp_enqueue_script( 'kadence-blocks-pro-modal' );
-			wp_add_inline_script( 'kadence-blocks-pro-modal', "document.addEventListener('click',function(e){var c=e.target.closest('.mfa-mosque-modal-wrap [data-modal-close]');if(!c)return;var m=c.closest('.kadence-block-pro-modal');if(!m)return;setTimeout(function(){m.classList.remove('is-open');},350);});" );
-		}
 	}
 
 	// Single website post (Kadence Theme Builder "Web" template,

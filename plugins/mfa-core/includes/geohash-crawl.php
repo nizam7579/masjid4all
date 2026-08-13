@@ -246,41 +246,52 @@ function mfa_geohash_guess_city( $address, $country ) {
  * to just take the cell's own country on faith).
  *
  * Reuses mfa_get_country_list() (member-account-modals.php) as the set of
- * known country names. Checks comma-separated address segments from the
- * end first (country is conventionally the last segment), then falls back
- * to a full-string scan (rightmost match) for addresses that don't cleanly
- * comma-split. Returns '' when no known country name appears anywhere -
- * caller should fall back to the search cell's own country in that case,
- * since many Serper addresses are just "City" or "Street, City" with no
- * country suffix at all.
+ * known country names. **Deliberately conservative**: only trusts an EXACT
+ * match (case-insensitive) on the address's own final comma-separated
+ * segment (postal-code-only trailing segments are stripped first, same
+ * heuristic as mfa_geohash_guess_city()) - not a substring scan anywhere
+ * in the address. An earlier version did a full-string substring scan and
+ * produced real false positives on live data (checked across all 128K+
+ * existing rows before ever applying anything, 2026-08-13): "Indianapolis"
+ * matched "India", "Kirani Road"/"Pinggiran" matched "Iran",
+ * "Singhanakhon" matched "Ghana", "Perumahan" (Malay for "housing estate")
+ * matched "Peru", "Port of Spain" matched "Spain", "Jamaica, NY" matched
+ * "Jamaica" the country, "Benin City" (a real Nigerian city) matched
+ * "Benin", and "Nigeria" itself matched "Niger" as a same-position prefix.
+ * Restricting to an exact match on the true final segment avoids all of
+ * these while still catching every real cross-border case found (Dayr
+ * Yusuf/Jordan, Limbang/Malaysia, etc. all end their address in a clean
+ * ", Country" segment). Returns '' when the final segment isn't an exact
+ * known-country match - caller should fall back to the search cell's own
+ * country in that case, since many Serper addresses are just "City" or
+ * "Street, City" with no country suffix at all.
  */
 function mfa_geohash_guess_country( $address ) {
 	if ( '' === $address || ! function_exists( 'mfa_get_country_list' ) ) {
 		return '';
 	}
 
-	$countries = mfa_get_country_list();
-	$parts     = array_values( array_filter( array_map( 'trim', explode( ',', $address ) ) ) );
+	$parts = array_values( array_filter( array_map( 'trim', explode( ',', $address ) ) ) );
+	if ( empty( $parts ) ) {
+		return '';
+	}
 
-	for ( $i = count( $parts ) - 1; $i >= 0; $i-- ) {
-		foreach ( $countries as $c ) {
-			if ( 0 === strcasecmp( $parts[ $i ], $c ) ) {
-				return $c;
-			}
+	$last = end( $parts );
+	if ( preg_match( '/^[\d\s\-]+$/', $last ) ) {
+		array_pop( $parts );
+		$last = end( $parts );
+	}
+	if ( ! $last ) {
+		return '';
+	}
+
+	foreach ( mfa_get_country_list() as $c ) {
+		if ( 0 === strcasecmp( $last, $c ) ) {
+			return $c;
 		}
 	}
 
-	$best_pos = -1;
-	$best     = '';
-	foreach ( $countries as $c ) {
-		$pos = stripos( $address, $c );
-		if ( false !== $pos && $pos > $best_pos ) {
-			$best_pos = $pos;
-			$best     = $c;
-		}
-	}
-
-	return $best;
+	return '';
 }
 
 /**

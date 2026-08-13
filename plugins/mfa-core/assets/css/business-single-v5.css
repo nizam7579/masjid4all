@@ -1,18 +1,10 @@
-/* business-single.css — [mfa_business_home_tab] on the single business post
-   template (Kadence Theme Builder "Business" element, post 9151). Plain
-   HTML/CSS, no Kadence blocks for this tab's own content; the outer 4-tab
-   nav (Home / Nearby Mosques / Review / Claim) stays Kadence for now.
-
-   The modal markup reuses Kadence Blocks Pro's own DOM contract
-   (.kadence-block-pro-modal / .kt-modal-overlay / .kt-modal-container /
-   .kt-modal-close, aria-hidden + .is-open toggling, data-modal-open /
-   data-modal-close attributes) so its still-active kt-modal-init.min.js
-   (MicroModal) opens/closes it correctly — confirmed from source that the
-   JS keys off those attributes, not a literal wp:kadence/modal block in
-   post content. This file supplies the full visual styling itself rather
-   than depending on Kadence's modal CSS actually being enqueued on a page
-   with no literal kadence/modal block (unconfirmed whether that auto-loads
-   here) — safe either way since the values match what Kadence itself uses. */
+/* business-single.css — styling for the single business listing, rendered
+   via [mfa_directory_single] (single-business.php in mfa-theme). The old
+   Kadence Theme Builder "Business" template (post 9151) is vestigial - kept
+   only as a Kadence-theme-rollback fallback, not part of the render path.
+   Plain HTML/CSS, zero Kadence dependency (verified 2026-08-13: no
+   kadence-block-pro-modal markup or script anywhere in the live-rendered
+   page). [mfa_modal] (modal-v1.css) supplies all modal chrome now. */
 
 .mfa-biz-home { font-family: Lato, sans-serif; }
 
@@ -93,88 +85,6 @@
   color: var(--mfa-ink);
   margin: 0 0 14px;
 }
-
-/* ---------- Modal chrome (mirrors Kadence Blocks Pro's own modal CSS) ---------- */
-.kadence-block-pro-modal { display: none; }
-.kadence-block-pro-modal.is-open { display: block; }
-
-/* MicroModal (kt-modal-init.min.js) waits for an `animationend` event on the
-   outer modal div before it removes `.is-open` on close (awaitCloseAnimation).
-   Without an actual CSS animation bound to the aria-hidden flip, that event
-   never fires and the modal is stuck visually open (display:block) forever
-   after clicking close, even though aria-hidden correctly becomes "true".
-   These two rules give both open and close a real animation so MicroModal's
-   own close cleanup runs. pointer-events:none during close keeps the fading
-   overlay from swallowing clicks on the page underneath. */
-@keyframes kt-modal-fade-in { from { opacity: 0; } to { opacity: 1; } }
-@keyframes kt-modal-fade-out { from { opacity: 1; } to { opacity: 0; } }
-.kadence-block-pro-modal.is-open[aria-hidden="false"] {
-  animation: kt-modal-fade-in 0.2s ease;
-}
-.kadence-block-pro-modal.is-open[aria-hidden="true"] {
-  animation: kt-modal-fade-out 0.2s ease forwards;
-  pointer-events: none;
-}
-
-.kadence-block-pro-modal .kt-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.6);
-  z-index: 99999;
-  padding: 20px;
-  box-sizing: border-box;
-}
-
-.kadence-block-pro-modal .kt-modal-container {
-  position: relative;
-  background: var(--mfa-white);
-  width: 100%;
-  max-width: 600px;
-  max-height: 90vh;
-  overflow-y: auto;
-  padding: 30px;
-  box-sizing: border-box;
-  border-radius: 8px;
-}
-.kadence-block-pro-modal .kt-modal-container.kt-modal-height-full {
-  max-height: 90vh;
-}
-
-.kadence-block-pro-modal .kt-modal-close {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--mfa-mint-bg);
-  border: none;
-  border-radius: 50%;
-  color: var(--mfa-ink);
-  cursor: pointer;
-  padding: 0;
-}
-.kadence-block-pro-modal .kt-modal-close svg { width: 18px; height: 18px; pointer-events: none; }
-
-.kadence-block-pro-modal .kt-modal-content h2,
-.kadence-block-pro-modal .kt-modal-content h3 {
-  margin-top: 0;
-  color: var(--mfa-ink);
-}
-.kadence-block-pro-modal .kt-modal-content p {
-  color: #56655f;
-  line-height: 1.6;
-}
-
-body.kt-modal-open { overflow: hidden; }
 
 /* ---------- [mfa_business_update_form] fields (inside [mfa_modal]) ----------
    Class names match member-account-modals-v1.css's form fields (same visual

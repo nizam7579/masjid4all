@@ -5,27 +5,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * [mfa_business_home_tab] - the "Home" tab content on the single business
- * post template (Kadence Theme Builder "Business" element, post 9151).
- * Plain HTML, no Kadence blocks - replaces that tab's action-button row
- * (Update Info / Upload Image, each a Kadence modal block) and its
- * [niz_mfa_business_info] content column. The outer 4-tab structure
- * (Home / Nearby Mosques / Review / Claim) stays Kadence for now; only
- * this tab's own content is rebuilt.
+ * listing, rendered via [mfa_directory_single] (mfa-core/includes/widgets/
+ * directory-single.php -> single-business.php in mfa-theme). That component
+ * owns the tab UI itself (Home / Nearby Mosques / Review / Claim -
+ * .mfa-dir-tabs, plain HTML/JS, zero Kadence); this shortcode is just the
+ * "Home" tab's own pane content. The old Kadence Theme Builder "Business"
+ * template (post 9151) this used to live inside is vestigial now - kept
+ * only as a Kadence-theme-rollback fallback, not part of the render path.
  *
- * The modal markup below intentionally mirrors Kadence's own modal DOM
- * shape (id on the aria-hidden target div, .kt-modal-overlay +
- * data-modal-close, .kt-modal-close button, data-modal-open="<id>" on
- * the trigger) so Kadence's still-active frontend JS opens/closes it
- * exactly as it did for the original block - this isn't a dependency on
- * the Kadence *block editor*, just its already-loaded theme/plugin JS,
- * the same technique already used for the Sofia popup on the footer.
- *
- * The old "Update Image" modal is dropped: its Kadence block content was
- * a bare `<!-- wp:shortcode /-->` with no shortcode text, so it always
- * opened to an empty modal - dead, not a real feature. The original
- * "Share" action button/modal is also dropped - redundant with the
- * sitewide floating share button (share-button-v12.js) already present
- * on every page.
+ * Update Info / Upload Image are both [mfa_modal]-based (see modal-v1.css/
+ * js) - no Kadence dependency of any kind on this page anymore, verified
+ * 2026-08-13 via a live HTTP fetch (zero kadence-block-pro-modal markup or
+ * script in the rendered output).
  */
 /**
  * Same ownership check niz_mfa_business_info() and

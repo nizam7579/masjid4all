@@ -4,22 +4,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * [mfa_mosque_home_tab] - the "Home" tab content on the single mosque post
- * template (Kadence Theme Builder "Mosque" element, post 875). Plain HTML,
- * no Kadence blocks - replaces that tab's action-button row (Upload
- * Image / Share, each a Kadence modal block) and its
- * [niz_mfa_mosques_info] content column. The outer 4-tab structure
- * (Home / Community / Local Business / Review) stays Kadence for now;
- * only this tab's own content is rebuilt.
+ * [mfa_mosque_home_tab] - the "Home" tab content on the single mosque
+ * listing, rendered via [mfa_directory_single] (single-masjid.php in
+ * mfa-theme). That component owns the tab UI itself (Home / Community /
+ * Local Business / Review - .mfa-dir-tabs, plain HTML/JS, zero Kadence);
+ * this shortcode is just the "Home" tab's own pane content. The old
+ * Kadence Theme Builder "Mosque" template (post 875) this used to live
+ * inside is vestigial now - kept only as a Kadence-theme-rollback
+ * fallback, not part of the render path.
  *
- * The modal markup mirrors Kadence's own modal DOM shape (id on the
- * aria-hidden target div, .kt-modal-overlay + data-modal-close,
- * .kt-modal-close button, data-modal-open="<id>" on the trigger) so
- * Kadence's still-active frontend JS opens/closes it - same technique
- * used for the business single-post page's Home tab.
- *
- * The "Share" action button/modal is dropped per request - the site
- * already has a sitewide floating share button (share-button-v12.js).
+ * Upload Image is [mfa_modal]-based - no Kadence dependency of any kind
+ * on this page. "Share" was dropped per request - the site already has a
+ * sitewide floating share button (share-button-v12.js).
  */
 add_shortcode( 'mfa_mosque_home_tab', 'mfa_mosque_home_tab_shortcode' );
 function mfa_mosque_home_tab_shortcode() {

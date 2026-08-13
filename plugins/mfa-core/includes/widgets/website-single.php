@@ -5,19 +5,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * [mfa_website_home_tab] - the "Home" tab content on the single website
- * post template (Kadence Theme Builder "Web" element, post 220902). Plain
- * HTML, no Kadence blocks - replaces that tab's action-button row (Update
- * Info / Upload Image / Share, each a Kadence modal block) and its
- * [mfa_website_info] content column. The outer 3-tab structure
- * (Home / Review / Claim Website) stays Kadence for now; only this tab's
- * own content is rebuilt. The right-column "Islamic Resources" directory
- * sidebar ([niz_mfa_web_directory]) is untouched.
+ * listing, rendered via [mfa_directory_single] (single-web.php in
+ * mfa-theme). That component owns the tab UI itself (Home / Review /
+ * Claim Website - .mfa-dir-tabs, plain HTML/JS, zero Kadence); this
+ * shortcode is just the "Home" tab's own pane content. The old Kadence
+ * Theme Builder "Web" template (post 220902) this used to live inside is
+ * vestigial now - kept only as a Kadence-theme-rollback fallback, not
+ * part of the render path. The right-column "Islamic Resources" directory
+ * sidebar ([niz_mfa_web_directory]) is a separate part of the config.
  *
- * The modal markup mirrors Kadence's own modal DOM shape (id on the
- * aria-hidden target div, .kt-modal-overlay + data-modal-close,
- * .kt-modal-close button, data-modal-open="<id>" on the trigger) so
- * Kadence's still-active frontend JS opens/closes it - same technique
- * used for the business and mosque single-post pages' Home tabs.
+ * Update Info / Upload Image are both [mfa_modal]-based - no Kadence
+ * dependency of any kind on this page anymore, verified 2026-08-13 via a
+ * live HTTP fetch (zero kadence-block-pro-modal markup or script in the
+ * rendered output).
  *
  * Ownership check (Update Info visibility) replicates the same
  * jet_cct_listing_owner lookup niz_mfa_business_info()/mfa_website_info()
@@ -26,13 +26,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  * technique required a separate [mfa_website_status] call purely for its
  * CSS-injection side effect - not needed once visibility is a real PHP
  * conditional).
- *
- * The old "Update Image" modal is dropped: its Kadence block content was
- * a bare `<!-- wp:shortcode /-->` with no shortcode text, so it always
- * opened to an empty modal - dead, not a real feature (same pattern
- * confirmed on the business page). The "Share" action button/modal is
- * also dropped per request - redundant with the sitewide floating share
- * button (share-button-v12.js) already present on every page.
  */
 /**
  * Same ownership check mfa_website_info()/business-single.php's

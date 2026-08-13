@@ -251,10 +251,15 @@ function mfa_core_enqueue_widget_assets() {
 		wp_enqueue_style( 'mfa-core-legal-page', MFA_CORE_URL . 'assets/css/legal-page-v3.css', array(), $get_version( $css ) );
 	}
 
-	// Single business post (Kadence Theme Builder "Business" template,
-	// [mfa_business_home_tab]). Not detectable via has_shortcode() since it
-	// renders through the CPT template, not literal post_content — checked
-	// by post_type instead, same pattern as $is_quran_page above.
+	// Single business post. Renders via [mfa_directory_single] now
+	// (single-business.php in mfa-theme), not the old Kadence Theme
+	// Builder "Business" template (post 9151, vestigial - kept only as a
+	// Kadence-theme-rollback fallback, not part of the render path). No
+	// Kadence-modal safety-net needed: every tab shortcode this page
+	// actually renders (mfa_business_home_tab, mfa_business_nearby_
+	// mosques_tab, niz_review, mfa_claim_business_listing) is plain PHP/
+	// [mfa_modal] - verified 2026-08-13 via a live HTTP fetch that the
+	// rendered page contains zero kadence-block-pro-modal markup.
 	if ( $post && 'business' === $post->post_type ) {
 		$css = MFA_CORE_PATH . 'assets/css/business-single-v5.css';
 		wp_enqueue_style( 'mfa-core-business-single', MFA_CORE_URL . 'assets/css/business-single-v5.css', array(), $get_version( $css ) );
@@ -266,29 +271,6 @@ function mfa_core_enqueue_widget_assets() {
 		// duplicate stylesheet.
 		$biz_form_js = MFA_CORE_PATH . 'assets/js/business-update-form-v1.js';
 		wp_enqueue_script( 'mfa-core-business-update-form', MFA_CORE_URL . 'assets/js/business-update-form-v1.js', array(), $get_version( $biz_form_js ), true );
-
-		// Explicit safety-net enqueue: the Upload Image modal (Update Info
-		// converted to [mfa_modal] above) still relies on Kadence
-		// Blocks Pro's own kt-modal-init.min.js (MicroModal, handle
-		// "kadence-blocks-pro-modal"), which that plugin only auto-enqueues
-		// when it detects a literal wp:kadence/modal block in parsed page
-		// content — there isn't one here, only matching DOM/attributes, so
-		// force it in rather than relying on that detection firing.
-		if ( wp_script_is( 'kadence-blocks-pro-modal', 'registered' ) ) {
-			wp_enqueue_script( 'kadence-blocks-pro-modal' );
-
-			// Failsafe: confirmed on staging that MicroModal's close handler
-			// (awaitCloseAnimation) never removes .is-open here — it waits for
-			// an `animationend` event that never fires (reproduced identically
-			// on pre-existing, untouched Kadence modals like #TanyaAlya, so
-			// this is a site-wide Kadence/LiteSpeed CSS issue, not something
-			// caused by this markup). Without this, clicking the close button
-			// on Update Info/Upload Image/Share leaves aria-hidden correctly
-			// set to "true" but the modal still visually open (display:block).
-			// Scoped to just .mfa-biz-modal-wrap so it can't affect any other
-			// Kadence modal on the site (Sofia popup, chatbot, etc).
-			wp_add_inline_script( 'kadence-blocks-pro-modal', "document.addEventListener('click',function(e){var c=e.target.closest('.mfa-biz-modal-wrap [data-modal-close]');if(!c)return;var m=c.closest('.kadence-block-pro-modal');if(!m)return;setTimeout(function(){m.classList.remove('is-open');},350);});" );
-		}
 	}
 
 	// Single mosque post (Kadence Theme Builder "Mosque" template,
@@ -302,9 +284,10 @@ function mfa_core_enqueue_widget_assets() {
 		wp_enqueue_style( 'mfa-core-mosque-single', MFA_CORE_URL . 'assets/css/mosque-single-v2.css', array(), $get_version( $css ) );
 	}
 
-	// Single website post (Kadence Theme Builder "Web" template,
-	// [mfa_website_home_tab]). Same post_type-based detection and modal
-	// safety-net pattern as the business/mosque post blocks above.
+	// Single website post. Same story as business above: renders via
+	// [mfa_directory_single] (single-web.php), old Kadence Theme Builder
+	// "Web" template (post 220902) is vestigial/rollback-only. No
+	// Kadence-modal safety-net needed - verified 2026-08-13 via live fetch.
 	if ( $post && 'web' === $post->post_type ) {
 		$css = MFA_CORE_PATH . 'assets/css/website-single-v2.css';
 		wp_enqueue_style( 'mfa-core-website-single', MFA_CORE_URL . 'assets/css/website-single-v2.css', array(), $get_version( $css ) );
@@ -312,11 +295,6 @@ function mfa_core_enqueue_widget_assets() {
 		// [mfa_website_update_form]'s AJAX submit (replaces FluentForm 69).
 		$web_form_js = MFA_CORE_PATH . 'assets/js/website-update-form-v1.js';
 		wp_enqueue_script( 'mfa-core-website-update-form', MFA_CORE_URL . 'assets/js/website-update-form-v1.js', array(), $get_version( $web_form_js ), true );
-
-		if ( wp_script_is( 'kadence-blocks-pro-modal', 'registered' ) ) {
-			wp_enqueue_script( 'kadence-blocks-pro-modal' );
-			wp_add_inline_script( 'kadence-blocks-pro-modal', "document.addEventListener('click',function(e){var c=e.target.closest('.mfa-web-modal-wrap [data-modal-close]');if(!c)return;var m=c.closest('.kadence-block-pro-modal');if(!m)return;setTimeout(function(){m.classList.remove('is-open');},350);});" );
-		}
 	}
 
 	// Single knowledge post (Kadence Theme Builder "Knowledge" template,

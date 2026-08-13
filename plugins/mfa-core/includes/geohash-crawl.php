@@ -236,6 +236,44 @@ function mfa_geohash_guess_city( $address, $country ) {
 }
 
 /**
+ * Does a Serper place's address actually belong to the search cell's own
+ * country? A geohash cell's Serper search (q=mosque / q=halal, zoom 13) is
+ * NOT country-aware - a cell right on a border can and does return real
+ * places physically in the neighbouring country (found 2026-08-13: mosques
+ * in Jordan returned by a border-adjacent Israel-tagged cell, inserted with
+ * country='Israel' because mfa_geohash_upsert_place() blindly trusted the
+ * cell's own country instead of checking the place itself).
+ *
+ * Reuses mfa_get_country_list() (member-account-modals.php) as the set of
+ * "known country names" to check for. Logic: if the expected country's name
+ * appears anywhere in the address, trust it. Otherwise, if some OTHER known
+ * country's name appears in the address, that's a real mismatch. If the
+ * address names no country at all (common - many Serper addresses are just
+ * "City" or "Street, City" with no country suffix), there's nothing to
+ * verify, so it's allowed through rather than blocked on missing data.
+ */
+function mfa_geohash_address_country_mismatch( $address, $expected_country ) {
+	if ( '' === $address || '' === $expected_country || ! function_exists( 'mfa_get_country_list' ) ) {
+		return false;
+	}
+
+	if ( false !== stripos( $address, $expected_country ) ) {
+		return false;
+	}
+
+	foreach ( mfa_get_country_list() as $other_country ) {
+		if ( $other_country === $expected_country ) {
+			continue;
+		}
+		if ( false !== stripos( $address, $other_country ) ) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+/**
  * Lightweight, non-AI default content + SEO meta for a freshly crawled
  * listing. New/Pending listings are now included in directory search/
  * listing pages (not just Approved), so a crawled record needs to be
@@ -315,6 +353,10 @@ function mfa_geohash_upsert_place( $type, $p, $country_fallback = '' ) {
 	}
 
 	if ( 'business' === $type && mfa_geohash_is_non_halal( $f['name'] ) ) {
+		return 'skip';
+	}
+
+	if ( mfa_geohash_address_country_mismatch( $f['address'], $country_fallback ) ) {
 		return 'skip';
 	}
 

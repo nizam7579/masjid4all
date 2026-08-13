@@ -87,6 +87,52 @@
 		save_cron: 'Saving…', save_budget: 'Saving…', reset_used: 'Resetting…'
 	};
 
+	// Auto-repeat for the "Run a crawl batch now" button: keep firing the same
+	// batch (one country per browser tab) until the queue for that country is
+	// empty, it pauses, or the user clicks Stop - a manual stand-in for the
+	// external cron while that path is being debugged.
+	var autoTimer = null;
+	var runBtn;
+
+	function stopAuto() {
+		autoTimer = null;
+		if ( runBtn ) {
+			runBtn.disabled = false;
+			runBtn.textContent = 'Run batch (mosque + halal)';
+		}
+	}
+
+	function startAuto( extra ) {
+		runBtn = root.querySelector( '.mfa-crawler-btn[data-op="run"]' );
+		autoTimer = true; // truthy sentinel; also gates stop via the click handler
+		runBtn.textContent = 'Stop auto-run';
+		var tick = function () {
+			if ( ! autoTimer ) { return; }
+			log( 'Crawling (' + ( extra.country || 'all queued' ) + ')… auto-repeating, click Stop to end.', true );
+			post( 'run', extra ).then( function ( j ) {
+				if ( ! autoTimer ) { return; }
+				if ( ! j || ! j.success ) {
+					log( 'Error: ' + ( j && j.data ? j.data : 'request failed' ) );
+					stopAuto();
+					return;
+				}
+				log( j.data.message || 'Done.' );
+				render( j.data.status );
+				var r = j.data.result || {};
+				if ( r.stopped || 0 === Number( r.queued_found ) ) {
+					log( ( j.data.message || '' ) + ' — stopping auto-run (' + ( r.stopped || 'nothing left queued for this country' ) + ').' );
+					stopAuto();
+					return;
+				}
+				setTimeout( tick, 1000 );
+			} ).catch( function () {
+				log( 'Request failed — stopping auto-run.' );
+				stopAuto();
+			} );
+		};
+		tick();
+	}
+
 	root.addEventListener( 'click', function ( e ) {
 		var btn = e.target.closest( '.mfa-crawler-btn' );
 		if ( ! btn ) { return; }
@@ -98,8 +144,13 @@
 			extra.limit = el( 'mfa-crawler-queue-limit' ).value || 0;
 		}
 		if ( 'run' === op ) {
-			extra.country = '';
+			if ( autoTimer ) { stopAuto(); return; }
+			extra.country = el( 'mfa-crawler-run-country' ).value;
 			extra.limit = el( 'mfa-crawler-run-limit' ).value || 5;
+			if ( el( 'mfa-crawler-run-auto' ).checked ) {
+				startAuto( extra );
+				return;
+			}
 		}
 		if ( 'save_cron' === op ) {
 			extra.enabled = el( 'mfa-crawler-cron-enabled' ).checked ? '1' : '0';

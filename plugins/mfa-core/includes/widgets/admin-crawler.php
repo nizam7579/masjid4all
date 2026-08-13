@@ -84,9 +84,16 @@ function mfa_admin_crawler_shortcode() {
 		<div class="mfa-crawler-section">
 			<h3 class="mfa-h3">3 &middot; Run a crawl batch now</h3>
 			<div class="mfa-crawler-row">
+				<select id="mfa-crawler-run-country">
+					<option value="">All queued</option>
+					<?php foreach ( $countries as $cc => $name ) : ?>
+						<option value="<?php echo esc_attr( $cc ); ?>"><?php echo esc_html( $name . ' (' . $cc . ')' ); ?></option>
+					<?php endforeach; ?>
+				</select>
 				<input type="number" id="mfa-crawler-run-limit" value="5" min="1" max="50">
+				<label><input type="checkbox" id="mfa-crawler-run-auto"> Auto-repeat until done</label>
 				<button class="mfa-crawler-btn mfa-crawler-btn-primary" data-op="run">Run batch (mosque + halal)</button>
-				<span class="mfa-crawler-hint">~17s per cell &mdash; keep this small in the browser; use the cron for bulk.</span>
+				<span class="mfa-crawler-hint">~17s per cell &mdash; keep this small in the browser. Pick a country here and open this page in another tab to run multiple countries in parallel; tick "Auto-repeat" to keep a tab going without re-clicking.</span>
 			</div>
 		</div>
 
@@ -141,8 +148,9 @@ function mfa_admin_crawler_ajax() {
 	}
 	check_ajax_referer( 'mfa_crawler', 'nonce' );
 
-	$op  = isset( $_POST['op'] ) ? sanitize_key( $_POST['op'] ) : '';
-	$msg = '';
+	$op     = isset( $_POST['op'] ) ? sanitize_key( $_POST['op'] ) : '';
+	$msg    = '';
+	$result = null;
 
 	switch ( $op ) {
 		case 'status':
@@ -171,10 +179,11 @@ function mfa_admin_crawler_ajax() {
 			break;
 
 		case 'run':
-			$cc    = isset( $_POST['country'] ) ? strtoupper( sanitize_text_field( wp_unslash( $_POST['country'] ) ) ) : '';
-			$limit = isset( $_POST['limit'] ) ? (int) $_POST['limit'] : 5;
-			$r     = mfa_geohash_crawl_run_batch( $cc, $limit );
-			$msg   = 'Ran ' . $r['processed'] . '/' . $r['queued_found'] . ' cells. +' . $r['mosque_new'] . ' mosques, +' . $r['business_new'] . ' businesses.';
+			$cc     = isset( $_POST['country'] ) ? strtoupper( sanitize_text_field( wp_unslash( $_POST['country'] ) ) ) : '';
+			$limit  = isset( $_POST['limit'] ) ? (int) $_POST['limit'] : 5;
+			$r      = mfa_geohash_crawl_run_batch( $cc, $limit );
+			$result = $r;
+			$msg    = 'Ran ' . $r['processed'] . '/' . $r['queued_found'] . ' cells. +' . $r['mosque_new'] . ' mosques, +' . $r['business_new'] . ' businesses.';
 			if ( ! empty( $r['stopped'] ) ) {
 				$msg .= ' STOPPED: ' . $r['stopped'];
 			}
@@ -218,5 +227,6 @@ function mfa_admin_crawler_ajax() {
 	wp_send_json_success( array(
 		'message' => $msg,
 		'status'  => mfa_geohash_crawl_status(),
+		'result'  => $result,
 	) );
 }

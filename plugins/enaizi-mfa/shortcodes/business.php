@@ -217,7 +217,7 @@ add_shortcode('niz_mfa_nearest_business', function($atts) {
 
     $country_list = get_transient('niz_mfa_biz_country_list');
     if (false === $country_list) {
-        $country_list = $wpdb->get_col("SELECT DISTINCT country FROM $table WHERE country IS NOT NULL AND country != '' AND listing_status IN ('Approved','Verified','Premium') ORDER BY country ASC");
+        $country_list = $wpdb->get_col("SELECT DISTINCT country FROM $table WHERE country IS NOT NULL AND country != '' AND listing_status IN ('Approved','Verified','Premium','New','Pending') ORDER BY country ASC");
         set_transient('niz_mfa_biz_country_list', $country_list, 12 * HOUR_IN_SECONDS);
     }
     if (empty($country_list)) $country_list = ['Malaysia'];
@@ -304,8 +304,11 @@ function niz_mfa_load_more_businesses_handler() {
         $params[] = $wildcard;
     }
 
-    // Only surface curated listings in the directory.
-    $where_clauses[] = "listing_status IN ('Approved','Verified','Premium')";
+    // Curated listings plus not-yet-generated ones (New/Pending now
+    // searchable/findable so visitors can find a business and click "Click
+    // to Update" themselves) - matches the ranking below, which already
+    // accounted for New/Pending, just never let them past this filter.
+    $where_clauses[] = "listing_status IN ('Approved','Verified','Premium','New','Pending')";
     $where_sql = implode(" AND ", $where_clauses);
 
     // FIX 1: Added cct_single_post_id to the SELECT query
@@ -460,7 +463,7 @@ function niz_mfa_load_local_businesses_handler() {
         SELECT _ID, cct_single_post_id, name, address, introduction, page_url, listing_status,
         ( 6371 * acos( cos( radians(%f) ) * cos( radians( latitude ) ) * cos( radians( longitude ) - radians(%f) ) + sin( radians(%f) ) * sin( radians( latitude ) ) ) ) AS distance
         FROM {$table}
-        WHERE listing_status IN ('Approved','Verified','Premium')
+        WHERE listing_status IN ('Approved','Verified','Premium','New','Pending')
         ORDER BY
             CASE listing_status
                 WHEN 'Premium' THEN 1

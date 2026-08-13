@@ -267,7 +267,10 @@ function niz_mfa_load_more_web_handler() {
     $limit    = isset($_POST['limit']) ? intval($_POST['limit']) : 9;
     $exclude  = isset($_POST['current_web_id']) ? intval($_POST['current_web_id']) : 0;
 
-    $where_clauses = ["listing_status IN ('Approved','Verified','Premium')"];
+    // Curated listings plus not-yet-generated ones (New/Pending now
+    // searchable/findable so visitors can find a site and click "Click to
+    // Update" themselves).
+    $where_clauses = ["listing_status IN ('Approved','Verified','Premium','New','Pending')"];
     $params = [];
 
     if ($exclude > 0) {

@@ -275,7 +275,7 @@ function niz_mfa_nearest_mosque_shortcode($atts) {
     // Use WordPress Transients to cache the country list for 12 hours. Prevents DB spam.
     $country_list = get_transient('niz_mfa_country_list');
     if (false === $country_list) {
-        $country_list = $wpdb->get_col("SELECT DISTINCT country FROM $table WHERE country IS NOT NULL AND country != '' AND listing_status IN ('Approved','Active') ORDER BY country ASC");
+        $country_list = $wpdb->get_col("SELECT DISTINCT country FROM $table WHERE country IS NOT NULL AND country != '' AND listing_status IN ('Approved','Active','New','Pending') ORDER BY country ASC");
         set_transient('niz_mfa_country_list', $country_list, 12 * HOUR_IN_SECONDS);
     }
     if (empty($country_list)) {
@@ -365,8 +365,10 @@ function niz_mfa_load_more_mosques_handler() {
         $params[] = $wildcard;
     }
 
-    // Ensure we only show approved/active listings
-    $where_clauses[] = "listing_status IN ('Approved','Active')";
+    // Show approved/active listings plus not-yet-generated ones (New/Pending
+    // now searchable/findable so visitors can find their mosque and click
+    // "Click to Update" themselves, rather than only seeing generated pages).
+    $where_clauses[] = "listing_status IN ('Approved','Active','New','Pending')";
 
     $where_sql = implode(" AND ", $where_clauses);
 
@@ -502,7 +504,7 @@ function niz_mfa_load_local_mosques_handler() {
     $offset = isset($_POST['offset']) ? intval($_POST['offset']) : 0;
     $limit  = isset($_POST['limit']) ? intval($_POST['limit']) : 6;
 
-    $where_clauses = ["listing_status IN ('Approved','Active')"];
+    $where_clauses = ["listing_status IN ('Approved','Active','New','Pending')"];
     $params = [];
 
     if (!empty($search)) {

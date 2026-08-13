@@ -204,6 +204,88 @@ function mfa_geohash_map_place( $p ) {
 }
 
 /**
+ * Best-effort city guess from a Serper place's flat address string - Serper
+ * doesn't return a separately parsed city/locality field, only one address
+ * line, so this is approximate: drops a trailing country-name segment and a
+ * trailing postal-code-only segment, then takes whatever's left at the end.
+ * Works reasonably for "Street, City, Country" addresses; for "Street, City,
+ * State, Country" ones it sometimes lands on the state instead. Good enough
+ * for SEO title/keyword targeting, not meant to be authoritative.
+ */
+function mfa_geohash_guess_city( $address, $country ) {
+	if ( '' === $address ) {
+		return '';
+	}
+	$parts = array_values( array_filter( array_map( 'trim', explode( ',', $address ) ) ) );
+	if ( empty( $parts ) ) {
+		return '';
+	}
+
+	$last = end( $parts );
+	if ( $country && ( false !== stripos( $last, $country ) || false !== stripos( $country, $last ) ) ) {
+		array_pop( $parts );
+	}
+
+	$last = end( $parts );
+	if ( $last && preg_match( '/^[\d\s\-]+$/', $last ) ) {
+		array_pop( $parts );
+	}
+
+	$city = end( $parts );
+	return $city ? sanitize_text_field( $city ) : '';
+}
+
+/**
+ * Lightweight, non-AI default content + SEO meta for a freshly crawled
+ * listing. New/Pending listings are now included in directory search/
+ * listing pages (not just Approved), so a crawled record needs to be
+ * findable and indexable right away instead of sitting blank until someone
+ * clicks "Click to Update" to run the full AI generation. Mirrors the AI
+ * prompt's title/keyword pattern (enaizi/mosque.php's mosques_perplexity(),
+ * "((Name)) | Mosque in ((City)), ((Country))" + a comma-separated keyword
+ * list) so the SEO shape stays consistent whether or not a listing has been
+ * AI-generated yet.
+ *
+ * @param string $type    'mosque' or 'business'.
+ * @return array 'content' (post_content HTML), 'title', 'description', 'keywords'.
+ */
+function mfa_geohash_default_seo( $type, $name, $address, $city, $country ) {
+	$is_mosque = ( 'mosque' === $type );
+	$noun      = $is_mosque ? 'Mosque' : 'Halal business';
+	$place     = $city ? ( $country ? $city . ', ' . $country : $city ) : $country;
+
+	$title = $place ? "{$name} | {$noun} in {$place}" : $name;
+	if ( mb_strlen( $title ) > 70 ) {
+		$title = mb_substr( $title, 0, 67 ) . '...';
+	}
+
+	$description = $place
+		? "{$name} is a " . strtolower( $noun ) . " in {$place}. Find location and contact details on Masjid4All."
+		: "{$name}. Find location and contact details on Masjid4All.";
+
+	$keywords = array( $name );
+	if ( $city ) {
+		$keywords[] = strtolower( $noun ) . ' in ' . $city;
+	}
+	if ( $country ) {
+		$keywords[] = strtolower( $noun ) . ' in ' . $country;
+	}
+
+	$content = '<p>' . esc_html( $name ) . ' is a ' . strtolower( $noun ) . ( $place ? ' located in ' . esc_html( $place ) : '' ) . '.</p>';
+	if ( $address ) {
+		$content .= '<p><strong>Address:</strong> ' . esc_html( $address ) . '</p>';
+	}
+	$content .= '<p>This listing was added automatically and has not been fully reviewed yet. If you manage this location, click &ldquo;Click to Update&rdquo; below to add more details.</p>';
+
+	return array(
+		'content'     => $content,
+		'title'       => $title,
+		'description' => $description,
+		'keywords'    => implode( ', ', $keywords ),
+	);
+}
+
+/**
  * Upsert one place into the mosque or business directory, dedup by place_id.
  * Returns 'new' | 'existing' | 'skip'.
  *
@@ -274,14 +356,21 @@ function mfa_geohash_upsert_place( $type, $p, $country_fallback = '' ) {
 		return 'skip';
 	}
 
+	$city    = mfa_geohash_guess_city( $f['address'], $country_fallback );
+	$default = mfa_geohash_default_seo( $type, $f['name'], $f['address'], $city, $country_fallback );
+
 	$post_id = wp_insert_post( array(
-		'post_type'   => $post_type,
-		'post_status' => 'publish',
-		'post_title'  => $f['name'],
-		'post_author' => 0,
-		'meta_input'  => array(
-			'item_id'  => $cct_id,
-			'place_id' => $f['place_id'],
+		'post_type'    => $post_type,
+		'post_status'  => 'publish',
+		'post_title'   => $f['name'],
+		'post_content' => $default['content'],
+		'post_author'  => 0,
+		'meta_input'   => array(
+			'item_id'                 => $cct_id,
+			'place_id'                => $f['place_id'],
+			'rank_math_title'         => $default['title'],
+			'rank_math_description'   => $default['description'],
+			'rank_math_focus_keyword' => $default['keywords'],
 		),
 	) );
 

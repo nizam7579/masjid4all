@@ -84,7 +84,7 @@ function mfa_contact_page_shortcode() {
 
 			<div class="mfa-contact-grid">
 				<div class="mfa-contact-form-col">
-					<?php echo do_shortcode( '[fluentform id="8"]' ); ?>
+					<?php echo do_shortcode( '[mfa_contact_form]' ); ?>
 				</div>
 				<div class="mfa-contact-map-col">
 					<iframe

@@ -221,6 +221,13 @@ function mfa_core_enqueue_widget_assets() {
 		wp_enqueue_style( 'mfa-core-brand-page', MFA_CORE_URL . 'assets/css/brand-page-v5.css', array(), $get_version( $css ) );
 	}
 
+	// [mfa_contact_form]'s AJAX submit (replaces FluentForm 8). Only
+	// contact-us has the form; about-us doesn't need this.
+	if ( $post && 'contact-us' === $post->post_name ) {
+		$contact_form_js = MFA_CORE_PATH . 'assets/js/contact-form-v1.js';
+		wp_enqueue_script( 'mfa-core-contact-form', MFA_CORE_URL . 'assets/js/contact-form-v1.js', array(), $get_version( $contact_form_js ), true );
+	}
+
 	// 'member' uses the full [mfa_member_logged_out] (auth tabs + marketing
 	// panel); add-mosque/add-business/add-website and the Review/Claim tabs
 	// on single mosque/business/website posts use just [mfa_auth_tabs] for

@@ -124,21 +124,66 @@
     padding: 16px;
   }
 }
-.mfa-contact-form-col .ff-el-form-control,
-.mfa-contact-form-col textarea {
-  border-radius: 10px !important;
+/* [mfa_contact_form] field styling - same class names as the reusable
+   business/website update-form fields (member-account-modals-v1.css's
+   original set), duplicated locally rather than enqueuing that stylesheet.
+   No collision risk here (unlike the directory singles): this page never
+   loads modal-v1.css, so there's no competing .mfa-modal-overlay/
+   .mfa-modal-close definition to clash with. */
+.mfa-contact-form-col .mfa-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mfa-space-4, 16px);
 }
+.mfa-contact-form-col .mfa-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.mfa-contact-form-col .mfa-form-group label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--mfa-muted, #56655f);
+}
+.mfa-contact-form-col .mfa-form-group input,
+.mfa-contact-form-col .mfa-form-group textarea {
+  border: 1px solid var(--mfa-border, #d7e4e1);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: var(--mfa-ink, #12181f);
+  font-family: inherit;
+  background: var(--mfa-white, #ffffff);
+}
+.mfa-contact-form-col .mfa-form-group textarea { resize: vertical; }
+.mfa-contact-form-col .mfa-form-group input:focus,
+.mfa-contact-form-col .mfa-form-group textarea:focus {
+  outline: 2px solid var(--mfa-teal, #0d8f83);
+  outline-offset: 1px;
+}
+.mfa-contact-form-col .cf-turnstile { margin: 4px 0; }
 /* #25988b was 3.53:1 against the button's white text - fails 4.5:1.
    var(--mfa-teal-dark) clears it (~4.96:1). */
-.mfa-contact-form-col .ff-btn-submit,
 .mfa-contact-form-col button[type="submit"] {
   background: var(--mfa-teal-dark) !important;
   border-radius: 999px !important;
   font-weight: 700 !important;
+  width: 100%;
 }
-.mfa-contact-form-col .ff-btn-submit:hover,
 .mfa-contact-form-col button[type="submit"]:hover {
   filter: brightness(1.08);
+}
+.mfa-contact-form-col .mfa-modal-message {
+  margin: 0;
+  font-size: 13px;
+  min-height: 18px;
+  color: #b3261e;
+}
+.mfa-contact-form-col .mfa-modal-message.is-success {
+  color: var(--mfa-teal-dark, #0d4d47);
+  font-size: 15px;
+  text-align: center;
+  padding: 20px 0;
 }
 
 .mfa-contact-map-col iframe {

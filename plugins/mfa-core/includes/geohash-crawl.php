@@ -72,6 +72,45 @@ function mfa_crawl_country_list() {
 function mfa_crawl_credits_per_cell()  { return max( 1, (int) mfa_crawl_opt( 'credits_per_cell', 3 ) ); }
 function mfa_crawl_credits_budget()    { return (int) mfa_crawl_opt( 'credits_budget', 164752 ); }
 function mfa_crawl_credits_used()      { return (int) mfa_crawl_opt( 'credits_used', 0 ); }
+
+// How many /admin/crawler/start/ tabs may actually be doing DB/Serper work
+// at once - running many tabs in parallel (one per country) can exceed the
+// host's MySQL max_connections and produce "Error establishing a database
+// connection" for the whole site, not just the crawler. Default is
+// deliberately conservative for shared/cloud hosting.
+function mfa_crawl_max_concurrent() { return max( 1, (int) mfa_crawl_opt( 'max_concurrent', 4 ) ); }
+
+/**
+ * Try to claim one of the N concurrency slots using MySQL's own named locks
+ * (GET_LOCK), not a manually-tracked counter - a counter can get stuck
+ * elevated forever if a request dies mid-way (fatal error, host timeout
+ * kill) without decrementing it. A GET_LOCK is tied to the DB connection
+ * itself and is released automatically by MySQL when that connection closes,
+ * however the request ended, so it can never leak.
+ *
+ * @return string|false The lock name to pass to mfa_crawl_release_slot(), or
+ *                       false if every slot is currently taken.
+ */
+function mfa_crawl_try_acquire_slot() {
+	global $wpdb;
+	$max = mfa_crawl_max_concurrent();
+	for ( $i = 0; $i < $max; $i++ ) {
+		$lock_name = 'mfa_crawl_slot_' . $i;
+		// Non-blocking (0s timeout) - either it's free right now or it isn't.
+		$got = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 0)', $lock_name ) );
+		if ( 1 === $got ) {
+			return $lock_name;
+		}
+	}
+	return false;
+}
+
+function mfa_crawl_release_slot( $lock_name ) {
+	global $wpdb;
+	if ( $lock_name ) {
+		$wpdb->query( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) );
+	}
+}
 function mfa_crawl_credits_remaining() { return max( 0, mfa_crawl_credits_budget() - mfa_crawl_credits_used() ); }
 function mfa_crawl_credits_add( $n )   { mfa_crawl_set( 'credits_used', mfa_crawl_credits_used() + (int) $n ); }
 
@@ -464,6 +503,7 @@ function mfa_geohash_country_totals( $country_code ) {
  *
  * @return array One of:
  *   array('state'=>'paused', 'reason'=>string)
+ *   array('state'=>'busy')
  *   array('state'=>'done_all', 'totals'=>array)
  *   array('state'=>'error', 'message'=>string, 'geohash'=>string)
  *   array('state'=>'ok', 'cell'=>array, 'result'=>array, 'totals'=>array)
@@ -483,64 +523,77 @@ function mfa_geohash_crawl_claim_and_run_one( $country_code ) {
 		return array( 'state' => 'paused', 'reason' => (string) mfa_crawl_opt( 'pause_reason', '' ) );
 	}
 
-	// Claim into a third status ('Claimed') distinct from both 'New' and
-	// 'Pending' (legacy queued-but-untouched cells from the old batch flow) -
-	// selecting on status <> 'Done' alone would still match a cell another
-	// tab just claimed as 'Pending', letting two tabs grab the same cell.
-	$wpdb->query( 'START TRANSACTION' );
-	$cell = $wpdb->get_row( $wpdb->prepare(
-		"SELECT * FROM {$g} WHERE country_code = %s AND status IN ('New','Pending') ORDER BY id LIMIT 1 FOR UPDATE",
-		$country_code
-	), ARRAY_A );
-	if ( $cell ) {
-		$wpdb->update( $g, array( 'status' => 'Claimed', 'updated_at' => current_time( 'mysql' ) ), array( 'geohash' => $cell['geohash'] ) );
-	}
-	$wpdb->query( 'COMMIT' );
-
-	if ( ! $cell ) {
-		return array( 'state' => 'done_all', 'totals' => mfa_geohash_country_totals( $country_code ) );
+	// Cap how many tabs can be doing real DB/Serper work at the same time -
+	// see mfa_crawl_try_acquire_slot()'s docblock for why. A tab that misses
+	// out just reports 'busy' and retries next reload cycle; it never
+	// touches the queue, so it can't block anyone else either.
+	$slot = mfa_crawl_try_acquire_slot();
+	if ( ! $slot ) {
+		return array( 'state' => 'busy' );
 	}
 
-	// The browser tab's own page load initiated this request - a client-side
-	// navigation away must not cut a cell's Serper calls / DB write off
-	// mid-way (same reasoning as the REST cron trigger's abort-safety).
-	ignore_user_abort( true );
-	@set_time_limit( 30 );
-
-	$res = mfa_geohash_crawl_cell( $cell );
-
-	if ( is_wp_error( $res ) ) {
-		$msg = $res->get_error_message();
-		// Un-claim so the cell is retried later instead of stuck as 'Claimed'.
-		$wpdb->update( $g, array( 'status' => 'Pending', 'updated_at' => current_time( 'mysql' ) ), array( 'geohash' => $cell['geohash'] ) );
-		if ( false !== stripos( $msg, 'credit' ) ) {
-			mfa_crawl_pause( 'Serper: ' . $msg );
-		} else {
-			mfa_crawl_notify( 'Crawler error', "The directory crawler hit an error and stopped:\n\n{$msg}" );
+	try {
+		// Claim into a third status ('Claimed') distinct from both 'New' and
+		// 'Pending' (legacy queued-but-untouched cells from the old batch flow) -
+		// selecting on status <> 'Done' alone would still match a cell another
+		// tab just claimed as 'Pending', letting two tabs grab the same cell.
+		$wpdb->query( 'START TRANSACTION' );
+		$cell = $wpdb->get_row( $wpdb->prepare(
+			"SELECT * FROM {$g} WHERE country_code = %s AND status IN ('New','Pending') ORDER BY id LIMIT 1 FOR UPDATE",
+			$country_code
+		), ARRAY_A );
+		if ( $cell ) {
+			$wpdb->update( $g, array( 'status' => 'Claimed', 'updated_at' => current_time( 'mysql' ) ), array( 'geohash' => $cell['geohash'] ) );
 		}
-		return array( 'state' => 'error', 'message' => $msg, 'geohash' => $cell['geohash'] );
+		$wpdb->query( 'COMMIT' );
+
+		if ( ! $cell ) {
+			return array( 'state' => 'done_all', 'totals' => mfa_geohash_country_totals( $country_code ) );
+		}
+
+		// The browser tab's own page load initiated this request - a client-side
+		// navigation away must not cut a cell's Serper calls / DB write off
+		// mid-way (same reasoning as the REST cron trigger's abort-safety).
+		ignore_user_abort( true );
+		@set_time_limit( 30 );
+
+		$res = mfa_geohash_crawl_cell( $cell );
+
+		if ( is_wp_error( $res ) ) {
+			$msg = $res->get_error_message();
+			// Un-claim so the cell is retried later instead of stuck as 'Claimed'.
+			$wpdb->update( $g, array( 'status' => 'Pending', 'updated_at' => current_time( 'mysql' ) ), array( 'geohash' => $cell['geohash'] ) );
+			if ( false !== stripos( $msg, 'credit' ) ) {
+				mfa_crawl_pause( 'Serper: ' . $msg );
+			} else {
+				mfa_crawl_notify( 'Crawler error', "The directory crawler hit an error and stopped:\n\n{$msg}" );
+			}
+			return array( 'state' => 'error', 'message' => $msg, 'geohash' => $cell['geohash'] );
+		}
+
+		$wpdb->update(
+			$g,
+			array(
+				'mosque'              => $res['mosque_found'],
+				'business'            => $res['business_found'],
+				'status'              => 'Done',
+				'mosque_crawled_at'   => current_time( 'mysql' ),
+				'business_crawled_at' => current_time( 'mysql' ),
+				'updated_at'          => current_time( 'mysql' ),
+			),
+			array( 'geohash' => $cell['geohash'] )
+		);
+		mfa_crawl_credits_add( $per );
+
+		return array(
+			'state'  => 'ok',
+			'cell'   => $cell,
+			'result' => $res,
+			'totals' => mfa_geohash_country_totals( $country_code ),
+		);
+	} finally {
+		mfa_crawl_release_slot( $slot );
 	}
-
-	$wpdb->update(
-		$g,
-		array(
-			'mosque'              => $res['mosque_found'],
-			'business'            => $res['business_found'],
-			'status'              => 'Done',
-			'mosque_crawled_at'   => current_time( 'mysql' ),
-			'business_crawled_at' => current_time( 'mysql' ),
-			'updated_at'          => current_time( 'mysql' ),
-		),
-		array( 'geohash' => $cell['geohash'] )
-	);
-	mfa_crawl_credits_add( $per );
-
-	return array(
-		'state'  => 'ok',
-		'cell'   => $cell,
-		'result' => $res,
-		'totals' => mfa_geohash_country_totals( $country_code ),
-	);
 }
 
 /**

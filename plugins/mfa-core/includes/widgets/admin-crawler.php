@@ -124,6 +124,7 @@ function mfa_admin_crawler_shortcode() {
 				<input type="hidden" name="mfa_crawler_op" value="save_budget">
 				<label>Budget <input type="number" name="budget" value="<?php echo esc_attr( $bud ); ?>" min="0"></label>
 				<label>Credits / cell <input type="number" name="per_cell" value="<?php echo esc_attr( $status['credits_per_cell'] ); ?>" min="1"></label>
+				<label>Max concurrent tabs <input type="number" name="max_concurrent" value="<?php echo esc_attr( mfa_crawl_max_concurrent() ); ?>" min="1" max="20"></label>
 				<button class="mfa-crawler-btn" type="submit">Save</button>
 			</form>
 			<form method="post" class="mfa-crawler-row">
@@ -131,7 +132,7 @@ function mfa_admin_crawler_shortcode() {
 				<input type="hidden" name="mfa_crawler_op" value="reset_used">
 				<button class="mfa-crawler-btn" type="submit">Reset used counter</button>
 			</form>
-			<p class="mfa-crawler-hint">After topping up Serper, raise the budget (and/or reset the used counter), then Resume above.</p>
+			<p class="mfa-crawler-hint">After topping up Serper, raise the budget (and/or reset the used counter), then Resume above. "Max concurrent tabs" caps how many crawl tabs actually hit the database/Serper at once - extra tabs just wait their turn - so running many tabs in parallel doesn't overload the host's MySQL connection limit (the cause of "Error establishing a database connection" if it happens site-wide while crawling).</p>
 		</div>
 	</div>
 	<?php
@@ -163,6 +164,9 @@ function mfa_admin_crawler_handle_form() {
 			}
 			if ( isset( $_POST['per_cell'] ) ) {
 				mfa_crawl_set( 'credits_per_cell', max( 1, (int) $_POST['per_cell'] ) );
+			}
+			if ( isset( $_POST['max_concurrent'] ) ) {
+				mfa_crawl_set( 'max_concurrent', max( 1, min( 20, (int) $_POST['max_concurrent'] ) ) );
 			}
 			return 'Budget saved.';
 

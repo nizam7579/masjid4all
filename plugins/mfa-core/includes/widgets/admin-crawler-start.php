@@ -61,6 +61,19 @@ function mfa_admin_crawler_start_render( $cc, $label ) {
 			. '<p class="mfa-crawler-hint">Resolve this on the <a href="' . esc_url( home_url( '/admin/crawler/' ) ) . '">overview page</a>, then reload this tab to resume.</p>';
 	}
 
+	if ( 'busy' === $r['state'] ) {
+		// Every slot is taken by other tabs right now - retry shortly rather
+		// than doing any DB/Serper work. Jittered so tabs that lost the race
+		// together don't all retry in lockstep and re-collide on the retry.
+		$next_url = add_query_arg( 'country', $cc, home_url( '/admin/crawler/start/' ) );
+		ob_start();
+		?>
+		<p class="mfa-crawler-hint">All crawl slots are busy right now &mdash; waiting for one to free up&hellip;</p>
+		<script>setTimeout( function () { location.href = <?php echo wp_json_encode( $next_url ); ?>; }, <?php echo (int) wp_rand( 800, 2000 ); ?> );</script>
+		<?php
+		return ob_get_clean();
+	}
+
 	if ( 'done_all' === $r['state'] ) {
 		return '<p class="mfa-crawler-hint">&#127881; ' . esc_html( $label ) . ' is fully crawled &mdash; '
 			. number_format_i18n( $r['totals']['done'] ) . ' / ' . number_format_i18n( $r['totals']['total'] ) . ' locations done.</p>';

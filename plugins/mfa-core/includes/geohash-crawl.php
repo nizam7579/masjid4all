@@ -865,6 +865,101 @@ function mfa_geohash_seed_us() {
 }
 
 /**
+ * Step 4: backfill country_code on cells that have a `country` name but no
+ * code - these are invisible to mfa_geohash_country_summary() (its query
+ * filters WHERE country_code <> '', which NULL fails in SQL) and so can't
+ * be selected in the "Start crawl now" dropdown at all, despite having real
+ * mosque/business data. Found 2026-08-13 while answering "why aren't
+ * Ireland/New Zealand in the crawler's country list": mfa_geohash_seed_
+ * counts() (Step 2) creates a cell for every existing mosque/business
+ * location regardless of country, but always writes country_code=NULL -
+ * it was never backfilled. 81,610 cells across ~180 country names were
+ * affected, not just those two.
+ *
+ * Uses wp_jet_cct_countries (245 rows, name+ISO code, already used
+ * elsewhere on the site) as the lookup, per user direction - reusing an
+ * existing reference table rather than hardcoding a new one. Most
+ * `country` values match that table's names exactly; a handful of known
+ * spelling variants (this crawl grid's `country` column is free text
+ * folded from Serper/city-import data, e.g. "Turkey" vs the table's
+ * "Türkiye") are aliased explicitly below. Four country names found in the
+ * grid have NO corresponding row in wp_jet_cct_countries at all (South
+ * Sudan, Sint Maarten, Caribbean Netherlands, Åland - newer/smaller
+ * territories the 245-row table doesn't cover) and are left uncoded -
+ * accepted, ~62 cells total, not worth hand-adding fake codes for.
+ *
+ * @return array 'direct_matched', 'alias_matched', 'still_unmatched' (country => count).
+ */
+function mfa_geohash_seed_country_codes() {
+	global $wpdb;
+	$g = mfa_geohash_table();
+	$c = $wpdb->prefix . 'jet_cct_countries';
+
+	// The grid has ~1M rows and `country` (varchar(64)) has no index by
+	// default - the join below took 60-90s+ and risked tying up the shared
+	// MySQL connection pool without it (found running this on staging,
+	// 2026-08-13). Adding it here makes this function self-sufficient
+	// (idempotent - skips if already present) rather than relying on a
+	// separate manual step before running this on production.
+	$has_index = $wpdb->get_var( $wpdb->prepare(
+		"SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = %s AND index_name = 'idx_country'",
+		$g
+	) );
+	if ( ! $has_index ) {
+		$wpdb->query( "ALTER TABLE {$g} ADD INDEX idx_country (country)" );
+	}
+
+	$direct = $wpdb->query(
+		"UPDATE {$g} g
+		 INNER JOIN {$c} c ON g.country = c.country
+		 SET g.country_code = c.code
+		 WHERE (g.country_code IS NULL OR g.country_code = '') AND g.country IS NOT NULL AND g.country <> ''"
+	);
+
+	// grid `country` value => wp_jet_cct_countries.country to look up the code from.
+	$aliases = array(
+		'Turkey'                                        => 'Türkiye',
+		'Myanmar (Burma)'                                => 'Myanmar [Burma]',
+		'Myanmar'                                        => 'Myanmar [Burma]',
+		'Democratic Republic of the Congo'               => 'Congo [DRC]',
+		'Republic of the Congo'                          => 'Congo [Republic]',
+		'North Macedonia'                                => 'Macedonia [FYROM]',
+		'Czechia'                                        => 'Czech Republic',
+		'Palestine'                                      => 'Palestinian Territories',
+		'Eswatini'                                       => 'Swaziland',
+		'Macao'                                          => 'Macau',
+		'Saint Helena, Ascension and Tristan da Cunha'   => 'Saint Helena',
+		'Cabo Verde'                                     => 'Cape Verde',
+	);
+
+	$alias_matched = 0;
+	foreach ( $aliases as $grid_name => $lookup_name ) {
+		$code = $wpdb->get_var( $wpdb->prepare( "SELECT code FROM {$c} WHERE country = %s LIMIT 1", $lookup_name ) );
+		if ( ! $code ) {
+			continue;
+		}
+		$alias_matched += $wpdb->query( $wpdb->prepare(
+			"UPDATE {$g} SET country_code = %s WHERE (country_code IS NULL OR country_code = '') AND country = %s",
+			$code,
+			$grid_name
+		) );
+	}
+
+	$still_unmatched = $wpdb->get_results(
+		"SELECT country, COUNT(*) n FROM {$g}
+		 WHERE (country_code IS NULL OR country_code = '') AND country IS NOT NULL AND country <> ''
+		 GROUP BY country ORDER BY n DESC",
+		ARRAY_A
+	);
+
+	return array(
+		'direct_matched'   => (int) $direct,
+		'alias_matched'    => (int) $alias_matched,
+		'still_unmatched'  => $still_unmatched,
+	);
+}
+
+/**
  * Every country actually present in the grid (not just the original 8-country
  * crawl scope), with a display name, location/done counts, and mosque/business
  * totals - the reference the overview table and the /start country picker
@@ -1157,5 +1252,18 @@ if ( defined( 'WP_CLI' ) && WP_CLI ) {
 		} else {
 			WP_CLI::success( sprintf( 'DRY RUN - scanned %d, would fix %d. Re-run with --apply to write.', $r['scanned'], $r['mismatched'] ) );
 		}
+	} );
+
+	WP_CLI::add_command( 'mfa geohash-seed-country-codes', function () {
+		$r = mfa_geohash_seed_country_codes();
+		WP_CLI::log( sprintf( 'Direct name match: %d cells.', $r['direct_matched'] ) );
+		WP_CLI::log( sprintf( 'Alias match: %d cells.', $r['alias_matched'] ) );
+		if ( $r['still_unmatched'] ) {
+			WP_CLI::log( 'Still unmatched (no code available for these names):' );
+			foreach ( $r['still_unmatched'] as $u ) {
+				WP_CLI::log( sprintf( '  %s: %d cells', $u['country'], $u['n'] ) );
+			}
+		}
+		WP_CLI::success( sprintf( 'Backfilled %d cells total.', $r['direct_matched'] + $r['alias_matched'] ) );
 	} );
 }

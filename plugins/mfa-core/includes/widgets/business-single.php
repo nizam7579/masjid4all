@@ -27,56 +27,48 @@ if ( ! defined( 'ABSPATH' ) ) {
  * sitewide floating share button (share-button-v12.js) already present
  * on every page.
  */
+/**
+ * Same ownership check niz_mfa_business_info() and
+ * mfa_claim_business_listing_shortcode() already use - extracted so
+ * business-update-form.php's AJAX handler can re-check it server-side
+ * (the form only being visible to authorized users doesn't stop a raw
+ * POST to admin-ajax.php from anyone else).
+ */
+function mfa_business_user_can_manage( $post_id ) {
+	if ( ! is_user_logged_in() ) {
+		return false;
+	}
+
+	if ( current_user_can( 'editor' ) || current_user_can( 'administrator' ) ) {
+		return true;
+	}
+
+	global $wpdb;
+	$owner_table = $wpdb->prefix . 'jet_cct_listing_owner';
+	$is_owner    = $wpdb->get_var( $wpdb->prepare(
+		"SELECT user_id FROM {$owner_table} WHERE post_id = %d AND user_id = %d LIMIT 1",
+		$post_id,
+		get_current_user_id()
+	) );
+
+	return (bool) $is_owner;
+}
+
 add_shortcode( 'mfa_business_home_tab', 'mfa_business_home_tab_shortcode' );
 function mfa_business_home_tab_shortcode() {
-	global $wpdb;
-	$post_id = get_the_ID();
-
-	// Same ownership check niz_mfa_business_info() and
-	// mfa_claim_business_listing_shortcode() already use.
-	$is_authorized = false;
-	if ( is_user_logged_in() ) {
-		$current_user_id = get_current_user_id();
-		if ( current_user_can( 'editor' ) || current_user_can( 'administrator' ) ) {
-			$is_authorized = true;
-		} else {
-			$owner_table = $wpdb->prefix . 'jet_cct_listing_owner';
-			$is_owner    = $wpdb->get_var( $wpdb->prepare(
-				"SELECT user_id FROM {$owner_table} WHERE post_id = %d AND user_id = %d LIMIT 1",
-				$post_id,
-				$current_user_id
-			) );
-			if ( $is_owner ) {
-				$is_authorized = true;
-			}
-		}
-	}
-	$is_admin = current_user_can( 'administrator' );
+	$post_id       = get_the_ID();
+	$is_authorized = mfa_business_user_can_manage( $post_id );
+	$is_admin      = current_user_can( 'administrator' );
 
 	ob_start();
 	?>
 	<div class="mfa-biz-home">
 		<div class="mfa-biz-actions">
 			<?php if ( $is_authorized ) : ?>
-				<div class="mfa-biz-modal-wrap">
-					<div id="mfa-biz-modal-info-<?php echo esc_attr( $post_id ); ?>" class="kadence-block-pro-modal kt-m-animate-in-fadeup kt-m-animate-out-fadeout" aria-hidden="true">
-						<div class="kt-modal-overlay" tabindex="-1" data-modal-close="true">
-							<div class="kt-modal-container kt-modal-height-full kt-close-position-inside" role="dialog" aria-modal="true">
-								<button class="kt-modal-close" aria-label="Close Modal" data-modal-close="true">
-									<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-								</button>
-								<div class="kt-modal-content">
-									<h2>Update Information</h2>
-									<?php echo do_shortcode( '[fluentform id="68"]' ); ?>
-								</div>
-							</div>
-						</div>
-					</div>
-					<button type="button" class="mfa-biz-action-btn" data-modal-open="mfa-biz-modal-info-<?php echo esc_attr( $post_id ); ?>">
-						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-						Update Info
-					</button>
-				</div>
+				<?php
+				$update_icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>';
+				echo do_shortcode( '[mfa_modal id="biz-update-' . esc_attr( $post_id ) . '" title="Update Information" label="Update Info" button_class="mfa-biz-action-btn" icon=\'' . $update_icon . '\'][mfa_business_update_form][/mfa_modal]' );
+				?>
 			<?php endif; ?>
 
 			<?php if ( $is_admin ) : ?>

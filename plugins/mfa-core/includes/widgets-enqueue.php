@@ -252,7 +252,16 @@ function mfa_core_enqueue_widget_assets() {
 		$css = MFA_CORE_PATH . 'assets/css/business-single-v5.css';
 		wp_enqueue_style( 'mfa-core-business-single', MFA_CORE_URL . 'assets/css/business-single-v5.css', array(), $get_version( $css ) );
 
-		// Explicit safety-net enqueue: the modal markup relies on Kadence
+		// [mfa_business_update_form]'s AJAX submit (replaces FluentForm 68).
+		// Its .mfa-form-group/.mfa-form-row/.mfa-modal-message field styling
+		// comes from mfa-core-member-account-modals (enqueued below,
+		// shared with the /member/ Edit Profile form) rather than a
+		// duplicate stylesheet.
+		$biz_form_js = MFA_CORE_PATH . 'assets/js/business-update-form-v1.js';
+		wp_enqueue_script( 'mfa-core-business-update-form', MFA_CORE_URL . 'assets/js/business-update-form-v1.js', array(), $get_version( $biz_form_js ), true );
+
+		// Explicit safety-net enqueue: the Upload Image modal (Update Info
+		// converted to [mfa_modal] above) still relies on Kadence
 		// Blocks Pro's own kt-modal-init.min.js (MicroModal, handle
 		// "kadence-blocks-pro-modal"), which that plugin only auto-enqueues
 		// when it detects a literal wp:kadence/modal block in parsed page

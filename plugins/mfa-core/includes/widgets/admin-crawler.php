@@ -25,8 +25,8 @@ function mfa_admin_crawler_shortcode() {
 	}
 
 	$notice    = mfa_admin_crawler_handle_form();
-	$countries = mfa_crawl_country_list();
 	$status    = mfa_geohash_crawl_status();
+	$countries = $status['countries'];
 	$start_url = home_url( '/admin/crawler/start/' );
 
 	if ( ! $status['table_exists'] ) {
@@ -83,38 +83,37 @@ function mfa_admin_crawler_shortcode() {
 		</div>
 
 		<div class="mfa-crawler-section">
-			<h3 class="mfa-h3">Coverage by country</h3>
-			<table class="mfa-crawler-table">
-				<thead><tr><th>Country</th><th>Locations</th><th>Done</th><th>Balance</th></tr></thead>
-				<tbody>
-					<?php foreach ( $countries as $cc => $name ) :
-						$d          = isset( $status['by_country'][ $cc ] ) ? $status['by_country'][ $cc ] : array();
-						$done       = isset( $d['Done'] ) ? $d['Done'] : 0;
-						$locations  = array_sum( $d );
-						$balance    = $locations - $done;
-						?>
-						<tr>
-							<td><?php echo esc_html( $name . ' (' . $cc . ')' ); ?></td>
-							<td><?php echo number_format_i18n( $locations ); ?></td>
-							<td><?php echo number_format_i18n( $d['Done'] ); ?></td>
-							<td><?php echo number_format_i18n( $balance ); ?></td>
-						</tr>
-					<?php endforeach; ?>
-				</tbody>
-			</table>
-		</div>
-
-		<div class="mfa-crawler-section">
 			<h3 class="mfa-h3">Start crawl now</h3>
 			<form method="get" action="<?php echo esc_url( $start_url ); ?>" target="_blank" class="mfa-crawler-row">
 				<select name="country">
-					<?php foreach ( $countries as $cc => $name ) : ?>
-						<option value="<?php echo esc_attr( $cc ); ?>"><?php echo esc_html( $name . ' (' . $cc . ')' ); ?></option>
+					<?php foreach ( $countries as $cc => $d ) : ?>
+						<option value="<?php echo esc_attr( $cc ); ?>"><?php echo esc_html( $d['name'] . ' (' . $cc . ')' ); ?></option>
 					<?php endforeach; ?>
 				</select>
 				<button class="mfa-crawler-btn mfa-crawler-btn-primary" type="submit">Start crawl now &rarr;</button>
 			</form>
 			<p class="mfa-crawler-hint">Opens in a new tab and indexes one location at a time for that country, moving to the next automatically. Open several tabs (same or different countries) to run in parallel &mdash; each tab claims a different location, so they never collide.</p>
+		</div>
+
+		<div class="mfa-crawler-section">
+			<h3 class="mfa-h3">Coverage by country</h3>
+			<table class="mfa-crawler-table">
+				<thead><tr><th>Country</th><th>Locations</th><th>Done</th><th>Balance</th><th>Mosques</th><th>Businesses</th></tr></thead>
+				<tbody>
+					<?php foreach ( $countries as $cc => $d ) :
+						$balance = $d['locations'] - $d['done'];
+						?>
+						<tr>
+							<td><?php echo esc_html( $d['name'] . ' (' . $cc . ')' ); ?></td>
+							<td><?php echo number_format_i18n( $d['locations'] ); ?></td>
+							<td><?php echo number_format_i18n( $d['done'] ); ?></td>
+							<td><?php echo number_format_i18n( $balance ); ?></td>
+							<td><?php echo number_format_i18n( $d['mosque'] ); ?></td>
+							<td><?php echo number_format_i18n( $d['business'] ); ?></td>
+						</tr>
+					<?php endforeach; ?>
+				</tbody>
+			</table>
 		</div>
 
 		<div class="mfa-crawler-section">

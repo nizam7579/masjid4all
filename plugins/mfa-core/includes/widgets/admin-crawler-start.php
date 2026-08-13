@@ -21,21 +21,21 @@ function mfa_admin_crawler_start_shortcode() {
 		return '<p>You do not have permission to view this page.</p>';
 	}
 
-	$countries = mfa_crawl_country_list();
+	$countries = mfa_geohash_country_summary();
 	$cc        = isset( $_GET['country'] ) ? strtoupper( sanitize_text_field( wp_unslash( $_GET['country'] ) ) ) : '';
 	$overview_url = home_url( '/admin/crawler/' );
 
 	ob_start();
 	?>
 	<div class="mfa-crawler">
-		<h1 class="mfa-h2">Start Crawl<?php echo ( $cc && isset( $countries[ $cc ] ) ) ? ' &mdash; ' . esc_html( $countries[ $cc ] ) : ''; ?></h1>
+		<h1 class="mfa-h2">Start Crawl<?php echo ( $cc && isset( $countries[ $cc ] ) ) ? ' &mdash; ' . esc_html( $countries[ $cc ]['name'] ) : ''; ?></h1>
 
 		<?php if ( ! $cc || ! isset( $countries[ $cc ] ) ) : ?>
 			<div class="mfa-crawler-section">
 				<form method="get" class="mfa-crawler-row">
 					<select name="country">
-						<?php foreach ( $countries as $code => $name ) : ?>
-							<option value="<?php echo esc_attr( $code ); ?>"><?php echo esc_html( $name . ' (' . $code . ')' ); ?></option>
+						<?php foreach ( $countries as $code => $d ) : ?>
+							<option value="<?php echo esc_attr( $code ); ?>"><?php echo esc_html( $d['name'] . ' (' . $code . ')' ); ?></option>
 						<?php endforeach; ?>
 					</select>
 					<button class="mfa-crawler-btn mfa-crawler-btn-primary" type="submit">Start crawl now &rarr;</button>
@@ -43,7 +43,7 @@ function mfa_admin_crawler_start_shortcode() {
 				<p class="mfa-crawler-hint">Open this in as many tabs as you like, one per country (or the same country in several tabs) &mdash; each tab claims a different location so they never overlap.</p>
 			</div>
 		<?php else :
-			echo mfa_admin_crawler_start_render( $cc, $countries[ $cc ] );
+			echo mfa_admin_crawler_start_render( $cc, $countries[ $cc ]['name'] );
 		endif;
 		?>
 

@@ -49,22 +49,6 @@ function mfa_crawl_set( $key, $value ) {
 	update_option( 'mfa_crawl_' . $key, $value );
 }
 
-// The 8 English-first / SEA-core countries in scope (see project notes) -
-// shared between the overview page and the start page so both list the same
-// set from one place.
-function mfa_crawl_country_list() {
-	return array(
-		'ID' => 'Indonesia',
-		'GB' => 'United Kingdom',
-		'AU' => 'Australia',
-		'CA' => 'Canada',
-		'MY' => 'Malaysia',
-		'SG' => 'Singapore',
-		'BN' => 'Brunei',
-		'US' => 'United States',
-	);
-}
-
 // Serper Maps costs ~3 credits per cell (one mosque + one halal search).
 // Budget + used-counter are tracked locally so we can pause *before* an
 // out-of-credits error and show progress; Serper's own "Not enough credits"
@@ -706,6 +690,49 @@ function mfa_geohash_seed_us() {
 	);
 }
 
+/**
+ * Every country actually present in the grid (not just the original 8-country
+ * crawl scope), with a display name, location/done counts, and mosque/business
+ * totals - the reference the overview table and the /start country picker
+ * both use to decide where to crawl next. The 'country' column is free text
+ * (Serper/city-import source data, occasionally inconsistent - e.g. "Turkey"
+ * vs "Türkiye" for the same country_code) so MAX() just picks one spelling
+ * per code for display; country_code stays the canonical filter key
+ * everywhere else. Sorted alphabetically by that display name.
+ *
+ * @return array country_code => array('name','locations','done','mosque','business')
+ */
+function mfa_geohash_country_summary() {
+	global $wpdb;
+	$g = mfa_geohash_table();
+
+	$rows = $wpdb->get_results(
+		"SELECT country_code,
+		        MAX(country) AS name,
+		        COUNT(*) AS locations,
+		        SUM(status = 'Done') AS done,
+		        SUM(mosque) AS mosque_total,
+		        SUM(business) AS business_total
+		 FROM {$g}
+		 WHERE country_code <> ''
+		 GROUP BY country_code
+		 ORDER BY name ASC",
+		ARRAY_A
+	);
+
+	$out = array();
+	foreach ( $rows as $r ) {
+		$out[ $r['country_code'] ] = array(
+			'name'      => $r['name'] ? $r['name'] : $r['country_code'],
+			'locations' => (int) $r['locations'],
+			'done'      => (int) $r['done'],
+			'mosque'    => (int) $r['mosque_total'],
+			'business'  => (int) $r['business_total'],
+		);
+	}
+	return $out;
+}
+
 /** Snapshot for the admin panel status board. */
 function mfa_geohash_crawl_status() {
 	global $wpdb;
@@ -723,20 +750,11 @@ function mfa_geohash_crawl_status() {
 		$by_status[ $r['status'] ] = (int) $r['c'];
 	}
 
-	$by_country = array();
-	foreach ( $wpdb->get_results( "SELECT country_code, status, COUNT(*) c FROM {$g} WHERE country_code IN ('ID','GB','AU','CA','MY','SG','BN','US') GROUP BY country_code, status", ARRAY_A ) as $r ) {
-		$cc = $r['country_code'];
-		if ( ! isset( $by_country[ $cc ] ) ) {
-			$by_country[ $cc ] = array( 'New' => 0, 'Pending' => 0, 'Done' => 0 );
-		}
-		$by_country[ $cc ][ $r['status'] ] = (int) $r['c'];
-	}
-
 	return array(
 		'table_exists'      => true,
 		'total'             => array_sum( $by_status ),
 		'by_status'         => $by_status,
-		'by_country'        => $by_country,
+		'countries'         => mfa_geohash_country_summary(),
 		'mosque_total'      => (int) $wpdb->get_var( "SELECT SUM(mosque) FROM {$g}" ),
 		'business_total'    => (int) $wpdb->get_var( "SELECT SUM(business) FROM {$g}" ),
 		'credits_used'      => mfa_crawl_credits_used(),

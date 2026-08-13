@@ -54,11 +54,42 @@ function mfa_admin_crawler_start_shortcode() {
 }
 
 function mfa_admin_crawler_start_render( $cc, $label ) {
+	// Catches genuine PHP-level failures (a dropped DB connection, an
+	// unexpected null, etc.), not just the expected WP_Error path from a
+	// Serper failure - without this, an unhandled Throwable here would fatal
+	// the whole page out with no output at all, including no redirect script,
+	// silently killing the tab for good with nothing to notice or retry.
+	try {
+		return mfa_admin_crawler_start_attempt( $cc, $label );
+	} catch ( Throwable $e ) {
+		mfa_crawl_notify( 'Crawler error', "The directory crawler hit an unexpected PHP error and stopped:\n\n" . $e->getMessage() );
+		$next_url = add_query_arg( 'country', $cc, home_url( '/admin/crawler/start/' ) );
+		ob_start();
+		?>
+		<div class="mfa-crawler-banner is-paused">&#9208; Unexpected error &mdash; retrying automatically.</div>
+		<script>setTimeout( function () { location.href = <?php echo wp_json_encode( $next_url ); ?>; }, <?php echo (int) wp_rand( 15000, 30000 ); ?> );</script>
+		<?php
+		return ob_get_clean();
+	}
+}
+
+function mfa_admin_crawler_start_attempt( $cc, $label ) {
 	$r = mfa_geohash_crawl_claim_and_run_one( $cc );
 
 	if ( 'paused' === $r['state'] ) {
-		return '<div class="mfa-crawler-banner is-paused">&#9208; Paused &mdash; ' . esc_html( $r['reason'] ) . '</div>'
-			. '<p class="mfa-crawler-hint">Resolve this on the <a href="' . esc_url( home_url( '/admin/crawler/' ) ) . '">overview page</a>, then reload this tab to resume.</p>';
+		// A deliberate circuit breaker (out of credits) - don't hammer Serper by
+		// retrying fast, but keep checking slowly so a tab left open overnight
+		// auto-resumes on its own once someone tops up credits and hits Resume
+		// on the overview page, instead of needing every open tab reloaded by
+		// hand. mfa_crawl_pause() already emails on the way in here.
+		$next_url = add_query_arg( 'country', $cc, home_url( '/admin/crawler/start/' ) );
+		ob_start();
+		?>
+		<div class="mfa-crawler-banner is-paused">&#9208; Paused &mdash; <?php echo esc_html( $r['reason'] ); ?></div>
+		<p class="mfa-crawler-hint">Resolve this on the <a href="<?php echo esc_url( home_url( '/admin/crawler/' ) ); ?>">overview page</a> - this tab will pick back up on its own once resumed.</p>
+		<script>setTimeout( function () { location.href = <?php echo wp_json_encode( $next_url ); ?>; }, 60000 );</script>
+		<?php
+		return ob_get_clean();
 	}
 
 	if ( 'busy' === $r['state'] ) {
@@ -80,8 +111,20 @@ function mfa_admin_crawler_start_render( $cc, $label ) {
 	}
 
 	if ( 'error' === $r['state'] ) {
-		return '<div class="mfa-crawler-banner is-paused">&#9208; Stopped &mdash; ' . esc_html( $r['message'] ) . '</div>'
-			. '<p class="mfa-crawler-hint">Location ' . esc_html( $r['geohash'] ) . ' stays queued and will be retried once this is resolved.</p>';
+		// Non-credit errors (network blip, a transient Serper hiccup) shouldn't
+		// need a human to notice and reload the tab - the cell is already left
+		// Pending (safe to retry, nothing lost) and a failed request costs no
+		// credits, so auto-retry with a backoff is safe. mfa_crawl_notify()
+		// already emailed on the way in here (de-duped hourly) if this turns
+		// out to be a real, persistent problem rather than a one-off.
+		$next_url = add_query_arg( 'country', $cc, home_url( '/admin/crawler/start/' ) );
+		ob_start();
+		?>
+		<div class="mfa-crawler-banner is-paused">&#9208; Error &mdash; <?php echo esc_html( $r['message'] ); ?></div>
+		<p class="mfa-crawler-hint">Location <?php echo esc_html( $r['geohash'] ); ?> stays queued and will be retried automatically.</p>
+		<script>setTimeout( function () { location.href = <?php echo wp_json_encode( $next_url ); ?>; }, <?php echo (int) wp_rand( 15000, 30000 ); ?> );</script>
+		<?php
+		return ob_get_clean();
 	}
 
 	// 'ok' - show what just happened and self-redirect to claim the next cell.
@@ -97,7 +140,7 @@ function mfa_admin_crawler_start_render( $cc, $label ) {
 		<?php echo esc_html( $label ); ?>: <?php echo number_format_i18n( $totals['done'] ); ?> / <?php echo number_format_i18n( $totals['total'] ); ?> done.
 		Loading the next location&hellip;
 	</p>
-	<script>setTimeout( function () { location.href = <?php echo wp_json_encode( $next_url ); ?>; }, 600 );</script>
+	<script>setTimeout( function () { location.href = <?php echo wp_json_encode( $next_url ); ?>; }, <?php echo (int) wp_rand( 400, 1400 ); ?> );</script>
 	<?php
 	return ob_get_clean();
 }

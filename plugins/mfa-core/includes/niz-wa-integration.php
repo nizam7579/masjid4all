@@ -355,16 +355,18 @@ function niz_wa_directory_route( $override, $user_id, $wa_number, $message_text,
 			return '';
 		}
 
-		// Website branch: if it's already in our directory, present its
-		// claim status (already-claimed message, or a Claim button).
+		// Website branch: already listed -> show claim status; otherwise
+		// create the listing + single post now and hand back the page link
+		// (content is generated on that page, not in this webhook).
 		if ( 'website' === $type ) {
 			$match = niz_wa_web_find_by_url( $text );
 			if ( $match ) {
 				return niz_wa_web_present_listing( $user_id, $wa_number, $conversation, $match );
 			}
+			return niz_wa_web_add_new( $user_id, $wa_number, $conversation, $text );
 		}
 
-		// Not found (or mosque/business): capture + acknowledge, end session.
+		// mosque/business (record creation not built yet): capture + ack.
 		niz_wa_dir_store_submission( $user_id, $type, $text );
 		NWA_DB::set_pending_action( $conversation->id, null );
 		nwa_send_message( $user_id, $wa_number, niz_wa_dir_ack( $type ) );
@@ -645,6 +647,66 @@ function niz_wa_web_present_listing( $user_id, $wa_number, $conversation, $match
 		) );
 	NWA_DB::set_pending_action( $conversation->id, 'directory_flow',
 		array( 'step' => 'website_listed', 'url' => $match['url'], 'name' => $match['name'], 'post_id' => $match['post_id'] ), 30 );
+	return '';
+}
+
+/**
+ * Not-yet-listed website: create the CCT record + `web` single post right away
+ * (status New, no AI in this webhook) and reply with the page link, where the
+ * existing "Update Content" button generates the article. Reuses the web
+ * form's own helpers (add-website.php) and attributes the submission to the
+ * WhatsApp user. Ends the session. Always returns ''.
+ */
+function niz_wa_web_add_new( $user_id, $wa_number, $conversation, $raw_url ) {
+	NWA_DB::set_pending_action( $conversation->id, null );
+
+	// Normalise to a valid absolute URL (add a scheme for a bare domain).
+	$raw = trim( (string) $raw_url );
+	if ( ! preg_match( '#^https?://#i', $raw ) ) {
+		$raw = 'https://' . $raw;
+	}
+	$url = esc_url_raw( $raw );
+
+	if ( empty( $url ) || ! filter_var( $url, FILTER_VALIDATE_URL )
+		|| ! function_exists( 'mfa_insert_web_cct' ) || ! function_exists( 'mfa_get_remote_website_title' ) ) {
+		// Can't create it cleanly — fall back to the phase-1 acknowledgment.
+		niz_wa_dir_store_submission( $user_id, 'website', $raw_url );
+		nwa_send_message( $user_id, $wa_number, niz_wa_dir_ack( 'website' ) );
+		return '';
+	}
+
+	$base = function_exists( 'cct_trim_url_to_base' ) ? cct_trim_url_to_base( rtrim( $url, '/' ) ) : rtrim( $url, '/' );
+
+	// A readable name from the site itself, with a domain-derived fallback so a
+	// slow/blocked fetch never stops us from adding the listing.
+	$name = mfa_get_remote_website_title( $base );
+	if ( '' === $name || 0 === strpos( $name, 'Error:' ) ) {
+		$host = wp_parse_url( $base, PHP_URL_HOST );
+		$host = preg_replace( '/^www\./i', '', (string) $host );
+		$name = $host ? ucwords( str_replace( array( '-', '_', '.' ), ' ', $host ) ) : $base;
+	}
+
+	// Attribute the submission to the WhatsApp user (mfa_insert_web_cct() reads
+	// the current user for cct_author_id / post_author).
+	$prev = get_current_user_id();
+	wp_set_current_user( $user_id );
+	$result = mfa_insert_web_cct( $name, $base );
+	wp_set_current_user( $prev );
+
+	if ( is_wp_error( $result ) || empty( $result['post_id'] ) ) {
+		error_log( 'niz_wa_web_add_new: insert failed for ' . $base . ' — '
+			. ( is_wp_error( $result ) ? $result->get_error_message() : 'no post_id' ) );
+		nwa_send_message( $user_id, $wa_number,
+			"Sorry, something went wrong adding your website. Please try again in a moment." );
+		return '';
+	}
+
+	$link = add_query_arg( 'added', '1', get_permalink( $result['post_id'] ) );
+
+	nwa_send_message( $user_id, $wa_number,
+		"✅ *{$name}* has been added to the Masjid4All directory!\n\n"
+		. "Tap the link below to generate its full details and publish the listing:\n{$link}\n\n"
+		. "Once it's live, you can claim it to manage and update the info." );
 	return '';
 }
 

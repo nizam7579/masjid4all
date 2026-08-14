@@ -209,6 +209,18 @@ function mfa_admin_website_list_shortcode() {
  * how the mosque/business crawler itself is run manually rather than on
  * an automatic schedule. Returns a notice string for the page to show,
  * or '' if the button wasn't the one submitted.
+ *
+ * Calls website_update_content() (enaizi-mfa/shortcodes/website.php) -
+ * NOT web_update_content() (enaizi-mfa/shortcodes/web.php). The two are
+ * separate, similarly-named implementations that happened to coexist;
+ * website_update_content() is the one actually wired to the live
+ * single-website page's "Update Content" button ([mfa_website_update],
+ * called from mfa_web_info_display() in mfa-core/includes/widgets/
+ * website-single.php) and confirmed working in production. This admin
+ * button intentionally reuses that same proven path rather than the
+ * other (also now-functional, but unused/unproven) one - see
+ * [[project_website_extract]] for the full history of how both came to
+ * exist.
  */
 function mfa_admin_website_handle_generate() {
 	if ( empty( $_POST['mfa_admin_website_op'] ) || 'generate_next' !== $_POST['mfa_admin_website_op'] || ! current_user_can( 'manage_options' ) ) {
@@ -227,11 +239,11 @@ function mfa_admin_website_handle_generate() {
 		return 'No more records to generate - every website has already moved past New/Pending.';
 	}
 
-	if ( ! function_exists( 'web_update_content' ) ) {
+	if ( ! function_exists( 'website_update_content' ) ) {
 		return 'Content generation is unavailable.';
 	}
 
-	$result = web_update_content( (int) $row['cct_single_post_id'] );
+	$result = website_update_content( (int) $row['cct_single_post_id'] );
 
 	if ( is_wp_error( $result ) ) {
 		return sprintf( 'Error generating content for "%s": %s', $row['name'], $result->get_error_message() );

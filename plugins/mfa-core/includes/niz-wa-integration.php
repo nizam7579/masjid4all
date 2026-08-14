@@ -524,7 +524,7 @@ function niz_wa_web_find_by_url( $url ) {
 	$w    = $wpdb->prefix . 'jet_cct_web';
 	$like = '%' . $wpdb->esc_like( $host ) . '%';
 	$rows = $wpdb->get_results( $wpdb->prepare(
-		"SELECT _ID, name, url, cct_single_post_id FROM {$w} WHERE url LIKE %s LIMIT 50",
+		"SELECT _ID, name, url, cct_single_post_id, listing_status FROM {$w} WHERE url LIKE %s LIMIT 50",
 		$like
 	), ARRAY_A );
 	foreach ( (array) $rows as $row ) {
@@ -534,6 +534,7 @@ function niz_wa_web_find_by_url( $url ) {
 				'name'    => $row['name'] ? $row['name'] : $row['url'],
 				'url'     => $row['url'],
 				'post_id' => (int) $row['cct_single_post_id'],
+				'status'  => (string) $row['listing_status'],
 			);
 		}
 	}
@@ -617,6 +618,17 @@ function niz_wa_web_claim_result_message( $result, $name, $post_id ) {
  * Always returns '' — the override handler claims the message here.
  */
 function niz_wa_web_present_listing( $user_id, $wa_number, $conversation, $match ) {
+	// Rejected / errored / removed listings aren't claimable — point the user
+	// to support instead of offering Visit / Claim.
+	$status = isset( $match['status'] ) ? $match['status'] : '';
+	if ( in_array( strtolower( $status ), array( 'rejected', 'error', 'deleted' ), true ) ) {
+		NWA_DB::set_pending_action( $conversation->id, null );
+		nwa_send_message( $user_id, $wa_number,
+			"The website *{$match['name']}* is listed, but its status is *{$status}*.\n\n"
+			. "If you think this is an error, please contact us:\n" . home_url( '/contact-us/' ) );
+		return '';
+	}
+
 	$owner = niz_wa_web_claim_owner( $match['post_id'] );
 
 	if ( $owner === (int) $user_id ) {
@@ -653,36 +665,46 @@ function niz_wa_web_present_listing( $user_id, $wa_number, $conversation, $match
  * WhatsApp user. Ends the session. Always returns ''.
  */
 function niz_wa_web_add_new( $user_id, $wa_number, $conversation, $raw_url ) {
-	NWA_DB::set_pending_action( $conversation->id, null );
-
-	// Normalise to a valid absolute URL (add a scheme for a bare domain).
+	// Normalise to an absolute URL (add a scheme for a bare domain).
 	$raw = trim( (string) $raw_url );
 	if ( ! preg_match( '#^https?://#i', $raw ) ) {
 		$raw = 'https://' . $raw;
 	}
-	$url = esc_url_raw( $raw );
+	$url  = esc_url_raw( $raw );
+	$host = $url ? wp_parse_url( $url, PHP_URL_HOST ) : '';
 
-	if ( empty( $url ) || ! filter_var( $url, FILTER_VALIDATE_URL )
-		|| ! function_exists( 'mfa_insert_web_cct' ) || ! function_exists( 'mfa_get_remote_website_title' ) ) {
-		// Can't create it cleanly — fall back to the phase-1 acknowledgment.
+	// Structural validation: a real domain has a host with a dot. Reject
+	// junk without ending the session, so the user can just resend a good URL.
+	if ( empty( $url ) || ! filter_var( $url, FILTER_VALIDATE_URL ) || ! $host || false === strpos( $host, '.' ) ) {
+		nwa_send_message( $user_id, $wa_number,
+			"That doesn't look like a valid website address. Please send the full URL, e.g. https://example.com" . niz_wa_dir_stop_hint() );
+		return '';
+	}
+
+	if ( ! function_exists( 'mfa_insert_web_cct' ) || ! function_exists( 'mfa_get_remote_website_title' ) ) {
 		niz_wa_dir_store_submission( $user_id, 'website', $raw_url );
+		NWA_DB::set_pending_action( $conversation->id, null );
 		nwa_send_message( $user_id, $wa_number, niz_wa_dir_ack( 'website' ) );
 		return '';
 	}
 
 	$base = function_exists( 'cct_trim_url_to_base' ) ? cct_trim_url_to_base( rtrim( $url, '/' ) ) : rtrim( $url, '/' );
 
-	// A readable name from the site itself, with a domain-derived fallback so a
-	// slow/blocked fetch never stops us from adding the listing.
+	// Reachability + name in one fetch. A DNS/connection failure comes back as
+	// "Error: ..." — reject rather than create a bogus listing (the web form
+	// aborts on a fetch error too; the old domain-name fallback here was the
+	// bug that let invalid URLs through and produced junk AI content).
 	$name = mfa_get_remote_website_title( $base );
-	if ( '' === $name || 0 === strpos( $name, 'Error:' ) ) {
-		$host = wp_parse_url( $base, PHP_URL_HOST );
-		$host = preg_replace( '/^www\./i', '', (string) $host );
-		$name = $host ? ucwords( str_replace( array( '-', '_', '.' ), ' ', $host ) ) : $base;
+	if ( '' === trim( (string) $name ) || 0 === strpos( (string) $name, 'Error:' ) ) {
+		nwa_send_message( $user_id, $wa_number,
+			"I couldn't reach that website — please check the address and send a working link." . niz_wa_dir_stop_hint() );
+		return '';
 	}
 
-	// Attribute the submission to the WhatsApp user (mfa_insert_web_cct() reads
-	// the current user for cct_author_id / post_author).
+	// Valid + reachable: create the record, attributed to the WhatsApp user
+	// (mfa_insert_web_cct() reads the current user for cct_author_id/post_author).
+	NWA_DB::set_pending_action( $conversation->id, null );
+
 	$prev = get_current_user_id();
 	wp_set_current_user( $user_id );
 	$result = mfa_insert_web_cct( $name, $base );

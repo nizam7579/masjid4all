@@ -118,70 +118,309 @@ function niz_wa_action_help( $user_id, $context ) {
 	return $body;
 }
 
+/* ---------------- Account access: register / login / forgot-password ---------
+   AUTH-SENSITIVE. Passwords are no longer issued over WhatsApp (site login is
+   email/Google only). A member is logged straight in with a one-time magic
+   link; anyone not yet registered gives an email, verified by a code we send
+   to it, which either sets up their account or links their WhatsApp number to
+   an existing one. Both 'register' and 'reset_password' share this flow.
+   An optional pending action (e.g. a directory claim) is carried through and
+   applied once the account is ready. */
+
 function niz_wa_action_register( $user_id, $context ) {
-	$status    = get_user_meta( $user_id, 'user_status', true );
-	$login_url = home_url( '/member' );
-
-	if ( in_array( $status, array( 'member', 'premium' ), true ) ) {
-		return "You're already a registered member. Log in here:\n{$login_url}";
-	}
-
-	$user  = get_userdata( $user_id );
-	$phone = get_user_meta( $user_id, 'user_phone', true );
-
-	if ( ! $user || empty( $phone ) ) {
-		return "Registration failed — we couldn't find your WhatsApp number on file. Please try again later.";
-	}
-
-	$name = trim( (string) $user->first_name );
-	if ( ! $name || 0 === strpos( $name, 'Prospect ' ) ) {
-		$name = 'Member';
-	}
-
-	if ( function_exists( 'niz_user_complete_registration' ) ) {
-		// Creates the jet_cct_member row, syncs name, marks user_status
-		// 'member', awards the Welcome Bonus — same shared step every
-		// other registration path uses (see identity-registration.php).
-		niz_user_complete_registration( $user_id, array( 'name' => $name ) );
-	} else {
-		wp_update_user( array(
-			'ID'           => $user_id,
-			'display_name' => $name,
-			'first_name'   => $name,
-		) );
-		update_user_meta( $user_id, 'user_status', 'member' );
-	}
-
-	$temp_pass = (string) random_int( 100000, 999999 );
-	wp_set_password( $temp_pass, $user_id );
-	update_user_meta( $user_id, 'change_password', 'yes' );
-
-	return "Registration successful, {$name}!\n\nYour temporary password is: {$temp_pass}\n\nLogin here:\n{$login_url}\n\nPlease change your password after login.";
+	return niz_wa_account_start( $user_id );
 }
 
 function niz_wa_action_reset_password( $user_id, $context ) {
-	if ( ! function_exists( 'niz_user_password' ) ) {
-		return "Password reset is temporarily unavailable. Please try again later.";
+	return niz_wa_account_start( $user_id );
+}
+
+function niz_wa_is_member( $user_id ) {
+	return in_array( get_user_meta( $user_id, 'user_status', true ), array( 'member', 'premium' ), true );
+}
+
+/**
+ * Entry point. A member gets a magic-login link immediately; anyone else is
+ * asked for an email to set up (or link) their account. $then is an optional
+ * follow-up to run once they're a member, e.g.
+ * array( 'claim' => array( 'post_id' => .., 'dtype' => 'web'|'business', 'name' => .. ) ).
+ */
+function niz_wa_account_start( $user_id, $then = null ) {
+	$conversation = NWA_DB::get_conversation_by_user( $user_id );
+	if ( ! $conversation ) {
+		return "Please try again in a moment.";
+	}
+	$wa = $conversation->wa_number;
+
+	if ( niz_wa_is_member( $user_id ) ) {
+		niz_wa_account_finish( $user_id, $wa, "You're a Masjid4All member. 🎉", $then );
+		return '';
 	}
 
-	$status = get_user_meta( $user_id, 'user_status', true );
-	$phone  = get_user_meta( $user_id, 'user_phone', true );
+	$ctx = array( 'step' => 'await_email' );
+	if ( is_array( $then ) ) {
+		$ctx['then'] = $then;
+	}
+	nwa_send_message( $user_id, $wa,
+		"Let's set up your free Masjid4All account.\n\nWhat's your *email address*?" . niz_wa_dir_stop_hint() );
+	NWA_DB::set_pending_action( $conversation->id, 'account_flow', $ctx, 20 );
+	return '';
+}
 
-	if ( empty( $status ) || 'prospect' === $status ) {
-		return "You don't have an active membership yet. Reply REGISTER to sign up as a free member first.";
+/* ---- Account-flow session handler (override filter, priority 15) ---- */
+add_filter( 'nwa_route_message_override', 'niz_wa_account_route', 15, 5 );
+
+function niz_wa_account_route( $override, $user_id, $wa_number, $message_text, $conversation ) {
+	if ( null !== $override ) {
+		return $override;
+	}
+	if ( ! class_exists( 'NWA_DB' ) ) {
+		return $override;
+	}
+	if ( 'account_flow' !== NWA_DB::get_active_pending_action( $conversation ) ) {
+		return $override;
 	}
 
-	if ( empty( $phone ) ) {
-		return "We couldn't find your WhatsApp number on file. Please try again later.";
+	$ctx  = json_decode( (string) $conversation->pending_context, true );
+	$ctx  = is_array( $ctx ) ? $ctx : array();
+	$step = isset( $ctx['step'] ) ? $ctx['step'] : '';
+	$then = isset( $ctx['then'] ) ? $ctx['then'] : null;
+	$text = trim( (string) $message_text );
+
+	if ( in_array( strtolower( $text ), array( 'stop', 'cancel', 'exit', 'quit', 'batal' ), true ) ) {
+		NWA_DB::set_pending_action( $conversation->id, null );
+		nwa_send_message( $user_id, $wa_number, "No problem, I've cancelled that. 👍" );
+		return '';
 	}
 
-	$password = niz_user_password( $phone );
-
-	if ( is_wp_error( $password ) || ! $password ) {
-		return "We couldn't reset your password right now. Please try again later.";
+	if ( 'await_email' === $step ) {
+		$email = sanitize_email( $text );
+		if ( ! is_email( $email ) || false !== stripos( $email, '@mfa.com' ) ) {
+			nwa_send_message( $user_id, $wa_number,
+				"That doesn't look like a valid email. Please send a real email address (for example you@example.com)." . niz_wa_dir_stop_hint() );
+			return '';
+		}
+		$code = (string) random_int( 100000, 999999 );
+		niz_wa_send_email_code( $email, $code );
+		$new = array( 'step' => 'await_code', 'email' => $email, 'code_hash' => wp_hash( $code ), 'attempts' => 0 );
+		if ( null !== $then ) {
+			$new['then'] = $then;
+		}
+		NWA_DB::set_pending_action( $conversation->id, 'account_flow', $new, 20 );
+		nwa_send_message( $user_id, $wa_number,
+			"📧 I've sent a 6-digit code to *{$email}*.\n\nPlease enter the code here to confirm the email is yours." . niz_wa_dir_stop_hint() );
+		return '';
 	}
 
-	return "Your temporary password is: {$password}\n\nLogin here:\n" . home_url( '/member' ) . "\n\nPlease change your password after login.";
+	if ( 'await_code' === $step ) {
+		$email     = isset( $ctx['email'] ) ? $ctx['email'] : '';
+		$code_hash = isset( $ctx['code_hash'] ) ? $ctx['code_hash'] : '';
+		$attempts  = isset( $ctx['attempts'] ) ? (int) $ctx['attempts'] : 0;
+		$entered   = preg_replace( '/\D/', '', $text );
+
+		if ( '' === $email || '' === $code_hash ) {
+			NWA_DB::set_pending_action( $conversation->id, null );
+			nwa_send_message( $user_id, $wa_number, "Something went wrong. Please send *register* to start again." );
+			return '';
+		}
+
+		if ( strlen( $entered ) !== 6 || ! hash_equals( $code_hash, wp_hash( $entered ) ) ) {
+			$attempts++;
+			if ( $attempts >= 4 ) {
+				NWA_DB::set_pending_action( $conversation->id, null );
+				nwa_send_message( $user_id, $wa_number, "That code wasn't right. Let's start over — send *register* when you're ready." );
+				return '';
+			}
+			$new = array( 'step' => 'await_code', 'email' => $email, 'code_hash' => $code_hash, 'attempts' => $attempts );
+			if ( null !== $then ) {
+				$new['then'] = $then;
+			}
+			NWA_DB::set_pending_action( $conversation->id, 'account_flow', $new, 20 );
+			nwa_send_message( $user_id, $wa_number,
+				"That code doesn't match. Please check your email and enter the 6-digit code again." . niz_wa_dir_stop_hint() );
+			return '';
+		}
+
+		return niz_wa_account_apply_email( $user_id, $wa_number, $conversation, $email, $then );
+	}
+
+	if ( 'await_link_confirm' === $step ) {
+		$target = isset( $ctx['target'] ) ? (int) $ctx['target'] : 0;
+		$email  = isset( $ctx['email'] ) ? $ctx['email'] : '';
+		$t      = strtolower( $text );
+
+		if ( false !== strpos( $t, 'yes' ) ) {
+			return niz_wa_account_link_to( $user_id, $wa_number, $conversation, $target, $then );
+		}
+		if ( false !== strpos( $t, 'no' ) ) {
+			$new = array( 'step' => 'await_email' );
+			if ( null !== $then ) {
+				$new['then'] = $then;
+			}
+			NWA_DB::set_pending_action( $conversation->id, 'account_flow', $new, 20 );
+			nwa_send_message( $user_id, $wa_number,
+				"No problem. Please send a different *email address* to use." . niz_wa_dir_stop_hint() );
+			return '';
+		}
+		nwa_send_message( $user_id, $wa_number, "Please tap *Yes, link it* or *No*." . niz_wa_dir_stop_hint() );
+		return '';
+	}
+
+	return '';
+}
+
+/**
+ * Applies a verified email: sets up the account when the email is free or
+ * already this account's, or offers to link when it belongs to another.
+ */
+function niz_wa_account_apply_email( $user_id, $wa_number, $conversation, $email, $then = null ) {
+	$existing = get_user_by( 'email', $email );
+
+	if ( ! $existing || (int) $existing->ID === (int) $user_id ) {
+		if ( ! $existing ) {
+			wp_update_user( array( 'ID' => $user_id, 'user_email' => $email ) );
+		}
+		$user = get_userdata( $user_id );
+		$name = $user ? trim( (string) $user->first_name ) : '';
+		if ( '' === $name || 0 === strpos( $name, 'Prospect ' ) ) {
+			$name = ( $user && $user->display_name && 0 !== strpos( $user->display_name, 'Prospect ' ) ) ? $user->display_name : 'Member';
+		}
+		if ( function_exists( 'niz_user_complete_registration' ) ) {
+			niz_user_complete_registration( $user_id, array( 'name' => $name, 'email' => $email ) );
+		} else {
+			update_user_meta( $user_id, 'user_status', 'member' );
+		}
+		update_user_meta( $user_id, 'niz_whatsapp_verified', 'Yes' );
+
+		NWA_DB::set_pending_action( $conversation->id, null );
+		niz_wa_account_finish( $user_id, $wa_number, "✅ You're all set — welcome to Masjid4All! 🎉", $then );
+		return '';
+	}
+
+	$new = array( 'step' => 'await_link_confirm', 'email' => $email, 'target' => (int) $existing->ID );
+	if ( null !== $then ) {
+		$new['then'] = $then;
+	}
+	NWA_DB::set_pending_action( $conversation->id, 'account_flow', $new, 20 );
+	nwa_send_buttons( $user_id, $wa_number,
+		"This email is already registered to a Masjid4All account (" . niz_wa_mask_email( $email ) . ").\n\nWould you like to link your WhatsApp number to that account?",
+		array(
+			array( 'id' => 'acct_link_yes', 'title' => 'Yes, link it' ),
+			array( 'id' => 'acct_link_no',  'title' => 'No' ),
+		) );
+	return '';
+}
+
+/**
+ * Links this WhatsApp number to an existing account (merges the placeholder
+ * contact into it, reusing the WhatsApp-verify merge), then finishes up.
+ */
+function niz_wa_account_link_to( $user_id, $wa_number, $conversation, $target_id, $then = null ) {
+	$target = get_userdata( $target_id );
+	if ( ! $target ) {
+		NWA_DB::set_pending_action( $conversation->id, null );
+		nwa_send_message( $user_id, $wa_number, "Sorry, that account is no longer available. Please try again later." );
+		return '';
+	}
+
+	NWA_DB::set_pending_action( $conversation->id, null );
+
+	if ( function_exists( 'niz_wa_merge_prospect_into_verified_user' ) ) {
+		niz_wa_merge_prospect_into_verified_user( (int) $user_id, (int) $target_id );
+	}
+	$phone = function_exists( 'niz_user_normalize_phone' ) ? niz_user_normalize_phone( $wa_number ) : preg_replace( '/\D/', '', $wa_number );
+	update_user_meta( $target_id, 'user_phone', $phone );
+	update_user_meta( $target_id, 'niz_whatsapp_verified', 'Yes' );
+
+	// The conversation may have been reassigned to the target — send as target.
+	niz_wa_account_finish( (int) $target_id, $wa_number, "✅ Your WhatsApp number is now linked to your Masjid4All account. 🎉", $then );
+	return '';
+}
+
+/**
+ * Runs the carried follow-up (a directory claim) if any, then sends the
+ * one-time magic-login link. Used by every "account is ready" exit.
+ */
+function niz_wa_account_finish( $member_id, $wa_number, $intro, $then ) {
+	$msg = $intro;
+
+	if ( is_array( $then ) && isset( $then['claim'] ) && function_exists( 'niz_wa_web_do_claim' ) ) {
+		$c      = $then['claim'];
+		$result = niz_wa_web_do_claim( (int) $c['post_id'], (int) $member_id, isset( $c['dtype'] ) ? $c['dtype'] : 'business' );
+		if ( in_array( $result, array( 'claimed', 'already_yours' ), true ) ) {
+			$msg .= "\n\n🎉 I've also claimed *" . ( isset( $c['name'] ) ? $c['name'] : 'your listing' ) . "* for you.";
+		}
+	}
+
+	$link = niz_wa_magic_login_url( (int) $member_id, '/member/' );
+	$msg .= "\n\nTap to log in — no password needed (valid 20 minutes):\n{$link}";
+	nwa_send_message( (int) $member_id, $wa_number, $msg );
+}
+
+function niz_wa_mask_email( $email ) {
+	$parts  = explode( '@', (string) $email );
+	$name   = $parts[0];
+	$domain = isset( $parts[1] ) ? $parts[1] : '';
+	if ( strlen( $name ) <= 2 ) {
+		$masked = substr( $name, 0, 1 ) . '***';
+	} else {
+		$masked = substr( $name, 0, 2 ) . str_repeat( '*', max( 1, strlen( $name ) - 2 ) );
+	}
+	return $masked . ( '' !== $domain ? '@' . $domain : '' );
+}
+
+function niz_wa_send_email_code( $email, $code ) {
+	$subject = 'Your Masjid4All verification code';
+	$body    = "Assalamualaikum,\n\n"
+		. "Your Masjid4All verification code is: {$code}\n\n"
+		. "Enter this code in WhatsApp to confirm your email address. It expires in 20 minutes.\n\n"
+		. "If you didn't request this, you can safely ignore this email.\n\n"
+		. "— Masjid4All";
+	wp_mail( sanitize_email( $email ), $subject, $body );
+}
+
+/* ---------------- One-time magic-login link (WhatsApp -> web) -----------------
+   AUTH-SENSITIVE. Logs the WhatsApp user into /member without a password:
+   160-bit random token, stored only as a SHA-256 hash in a 20-minute
+   transient, single-use (burned on redemption), a session (non-persistent)
+   auth cookie, and a same-site redirect only. Delivered over WhatsApp to the
+   Meta-verified number, whose only real risk is being forwarded within 20
+   minutes. */
+
+function niz_wa_magic_login_url( $user_id, $redirect_path = '/member/' ) {
+	$token = bin2hex( random_bytes( 20 ) );
+	set_transient(
+		'niz_wa_magic_' . hash( 'sha256', $token ),
+		array( 'user_id' => (int) $user_id, 'redirect' => $redirect_path ),
+		20 * MINUTE_IN_SECONDS
+	);
+	return add_query_arg( 'niz_wa_login', $token, home_url( '/' ) );
+}
+
+add_action( 'init', 'niz_wa_magic_login_handler' );
+
+function niz_wa_magic_login_handler() {
+	if ( empty( $_GET['niz_wa_login'] ) ) {
+		return;
+	}
+	$token = sanitize_text_field( wp_unslash( $_GET['niz_wa_login'] ) );
+	if ( ! preg_match( '/^[a-f0-9]{40}$/', $token ) ) {
+		return;
+	}
+	$key  = 'niz_wa_magic_' . hash( 'sha256', $token );
+	$data = get_transient( $key );
+	delete_transient( $key );
+
+	$user = ( is_array( $data ) && ! empty( $data['user_id'] ) ) ? get_userdata( (int) $data['user_id'] ) : false;
+	if ( ! $user ) {
+		wp_safe_redirect( home_url( '/member/' ) );
+		exit;
+	}
+	wp_set_current_user( $user->ID );
+	wp_set_auth_cookie( $user->ID, false );
+	$redirect = ( is_array( $data ) && ! empty( $data['redirect'] ) ) ? $data['redirect'] : '/member/';
+	wp_safe_redirect( home_url( $redirect ) );
+	exit;
 }
 
 function niz_wa_action_membership_price( $user_id, $context ) {
@@ -441,30 +680,18 @@ function niz_wa_directory_route( $override, $user_id, $wa_number, $message_text,
 	}
 
 	if ( 'claim_need_register' === $step ) {
-		$name    = isset( $ctx['name'] ) ? $ctx['name'] : 'this website';
+		$name    = isset( $ctx['name'] ) ? $ctx['name'] : 'this listing';
 		$post_id = isset( $ctx['post_id'] ) ? (int) $ctx['post_id'] : 0;
+		$dtype   = isset( $ctx['dtype'] ) ? $ctx['dtype'] : 'web';
 		$t       = strtolower( $text );
 
 		// 'Cancel' is already handled by the global stop-word check above.
 		if ( false !== strpos( $t, 'register' ) ) {
-			NWA_DB::set_pending_action( $conversation->id, null );
-
-			// Register the member (same path as replying REGISTER), then
-			// auto-claim the website they were trying to claim.
-			$reg_message = function_exists( 'niz_wa_action_register' )
-				? (string) niz_wa_action_register( $user_id, array() )
-				: '';
-			$result  = niz_wa_web_do_claim( $post_id, $user_id, ( isset( $ctx['dtype'] ) ? $ctx['dtype'] : 'web' ) );
-
-			$message = trim( $reg_message );
-			if ( in_array( $result, array( 'claimed', 'already_yours' ), true ) ) {
-				$message .= ( '' !== $message ? "\n\n" : '' )
-					. "🎉 I've also claimed *{$name}* for you.\n\nManage it here:\n" . niz_wa_web_manage_url( $post_id );
-			}
-
-			niz_wa_dir_send_done( $user_id, $wa_number,
-				'' !== $message ? $message : "You're registered! You can now claim *{$name}*." );
-			return '';
+			// Hand off to the account-setup flow (email + code), carrying the
+			// claim so it's applied automatically once they're a member.
+			return niz_wa_account_start( $user_id, array(
+				'claim' => array( 'post_id' => $post_id, 'dtype' => $dtype, 'name' => $name ),
+			) );
 		}
 
 		nwa_send_message( $user_id, $wa_number,
@@ -1199,17 +1426,17 @@ function niz_wa_seed_actions() {
 			'intent_key'            => 'register',
 			'keywords'              => 'register,signup,sign up,daftar,jadi ahli',
 			'description'           => 'User wants to register as a new member or asks about signing up',
-			'requires_confirmation' => true,
-			'confirm_message'       => 'Would you like to register as a free Masjid4All member?',
+			'requires_confirmation' => false,
+			'confirm_message'       => '',
 			'callback_function'     => 'niz_wa_action_register',
 			'enabled'               => true,
 		),
 		array(
 			'intent_key'            => 'reset_password',
-			'keywords'              => 'password,forgot password,reset password,request password,kata laluan,tukar password,lupa password,change password',
-			'description'           => "User forgot their password or wants to reset/change their account password",
-			'requires_confirmation' => true,
-			'confirm_message'       => 'Do you want to reset your password?',
+			'keywords'              => 'password,forgot password,reset password,request password,kata laluan,tukar password,lupa password,change password,login,log in,cannot login,sign in',
+			'description'           => "User can't log in, forgot their password, or wants to sign in / access their account",
+			'requires_confirmation' => false,
+			'confirm_message'       => '',
 			'callback_function'     => 'niz_wa_action_reset_password',
 			'enabled'               => true,
 		),
@@ -1277,6 +1504,16 @@ function niz_wa_seed_actions() {
 	// action; narrow any existing start row so its keyword no longer wins the
 	// 'help' match. Idempotent — only updates while it still needs fixing.
 	$wpdb->query( "UPDATE {$table} SET keywords = 'start' WHERE intent_key = 'start' AND keywords <> 'start'" );
+
+	// register / reset_password moved to the magic-login account flow: no more
+	// Yes/No confirmation, and reset_password now means "log me in". Sync the
+	// existing rows (seeding only inserts). Idempotent.
+	$wpdb->query( "UPDATE {$table} SET requires_confirmation = 0, confirm_message = '' WHERE intent_key = 'register' AND requires_confirmation <> 0" );
+	$wpdb->query( $wpdb->prepare(
+		"UPDATE {$table} SET requires_confirmation = 0, confirm_message = '', keywords = %s, description = %s WHERE intent_key = 'reset_password' AND requires_confirmation <> 0",
+		'password,forgot password,reset password,request password,kata laluan,tukar password,lupa password,change password,login,log in,cannot login,sign in',
+		"User can't log in, forgot their password, or wants to sign in / access their account"
+	) );
 }
 
 /* ---------------- Directory FAQ (knowledge base) ---------------- */

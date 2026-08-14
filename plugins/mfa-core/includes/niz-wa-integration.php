@@ -218,10 +218,40 @@ function niz_wa_action_share( $user_id, $context ) {
  * admin-inquiry-list.php/admin-inquiry-info.php for the admin side).
  * Uses home_url(), not a hardcoded domain - see niz_wa_action_share()'s
  * docblock above for why every action reply in this file now does this.
+ *
+ * AI-composed acknowledgment added 2026-08-14: a plain canned reply
+ * ('For any inquiries... please visit: [link]') ignored what the user
+ * actually asked - user feedback was 'answer what the user want' rather
+ * than just dropping a link. NWA_Router now threads the original
+ * message text through $context['message_text'] (see
+ * class-nwa-router.php - start_or_run_action()/execute_action()) so
+ * this callback can ask the AI (NWA_AI::call_ai(), made public for
+ * this) for ONE short sentence acknowledging the SPECIFIC request,
+ * then appends the real home_url()-based link itself rather than
+ * trusting the AI to reproduce a URL correctly. Falls back to the
+ * original canned reply if the AI call fails or no message text is
+ * available (e.g. triggered some other way than normal routing).
  */
 function niz_wa_action_inquiry( $user_id, $context ) {
-	$url = home_url( '/contact-us/' );
-	return "For any inquiries, feedback, or to reach our team directly, please visit:\n{$url}\n\nWe'll get back to you as soon as possible.";
+	$url      = home_url( '/contact-us/' );
+	$fallback = "For any inquiries, feedback, or to reach our team directly, please visit:\n{$url}\n\nWe'll get back to you as soon as possible.";
+
+	$message_text = isset( $context['message_text'] ) ? trim( (string) $context['message_text'] ) : '';
+
+	if ( '' === $message_text || ! class_exists( 'NWA_AI' ) || ! method_exists( 'NWA_AI', 'call_ai' ) ) {
+		return $fallback;
+	}
+
+	$persona = method_exists( 'NWA_AI', 'default_persona' ) ? NWA_AI::default_persona() : '';
+	$system  = trim( $persona . "\n\nThe user just sent a message that is an inquiry, complaint, piece of feedback, or a request to reach the team - for example a business collaboration, partnership, or advertising proposal, or a general question that needs a human. Write ONE short, warm sentence (at most two) that specifically acknowledges what THEY asked about - do not be generic or vague. Do not include any URL or link in your reply, a contact link will be appended separately afterwards. Do not ask them further questions, just acknowledge warmly." );
+
+	$ai_reply = NWA_AI::call_ai( $system, $message_text );
+
+	if ( ! is_string( $ai_reply ) || '' === trim( $ai_reply ) ) {
+		return $fallback;
+	}
+
+	return trim( $ai_reply ) . "\n\nYou can reach our team here:\n{$url}";
 }
 
 /* ---------------- Action registry seeding ---------------- */

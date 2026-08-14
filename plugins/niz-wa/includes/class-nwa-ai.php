@@ -178,7 +178,12 @@ class NWA_AI {
 	/**
 	 * Low-level call to the configured AI provider.
 	 */
-	private static function call_ai( $system_prompt, $user_message ) {
+	/**
+	 * Public (was private) so site-integration callbacks (e.g. a custom
+	 * action reply) can compose their own AI response without duplicating
+	 * provider-dispatch logic - see mfa-core's niz_wa_action_inquiry().
+	 */
+	public static function call_ai( $system_prompt, $user_message ) {
 		$provider = NWA_Config::get( 'ai_provider' ) ?: 'anthropic';
 
 		if ( 'deepseek' === $provider ) {

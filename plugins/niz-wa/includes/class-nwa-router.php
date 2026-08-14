@@ -50,7 +50,7 @@ class NWA_Router {
 		}
 
 		if ( $action ) {
-			self::start_or_run_action( $user_id, $wa_number, $conversation, $action );
+			self::start_or_run_action( $user_id, $wa_number, $conversation, $action, $message_text );
 			self::maybe_refresh_profile( $conversation, $user_id );
 			return;
 		}
@@ -75,14 +75,14 @@ class NWA_Router {
 		self::maybe_refresh_profile( $conversation, $user_id );
 	}
 
-	private static function start_or_run_action( $user_id, $wa_number, $conversation, $action ) {
+	private static function start_or_run_action( $user_id, $wa_number, $conversation, $action, $message_text = '' ) {
 		if ( $action->requires_confirmation ) {
-			NWA_DB::set_pending_action( $conversation->id, $action->intent_key, array() );
+			NWA_DB::set_pending_action( $conversation->id, $action->intent_key, array( 'message_text' => $message_text ) );
 			nwa_send_message( $user_id, $wa_number, $action->confirm_message );
 			return;
 		}
 
-		self::execute_action( $user_id, $wa_number, $action, array() );
+		self::execute_action( $user_id, $wa_number, $action, array( 'message_text' => $message_text ) );
 	}
 
 	private static function handle_pending_confirmation( $user_id, $wa_number, $conversation, $pending_intent_key, $message_text ) {

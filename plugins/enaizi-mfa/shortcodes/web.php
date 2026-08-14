@@ -537,7 +537,10 @@ function web_update_content( $post_id ) {
         return new WP_Error( 'missing_function', 'mfa_web_perplexity function is missing.' );
     }
 
-    $url = 'https://pewarisan.my';
+    $url = $web['url'];
+    if ( empty( $url ) ) {
+        return new WP_Error( 'missing_url', 'This record has no URL to analyze.' );
+    }
     $json_output = niz_perplexity_web($url);
     $data = json_decode($json_output, true);
 

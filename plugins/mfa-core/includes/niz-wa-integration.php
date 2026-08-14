@@ -157,11 +157,6 @@ function niz_wa_action_reset_password( $user_id, $context ) {
 	return "Your temporary password is: {$password}\n\nLogin here:\n" . home_url( '/member' ) . "\n\nPlease change your password after login.";
 }
 
-function niz_wa_action_claim_business( $user_id, $context ) {
-	$url = home_url( '/add-business/' );
-	return "To claim your business listing on Masjid4All, please visit:\n{$url}\n\nIt's a free service — our team will verify and activate your Halal business profile.";
-}
-
 function niz_wa_action_membership_price( $user_id, $context ) {
 	$url = home_url( '/member/premium/' );
 	return "Membership starts from RM19.90 per year.\n\nFor the latest pricing and to upgrade, visit:\n{$url}";
@@ -282,6 +277,21 @@ function niz_wa_action_directory( $user_id, $context ) {
 	$conversation = NWA_DB::get_conversation_by_user( $user_id );
 	if ( ! $conversation ) {
 		return "You can add your mosque, business, or website to the Masjid4All directory for free. Please try again in a moment.";
+	}
+
+	// If the triggering message already names a type — "add mosque",
+	// "claim my website", etc. (the directory pages' Add buttons deep-link to
+	// WhatsApp with exactly these) — skip the menu and jump straight into that
+	// branch's link prompt. Only an untyped entry ("directory", "add listing")
+	// falls through to the three-button menu below.
+	$message_text = isset( $context['message_text'] ) ? $context['message_text'] : '';
+	$type         = niz_wa_dir_detect_choice( $message_text );
+
+	if ( '' !== $type ) {
+		nwa_send_message( $user_id, $conversation->wa_number, niz_wa_dir_link_prompt( $type ) );
+		NWA_DB::set_pending_action( $conversation->id, 'directory_flow',
+			array( 'step' => 'await_link', 'type' => $type ), 30 );
+		return '';
 	}
 
 	$body = "🕌 *Masjid4All Directory*\n\n"
@@ -693,15 +703,6 @@ function niz_wa_seed_actions() {
 			'enabled'               => true,
 		),
 		array(
-			'intent_key'            => 'claim_business',
-			'keywords'              => 'claim business,claim listing,claim bisnes,tuntut bisnes',
-			'description'           => 'User wants to claim or manage their business listing',
-			'requires_confirmation' => true,
-			'confirm_message'       => 'Would you like to claim your business listing on Masjid4All?',
-			'callback_function'     => 'niz_wa_action_claim_business',
-			'enabled'               => true,
-		),
-		array(
 			'intent_key'            => 'membership_price',
 			'keywords'              => 'price,pricing,membership price,harga,yuran',
 			'description'           => 'User is asking about membership pricing or fees',
@@ -739,8 +740,8 @@ function niz_wa_seed_actions() {
 		),
 		array(
 			'intent_key'            => 'directory',
-			'keywords'              => 'directory,add listing,add mosque,add business,add website,list my mosque,list my business,list my website,direktori,tambah masjid,tambah bisnes,tambah laman web',
-			'description'           => 'User wants to add a mosque, business, or website to the Masjid4All directory, or asks how to list one for free',
+			'keywords'              => 'directory,add listing,add mosque,add business,add website,claim business,claim website,claim listing,claim my business,claim my website,direktori,tambah masjid,tambah bisnes,tambah laman web,tuntut bisnes',
+			'description'           => 'User wants to add or claim a mosque, business, or website in the Masjid4All directory, or asks how to list one for free',
 			'requires_confirmation' => false,
 			'confirm_message'       => '',
 			'callback_function'     => 'niz_wa_action_directory',

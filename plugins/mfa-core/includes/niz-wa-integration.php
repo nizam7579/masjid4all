@@ -288,10 +288,7 @@ function niz_wa_action_directory( $user_id, $context ) {
 	$type         = niz_wa_dir_detect_choice( $message_text );
 
 	if ( '' !== $type ) {
-		nwa_send_message( $user_id, $conversation->wa_number, niz_wa_dir_link_prompt( $type ) );
-		NWA_DB::set_pending_action( $conversation->id, 'directory_flow',
-			array( 'step' => 'await_link', 'type' => $type ), 30 );
-		return '';
+		return niz_wa_dir_start_branch( $user_id, $conversation->wa_number, $conversation, $type );
 	}
 
 	$body = "🕌 *Masjid4All Directory*\n\n"
@@ -456,9 +453,7 @@ function niz_wa_directory_route( $override, $user_id, $wa_number, $message_text,
 		return '';
 	}
 
-	NWA_DB::set_pending_action( $conversation->id, 'directory_flow', array( 'step' => 'await_link', 'type' => $choice ), 30 );
-	nwa_send_message( $user_id, $wa_number, niz_wa_dir_link_prompt( $choice ) );
-	return '';
+	return niz_wa_dir_start_branch( $user_id, $wa_number, $conversation, $choice );
 }
 
 /* ---- Directory flow helpers ---- */
@@ -707,6 +702,34 @@ function niz_wa_web_add_new( $user_id, $wa_number, $conversation, $raw_url ) {
 		"✅ *{$name}* has been added to the Masjid4All directory!\n\n"
 		. "Tap the link below to generate its full details and publish the listing:\n{$link}\n\n"
 		. "Once it's live, you can claim it to manage and update the info." );
+	return '';
+}
+
+/**
+ * Enters the chosen add-a-listing branch. Website is handled conversationally
+ * (ask for the URL, then find-or-create). Mosque/business are handed off to
+ * the site's own Google place-picker form (/add-mosque, /add-business) — which
+ * is public, no login required — because a mosque/business record needs
+ * place_id + coordinates that only that picker captures, which a pasted Maps
+ * link can't be resolved to server-side.
+ */
+function niz_wa_dir_start_branch( $user_id, $wa_number, $conversation, $type ) {
+	if ( 'website' === $type ) {
+		nwa_send_message( $user_id, $wa_number, niz_wa_dir_link_prompt( 'website' ) );
+		NWA_DB::set_pending_action( $conversation->id, 'directory_flow', array( 'step' => 'await_link', 'type' => 'website' ), 30 );
+		return '';
+	}
+
+	NWA_DB::set_pending_action( $conversation->id, null );
+
+	$label = 'business' === $type ? 'business' : 'mosque';
+	$emoji = 'business' === $type ? '🏪' : '🕌';
+	$path  = 'business' === $type ? '/add-business/' : '/add-mosque/';
+	$link  = home_url( $path );
+
+	nwa_send_message( $user_id, $wa_number,
+		"{$emoji} Let's add your {$label} to Masjid4All.\n\n"
+		. "Tap the link below to open the page, then find your {$label} on Google Maps and add it in a couple of taps:\n{$link}" );
 	return '';
 }
 

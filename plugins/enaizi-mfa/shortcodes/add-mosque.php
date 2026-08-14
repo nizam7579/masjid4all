@@ -8,9 +8,9 @@
 add_shortcode( 'niz_mfa_add_mosque', 'directory_add_mosque_shortcode' );
 
 function directory_add_mosque_shortcode() {
-	if ( ! is_user_logged_in() ) {
-		return '<p class="must-login-msg">Please <a href="/member/">Register / Login</a> to add your Mosque.</p>';
-	}
+	// Public form (WhatsApp users arrive here without a website login). Keep it
+	// out of the full-page cache so the CSRF nonce below stays fresh for guests.
+	do_action( 'litespeed_control_set_nocache', 'public add-mosque form' );
 
 	global $directory_form_feedback;
 	$output = '';
@@ -206,7 +206,7 @@ add_action('wp_loaded', 'directory_process_mosque_submission');
 function directory_process_mosque_submission() {
     global $wpdb, $directory_form_feedback;
     
-    if ( isset($_POST['submit_mosque']) && is_user_logged_in() ) {
+    if ( isset($_POST['submit_mosque']) ) {
 
         // CSRF guard: only accept submissions that carry our nonce.
         if ( ! isset($_POST['mfa_add_mosque_nonce']) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['mfa_add_mosque_nonce'] ) ), 'mfa_add_mosque' ) ) {

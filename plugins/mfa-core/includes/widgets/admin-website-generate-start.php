@@ -84,6 +84,8 @@ function mfa_admin_website_generate_start_attempt() {
 		return '<p class="mfa-crawler-hint">&#127881; All done - no websites left with New or Pending status.</p>';
 	}
 
+	$view_url = get_permalink( (int) $row['cct_single_post_id'] );
+
 	if ( ! function_exists( 'website_update_content' ) ) {
 		return '<div class="mfa-crawler-banner is-paused">&#9208; Content generation is unavailable (website_update_content() missing).</div>';
 	}
@@ -102,7 +104,12 @@ function mfa_admin_website_generate_start_attempt() {
 
 		ob_start();
 		?>
-		<div class="mfa-crawler-banner is-paused">&#9208; "<?php echo esc_html( $row['name'] ); ?>" failed: <?php echo esc_html( $result->get_error_message() ); ?> &mdash; marked Error, moving on.</div>
+		<div class="mfa-crawler-banner is-paused">
+			&#9208; "<?php echo esc_html( $row['name'] ); ?>" failed: <?php echo esc_html( $result->get_error_message() ); ?> &mdash; marked Error, moving on.
+			<?php if ( $view_url ) : ?>
+				<a href="<?php echo esc_url( $view_url ); ?>" target="_blank" rel="noopener">View &rarr;</a>
+			<?php endif; ?>
+		</div>
 		<script>setTimeout( function () { location.href = <?php echo wp_json_encode( $next_url ); ?>; }, <?php echo (int) wp_rand( 1500, 3000 ); ?> );</script>
 		<?php
 		return ob_get_clean();
@@ -114,6 +121,9 @@ function mfa_admin_website_generate_start_attempt() {
 	?>
 	<p class="mfa-crawler-hint">
 		&#9989; "<?php echo esc_html( $row['name'] ); ?>" &mdash; new status: <strong><?php echo esc_html( $result['status'] ); ?></strong>.
+		<?php if ( $view_url ) : ?>
+			<a href="<?php echo esc_url( $view_url ); ?>" target="_blank" rel="noopener">View &rarr;</a>
+		<?php endif; ?>
 		<?php echo number_format_i18n( $remaining ); ?> more to go. Loading the next record&hellip;
 	</p>
 	<script>setTimeout( function () { location.href = <?php echo wp_json_encode( $next_url ); ?>; }, <?php echo (int) wp_rand( 800, 1600 ); ?> );</script>

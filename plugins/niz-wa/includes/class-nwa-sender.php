@@ -80,6 +80,62 @@ class NWA_Sender {
 	}
 
 	/**
+	 * Interactive reply-buttons message (max 3). Like send_message(), only
+	 * valid inside the 24h window. $buttons is a list of
+	 * array( 'id' => ..., 'title' => ... ); titles are capped at WhatsApp's
+	 * 20-char limit and the list at 3. The user's tap comes back as an
+	 * 'interactive' inbound message whose button_reply title/id niz-wa's
+	 * webhook reduces to plain text for routing.
+	 */
+	public static function send_buttons( $user_id, $to, $body_text, $buttons ) {
+		$conversation = NWA_DB::get_conversation_by_user( $user_id );
+
+		if ( ! $conversation || ! NWA_DB::is_within_window( $conversation ) ) {
+			error_log( 'Niz WA: send_buttons blocked — user_id=' . $user_id . ' to=' . $to
+				. ' conversation_found=' . ( $conversation ? 'yes' : 'no' ) );
+			return array( 'success' => false, 'error' => 'outside_window', 'message_id' => null );
+		}
+
+		$reply_buttons = array();
+		foreach ( array_slice( array_values( $buttons ), 0, 3 ) as $button ) {
+			$reply_buttons[] = array(
+				'type'  => 'reply',
+				'reply' => array(
+					'id'    => substr( (string) $button['id'], 0, 256 ),
+					'title' => mb_substr( (string) $button['title'], 0, 20 ),
+				),
+			);
+		}
+
+		$body = array(
+			'messaging_product' => 'whatsapp',
+			'to'                => $to,
+			'type'              => 'interactive',
+			'interactive'       => array(
+				'type'   => 'button',
+				'body'   => array( 'text' => $body_text ),
+				'action' => array( 'buttons' => $reply_buttons ),
+			),
+		);
+
+		$response = self::api_request( $body );
+
+		if ( $response['success'] ) {
+			NWA_DB::insert_outbound_message( array(
+				'user_id'         => $user_id,
+				'conversation_id' => $conversation->id,
+				'wa_number'       => $to,
+				'msg_type'        => 'interactive',
+				'content'         => $body_text,
+				'meta_message_id' => $response['message_id'],
+			) );
+			NWA_DB::touch_outbound( $conversation->id, current_time( 'mysql' ) );
+		}
+
+		return $response;
+	}
+
+	/**
 	 * Marks an inbound message as read and shows the 'typing…' indicator in
 	 * the user's chat while a reply is being generated. WhatsApp clears the
 	 * indicator automatically after ~25s or as soon as the next message is
@@ -177,4 +233,8 @@ function nwa_send_message( $user_id, $to, $text ) {
 
 function nwa_send_template( $to, $template_name, $lang_code = 'en_US', $components = array(), $user_id = null ) {
 	return NWA_Sender::send_template( $to, $template_name, $lang_code, $components, $user_id );
+}
+
+function nwa_send_buttons( $user_id, $to, $body_text, $buttons ) {
+	return NWA_Sender::send_buttons( $user_id, $to, $body_text, $buttons );
 }

@@ -256,6 +256,240 @@ function niz_wa_action_inquiry( $user_id, $context ) {
 	return trim( $ai_reply ) . "\n{$url}";
 }
 
+/* ---------------- Directory listing flow (multi-step) ----------------
+   "Add my mosque/business/website" isn't single-shot like the actions above:
+   it's a short conversation — an intro with three tappable buttons, then
+   "paste the link", then an acknowledgment. The in-progress step lives in
+   niz-wa's own pending_action/pending_context columns (intent_key
+   'directory_flow'); niz_wa_directory_route() claims every message while the
+   session is live, so it never reaches niz-wa's generic Yes/No pending
+   handler. Entry is the ordinary seeded 'directory' action below.
+
+   Phase 1 (this build) only captures the submitted link and acknowledges —
+   actually creating the directory record from it is phase 2. */
+
+// Priority 20: runs AFTER whatsapp-verify's override (priority 10) so a
+// VERIFY-XXXX code always wins, even if a directory session is open.
+add_filter( 'nwa_route_message_override', 'niz_wa_directory_route', 20, 5 );
+
+/**
+ * Entry point for the seeded 'directory' action. Sends the intro + three
+ * reply buttons and opens the directory session. Buttons can't be expressed
+ * as a plain return string, so this sends its own interactive message and
+ * returns '' to tell NWA_Router there's nothing further to send.
+ */
+function niz_wa_action_directory( $user_id, $context ) {
+	$conversation = NWA_DB::get_conversation_by_user( $user_id );
+	if ( ! $conversation ) {
+		return "You can add your mosque, business, or website to the Masjid4All directory for free. Please try again in a moment.";
+	}
+
+	$body = "🕌 *Masjid4All Directory*\n\n"
+		. "You can add any of these to Masjid4All for *free*:\n\n"
+		. "🕌 *Mosque* — so the community can find its prayer times & location\n"
+		. "🏪 *Business* — list your halal-friendly business for Muslims to discover\n"
+		. "🌐 *Website* — share a useful Islamic website or resource\n\n"
+		. "Which one would you like to add?";
+
+	$buttons = array(
+		array( 'id' => 'dir_mosque',   'title' => 'Add Mosque' ),
+		array( 'id' => 'dir_business', 'title' => 'Add Business' ),
+		array( 'id' => 'dir_website',  'title' => 'Add Website' ),
+	);
+
+	nwa_send_buttons( $user_id, $conversation->wa_number, $body, $buttons );
+	NWA_DB::set_pending_action( $conversation->id, 'directory_flow', array( 'step' => 'await_choice' ), 30 );
+
+	return '';
+}
+
+/**
+ * Drives the remaining directory steps while a 'directory_flow' session is
+ * active. Returns '' to claim the message (we send our own replies), or the
+ * unchanged $override so normal routing continues when no session is live.
+ */
+function niz_wa_directory_route( $override, $user_id, $wa_number, $message_text, $conversation ) {
+	if ( null !== $override ) {
+		return $override; // another handler (e.g. WhatsApp verify) already claimed this.
+	}
+
+	if ( ! class_exists( 'NWA_DB' ) ) {
+		return $override;
+	}
+
+	// get_active_pending_action() auto-clears the session once its TTL passes.
+	if ( 'directory_flow' !== NWA_DB::get_active_pending_action( $conversation ) ) {
+		return $override;
+	}
+
+	$ctx  = json_decode( (string) $conversation->pending_context, true );
+	$ctx  = is_array( $ctx ) ? $ctx : array();
+	$step = isset( $ctx['step'] ) ? $ctx['step'] : '';
+	$text = trim( (string) $message_text );
+
+	if ( 'await_link' === $step ) {
+		$type = isset( $ctx['type'] ) ? $ctx['type'] : 'listing';
+
+		if ( ! niz_wa_dir_looks_like_link( $text ) ) {
+			nwa_send_message( $user_id, $wa_number,
+				"Hmm, that didn't look like a link. " . niz_wa_dir_link_prompt( $type ) );
+			return '';
+		}
+
+		// Website branch: if it's already in our directory, offer Visit / Claim.
+		if ( 'website' === $type ) {
+			$match = niz_wa_web_find_by_url( $text );
+			if ( $match ) {
+				$body = "✅ *" . $match['name'] . "* is already listed in the Masjid4All directory.\n\n"
+					. "What would you like to do?";
+				nwa_send_buttons( $user_id, $wa_number, $body, array(
+					array( 'id' => 'dir_web_visit', 'title' => 'Visit Website' ),
+					array( 'id' => 'dir_web_claim', 'title' => 'Claim Website' ),
+				) );
+				NWA_DB::set_pending_action( $conversation->id, 'directory_flow',
+					array( 'step' => 'website_listed', 'url' => $match['url'], 'name' => $match['name'] ), 30 );
+				return '';
+			}
+		}
+
+		// Not found (or mosque/business): capture + acknowledge, end session.
+		niz_wa_dir_store_submission( $user_id, $type, $text );
+		NWA_DB::set_pending_action( $conversation->id, null );
+		nwa_send_message( $user_id, $wa_number, niz_wa_dir_ack( $type ) );
+		return '';
+	}
+
+	if ( 'website_listed' === $step ) {
+		$url  = isset( $ctx['url'] ) ? $ctx['url'] : '';
+		$name = isset( $ctx['name'] ) ? $ctx['name'] : 'this website';
+		$t    = strtolower( $text );
+
+		if ( false !== strpos( $t, 'visit' ) ) {
+			NWA_DB::set_pending_action( $conversation->id, null );
+			nwa_send_message( $user_id, $wa_number, "🔗 " . $url );
+			return '';
+		}
+
+		if ( false !== strpos( $t, 'claim' ) ) {
+			// Claim workflow itself is intentionally not built yet (skipped by
+			// design) — this is the placeholder the real claim flow attaches to.
+			NWA_DB::set_pending_action( $conversation->id, null );
+			nwa_send_message( $user_id, $wa_number,
+				"Great — you'd like to claim *{$name}*. 🤲\n\nOur team will help you complete the claim shortly." );
+			return '';
+		}
+
+		nwa_send_message( $user_id, $wa_number,
+			"Please tap *Visit Website* or *Claim Website* to continue." );
+		return '';
+	}
+
+	// Default: awaiting a button choice (or a typed equivalent).
+	$choice = niz_wa_dir_detect_choice( $text );
+
+	if ( ! $choice ) {
+		nwa_send_message( $user_id, $wa_number,
+			"Please tap one of the buttons above — *Add Mosque*, *Add Business*, or *Add Website* — to continue." );
+		return '';
+	}
+
+	NWA_DB::set_pending_action( $conversation->id, 'directory_flow', array( 'step' => 'await_link', 'type' => $choice ), 30 );
+	nwa_send_message( $user_id, $wa_number, niz_wa_dir_link_prompt( $choice ) );
+	return '';
+}
+
+/* ---- Directory flow helpers ---- */
+
+function niz_wa_dir_detect_choice( $text ) {
+	$t = strtolower( $text );
+	if ( false !== strpos( $t, 'mosque' ) || false !== strpos( $t, 'masjid' ) || false !== strpos( $t, 'surau' ) ) {
+		return 'mosque';
+	}
+	if ( false !== strpos( $t, 'business' ) || false !== strpos( $t, 'bisnes' ) || false !== strpos( $t, 'kedai' ) ) {
+		return 'business';
+	}
+	if ( false !== strpos( $t, 'website' ) || false !== strpos( $t, 'web' ) || false !== strpos( $t, 'url' ) || false !== strpos( $t, 'site' ) ) {
+		return 'website';
+	}
+	return '';
+}
+
+function niz_wa_dir_link_prompt( $type ) {
+	if ( 'website' === $type ) {
+		return "🌐 *Add Website*\n\nPlease send the *website URL* you'd like to list.\nExample: https://example.com";
+	}
+
+	$label = 'business' === $type ? 'business' : 'mosque';
+	return "📍 *Add " . ucfirst( $label ) . "*\n\n"
+		. "Please send the *Google Maps link* of your {$label}.\n\n"
+		. "_Tip: open it in Google Maps → tap Share → Copy link → paste it here._";
+}
+
+function niz_wa_dir_ack( $type ) {
+	$label = 'website' === $type ? 'website' : ( 'business' === $type ? 'business' : 'mosque' );
+	return "Thank you! ✅ We've received your {$label} details.\n\n"
+		. "Please give us a little time — our team will review and list it on Masjid4All, and I'll update you here once it's done. 🤲";
+}
+
+/**
+ * Loose sanity check so obvious non-links (a greeting, a name) re-prompt
+ * instead of being stored as a "link". Accepts anything with an http(s)
+ * scheme, or a bare domain / Maps short link pasted without one.
+ */
+function niz_wa_dir_looks_like_link( $text ) {
+	if ( false !== stripos( $text, 'http' ) ) {
+		return true;
+	}
+	return (bool) preg_match( '#[a-z0-9.\-]+\.[a-z]{2,}(/|$|\s)#i', $text );
+}
+
+/**
+ * Looks up a website in the directory (wp_jet_cct_web) by normalised host
+ * (scheme- and www-insensitive, reusing website-extract.php's normaliser).
+ * Returns array( id, name, url, post_id ) on a host match, or null.
+ */
+function niz_wa_web_find_by_url( $url ) {
+	global $wpdb;
+	if ( ! function_exists( 'mfa_web_extract_normalize_host' ) ) {
+		return null;
+	}
+	$host = mfa_web_extract_normalize_host( $url );
+	if ( '' === $host ) {
+		return null;
+	}
+	$w    = $wpdb->prefix . 'jet_cct_web';
+	$like = '%' . $wpdb->esc_like( $host ) . '%';
+	$rows = $wpdb->get_results( $wpdb->prepare(
+		"SELECT _ID, name, url, cct_single_post_id FROM {$w} WHERE url LIKE %s LIMIT 50",
+		$like
+	), ARRAY_A );
+	foreach ( (array) $rows as $row ) {
+		if ( mfa_web_extract_normalize_host( $row['url'] ) === $host ) {
+			return array(
+				'id'      => (int) $row['_ID'],
+				'name'    => $row['name'] ? $row['name'] : $row['url'],
+				'url'     => $row['url'],
+				'post_id' => (int) $row['cct_single_post_id'],
+			);
+		}
+	}
+	return null;
+}
+
+/**
+ * Holds the latest submission on the user until phase 2 (turning the link
+ * into an actual directory record) is built. Deliberately a single
+ * "last submission" slot plus an error_log breadcrumb — not a schema.
+ */
+function niz_wa_dir_store_submission( $user_id, $type, $link ) {
+	update_user_meta( $user_id, 'niz_wa_dir_last_submission', array(
+		'type' => sanitize_key( $type ),
+		'link' => sanitize_text_field( $link ),
+		'time' => current_time( 'mysql' ),
+	) );
+	error_log( "niz-wa directory submission: user_id={$user_id} type={$type} link={$link}" );
+}
+
 /* ---------------- Action registry seeding ---------------- */
 
 add_action( 'admin_init', 'niz_wa_seed_actions' );
@@ -339,6 +573,15 @@ function niz_wa_seed_actions() {
 			'requires_confirmation' => false,
 			'confirm_message'       => '',
 			'callback_function'     => 'niz_wa_action_inquiry',
+			'enabled'               => true,
+		),
+		array(
+			'intent_key'            => 'directory',
+			'keywords'              => 'directory,add listing,add mosque,add business,add website,list my mosque,list my business,list my website,direktori,tambah masjid,tambah bisnes,tambah laman web',
+			'description'           => 'User wants to add a mosque, business, or website to the Masjid4All directory, or asks how to list one for free',
+			'requires_confirmation' => false,
+			'confirm_message'       => '',
+			'callback_function'     => 'niz_wa_action_directory',
 			'enabled'               => true,
 		),
 	);

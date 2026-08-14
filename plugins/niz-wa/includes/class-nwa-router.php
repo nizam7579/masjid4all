@@ -9,7 +9,12 @@ class NWA_Router {
 	private static $no_words  = array( 'no', 'n', 'nope', 'tak', 'tidak', 'jangan' );
 
 	public static function handle_message( $user_id, $wa_number, $conversation, $message_text, $msg_type, $wa_message_id = null ) {
-		if ( 'text' !== $msg_type || '' === trim( (string) $message_text ) ) {
+		// Route text plus the two tap-reply kinds — interactive reply buttons /
+		// list replies (msg_type 'interactive') and template quick-reply buttons
+		// ('button'). NWA_Webhook::extract_content() has already reduced these to
+		// their reply title, so downstream routing can treat them like text.
+		if ( ! in_array( $msg_type, array( 'text', 'interactive', 'button' ), true )
+			|| '' === trim( (string) $message_text ) ) {
 			return;
 		}
 

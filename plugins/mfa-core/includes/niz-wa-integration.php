@@ -92,10 +92,11 @@ function niz_wa_action_start( $user_id, $context ) {
 }
 
 function niz_wa_action_register( $user_id, $context ) {
-	$status = get_user_meta( $user_id, 'user_status', true );
+	$status    = get_user_meta( $user_id, 'user_status', true );
+	$login_url = home_url( '/member' );
 
 	if ( in_array( $status, array( 'member', 'premium' ), true ) ) {
-		return "You're already a registered member. Log in here:\nhttps://masjid4all.com/member";
+		return "You're already a registered member. Log in here:\n{$login_url}";
 	}
 
 	$user  = get_userdata( $user_id );
@@ -128,7 +129,7 @@ function niz_wa_action_register( $user_id, $context ) {
 	wp_set_password( $temp_pass, $user_id );
 	update_user_meta( $user_id, 'change_password', 'yes' );
 
-	return "Registration successful, {$name}!\n\nYour temporary password is: {$temp_pass}\n\nLogin here:\nhttps://masjid4all.com/member\n\nPlease change your password after login.";
+	return "Registration successful, {$name}!\n\nYour temporary password is: {$temp_pass}\n\nLogin here:\n{$login_url}\n\nPlease change your password after login.";
 }
 
 function niz_wa_action_reset_password( $user_id, $context ) {
@@ -153,19 +154,22 @@ function niz_wa_action_reset_password( $user_id, $context ) {
 		return "We couldn't reset your password right now. Please try again later.";
 	}
 
-	return "Your temporary password is: {$password}\n\nLogin here:\nhttps://masjid4all.com/member\n\nPlease change your password after login.";
+	return "Your temporary password is: {$password}\n\nLogin here:\n" . home_url( '/member' ) . "\n\nPlease change your password after login.";
 }
 
 function niz_wa_action_claim_business( $user_id, $context ) {
-	return "To claim your business listing on Masjid4All, please visit:\nhttps://masjid4all.com/add-business/\n\nIt's a free service — our team will verify and activate your Halal business profile.";
+	$url = home_url( '/add-business/' );
+	return "To claim your business listing on Masjid4All, please visit:\n{$url}\n\nIt's a free service — our team will verify and activate your Halal business profile.";
 }
 
 function niz_wa_action_membership_price( $user_id, $context ) {
-	return "Membership starts from RM19.90 per year.\n\nFor the latest pricing and to upgrade, visit:\nhttps://masjid4all.com/member/premium/";
+	$url = home_url( '/member/premium/' );
+	return "Membership starts from RM19.90 per year.\n\nFor the latest pricing and to upgrade, visit:\n{$url}";
 }
 
 function niz_wa_action_advertise( $user_id, $context ) {
-	return "Interested in advertising with Masjid4All? Learn more here:\nhttps://masjid4all.com/advertise\n\nOr reply here and our team will reach out.";
+	$url = home_url( '/advertise' );
+	return "Interested in advertising with Masjid4All? Learn more here:\n{$url}\n\nOr reply here and our team will reach out.";
 }
 
 /**
@@ -173,9 +177,12 @@ function niz_wa_action_advertise( $user_id, $context ) {
  * "Invite a Friend" modal now shows (member-account-modals.php) - the
  * capture side (affiliateid cookie -> referrer_id) already runs sitewide
  * via enaizi-mfa's niz_mfa_location_init(), so this just needs to hand the
- * link to whoever asks for it over WhatsApp. home_url() (not a hardcoded
- * staging URL like this file's other action replies) since the link itself
- * must already be per-user dynamic.
+ * link to whoever asks for it over WhatsApp. Uses home_url() like every
+ * other action reply in this file (2026-08-14 - previously these
+ * hardcoded an absolute masjid4all.com URL; switched to home_url() so
+ * replies generated on staging correctly point to staging and replies
+ * generated on production point to production, instead of every
+ * environment always hardcoding one specific domain).
  *
  * UX polish (2026-08-10): NWA_Sender::send_message() runs every outgoing
  * message through format_for_whatsapp() unconditionally (converts
@@ -209,13 +216,12 @@ function niz_wa_action_share( $user_id, $context ) {
  * writes into wp_jet_cct_contact_us and emails the sender a
  * confirmation (see mfa-core/includes/widgets/contact-form.php and
  * admin-inquiry-list.php/admin-inquiry-info.php for the admin side).
- * Same production-masjid4all.com convention as every other action
- * reply in this file, not a staging URL - these replies go out over a
- * live WhatsApp channel regardless of which environment this backend
- * happens to be running against.
+ * Uses home_url(), not a hardcoded domain - see niz_wa_action_share()'s
+ * docblock above for why every action reply in this file now does this.
  */
 function niz_wa_action_inquiry( $user_id, $context ) {
-	return "For any inquiries, feedback, or to reach our team directly, please visit:\nhttps://masjid4all.com/contact-us/\n\nWe'll get back to you as soon as possible.";
+	$url = home_url( '/contact-us/' );
+	return "For any inquiries, feedback, or to reach our team directly, please visit:\n{$url}\n\nWe'll get back to you as soon as possible.";
 }
 
 /* ---------------- Action registry seeding ---------------- */

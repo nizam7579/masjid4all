@@ -15,6 +15,14 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Business/Website single "Update Info" forms it doesn't handle anymore
  * but Kadence-content pages like Receipt still do), so removing this one
  * shortcode doesn't touch that shared credential.
+ *
+ * Email field added 2026-08-14, alongside wiring this form to
+ * wp_jet_cct_contact_us (previously an unused, empty table - no
+ * JetEngine config to inherit conventions from, confirmed before
+ * building) and a confirmation email to the sender - see
+ * mfa_ajax_contact_submit() below. The email field is required for both:
+ * there was no way to email the sender back before this, since the old
+ * form only ever collected a WhatsApp number.
  */
 add_shortcode( 'mfa_contact_form', 'mfa_contact_form_shortcode' );
 function mfa_contact_form_shortcode() {
@@ -32,6 +40,10 @@ function mfa_contact_form_shortcode() {
 		<div class="mfa-form-group">
 			<label for="mfa-contact-name">Name</label>
 			<input type="text" id="mfa-contact-name" name="name" required>
+		</div>
+		<div class="mfa-form-group">
+			<label for="mfa-contact-email">Email</label>
+			<input type="email" id="mfa-contact-email" name="email" required>
 		</div>
 		<div class="mfa-form-group">
 			<label for="mfa-contact-phone">Whatsapp Number</label>
@@ -67,12 +79,17 @@ function mfa_ajax_contact_submit() {
 	check_ajax_referer( 'mfa_contact_submit', 'nonce' );
 
 	$name    = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
+	$email   = isset( $_POST['email'] ) ? sanitize_email( wp_unslash( $_POST['email'] ) ) : '';
 	$phone   = isset( $_POST['phone'] ) ? sanitize_text_field( wp_unslash( $_POST['phone'] ) ) : '';
 	$subject = isset( $_POST['subject'] ) ? sanitize_text_field( wp_unslash( $_POST['subject'] ) ) : '';
 	$message = isset( $_POST['message'] ) ? sanitize_textarea_field( wp_unslash( $_POST['message'] ) ) : '';
 
-	if ( empty( $name ) || empty( $phone ) || empty( $subject ) || empty( $message ) ) {
+	if ( empty( $name ) || empty( $email ) || empty( $phone ) || empty( $subject ) || empty( $message ) ) {
 		wp_send_json_error( array( 'message' => 'Please fill in all fields.' ) );
+	}
+
+	if ( ! is_email( $email ) ) {
+		wp_send_json_error( array( 'message' => 'Please enter a valid email address.' ) );
 	}
 
 	$turnstile = get_option( '_fluentform_turnstile_details' );
@@ -100,6 +117,7 @@ function mfa_ajax_contact_submit() {
 	$to      = 'nizam7579@gmail.com';
 	$email_subject = 'Contact Us - ' . $subject;
 	$body    = "Name: {$name}\n"
+		. "Email: {$email}\n"
 		. "Whatsapp Number: {$phone}\n"
 		. "Subject: {$subject}\n"
 		. "Message: {$message}\n\n"
@@ -111,6 +129,37 @@ function mfa_ajax_contact_submit() {
 	if ( ! $sent ) {
 		wp_send_json_error( array( 'message' => 'Could not send your message. Please try again later.' ) );
 	}
+
+	// Store the inquiry (feeds /admin/inquiry/ - admin-inquiry-list.php).
+	// Best-effort: a DB hiccup here shouldn't block the user from seeing a
+	// success message, since the admin notification email above (the
+	// original, gating side effect) already went out.
+	global $wpdb;
+	$wpdb->insert(
+		$wpdb->prefix . 'jet_cct_contact_us',
+		array(
+			'cct_status'    => 'New',
+			'name'          => $name,
+			'email'         => $email,
+			'phone'         => $phone,
+			'subject'       => $subject,
+			'message'       => $message,
+			'cct_author_id' => get_current_user_id(),
+			'cct_created'   => current_time( 'mysql' ),
+			'cct_modified'  => current_time( 'mysql' ),
+		),
+		array( '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s' )
+	);
+
+	// Confirmation to the sender - also best-effort, doesn't block success.
+	$confirm_subject = "We've received your message - Masjid4All";
+	$confirm_body    = "Assalamualaikum {$name},\n\n"
+		. "Thank you for reaching out to Masjid4All. We've received your message and our team will get back to you soon.\n\n"
+		. "Your message:\n"
+		. "Subject: {$subject}\n"
+		. "{$message}\n\n"
+		. "JazakAllah khair,\nMasjid4All Team";
+	wp_mail( $email, $confirm_subject, $confirm_body, $headers );
 
 	wp_send_json_success( array( 'message' => "Thank you! We've received your message and will get back to you soon." ) );
 }

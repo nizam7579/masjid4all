@@ -1,0 +1,227 @@
+/* mfa-core admin-inquiry-list.css — [mfa_admin_inquiry_list] on
+   /admin/inquiry/. Same structure as admin-website-list-v1.css, with
+   status badge modifiers for this project's own New/Read/Replied/
+   Archived convention (no JetEngine config existed to inherit one from -
+   see admin-inquiry-list.php's docblock). */
+
+.mfa-admin-inquiry-list {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- Heading ---------- */
+
+.mfa-admin-inquiry-list-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--mfa-space-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--mfa-space-4);
+}
+
+.mfa-admin-inquiry-list-heading > div > .mfa-body-muted {
+  margin-top: var(--mfa-space-1);
+}
+
+/* ---------- Filters ---------- */
+
+.mfa-admin-inquiry-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mfa-space-3);
+  align-items: center;
+  margin-bottom: var(--mfa-space-5);
+}
+
+.mfa-admin-inquiry-search {
+  flex: 1;
+  min-width: 200px;
+  padding: 10px var(--mfa-space-4);
+  border: 1px solid var(--mfa-border);
+  border-radius: var(--mfa-radius-sm);
+  font-size: 14px;
+  color: var(--mfa-ink);
+  background: var(--mfa-white);
+}
+.mfa-admin-inquiry-search:focus {
+  outline: none;
+  border-color: var(--mfa-teal);
+}
+
+.mfa-admin-inquiry-select {
+  padding: 10px var(--mfa-space-4);
+  border: 1px solid var(--mfa-border);
+  border-radius: var(--mfa-radius-sm);
+  font-size: 14px;
+  color: var(--mfa-ink);
+  background: var(--mfa-white);
+  max-width: 220px;
+}
+
+.mfa-admin-inquiry-filter-btn {
+  padding: 10px var(--mfa-space-5);
+  font-size: 14px;
+}
+
+.mfa-admin-inquiry-clear {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mfa-muted);
+  text-decoration: none;
+}
+.mfa-admin-inquiry-clear:hover {
+  color: var(--mfa-teal-dark);
+}
+
+/* ---------- Table ---------- */
+
+.mfa-admin-inquiry-table-wrap {
+  background: var(--mfa-white);
+  border: 1px solid var(--mfa-border);
+  border-radius: var(--mfa-radius-md);
+  overflow-x: auto;
+}
+
+.mfa-admin-inquiry-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.mfa-admin-inquiry-table th,
+.mfa-admin-inquiry-table td {
+  padding: var(--mfa-space-3) var(--mfa-space-4);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.mfa-admin-inquiry-table th {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--mfa-label);
+  border-bottom: 1px solid var(--mfa-border);
+}
+
+.mfa-admin-inquiry-table tbody tr {
+  border-bottom: 1px solid var(--mfa-border);
+}
+.mfa-admin-inquiry-table tbody tr:last-child {
+  border-bottom: none;
+}
+.mfa-admin-inquiry-table tbody tr:hover {
+  background: var(--mfa-mint-bg);
+}
+
+.mfa-admin-inquiry-table td {
+  color: var(--mfa-ink);
+}
+
+.mfa-admin-inquiry-empty {
+  text-align: center;
+  color: var(--mfa-muted);
+  padding: var(--mfa-space-8) !important;
+  white-space: normal;
+}
+
+.mfa-admin-inquiry-actions {
+  text-align: right;
+}
+
+.mfa-admin-inquiry-view-btn {
+  padding: 6px 16px;
+  font-size: 13px;
+}
+
+/* ---------- Status badges ---------- */
+
+.mfa-admin-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: var(--mfa-radius-pill);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.mfa-admin-status-new { background: #e6f0fb; color: #2a5fa8; }
+.mfa-admin-status-read { background: var(--mfa-mint-bg); color: var(--mfa-muted); }
+.mfa-admin-status-replied { background: #e6f4f2; color: var(--mfa-teal-dark); }
+.mfa-admin-status-archived { background: #eef1fb; color: #4a4fa0; }
+.mfa-admin-status-none { background: var(--mfa-mint-bg); color: var(--mfa-muted); }
+
+/* ---------- Pagination ---------- */
+
+.mfa-admin-inquiry-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--mfa-space-4);
+  margin-top: var(--mfa-space-5);
+}
+
+.mfa-admin-inquiry-page-link {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--mfa-space-2) var(--mfa-space-4);
+  border: 1px solid var(--mfa-border);
+  border-radius: var(--mfa-radius-sm);
+  background: var(--mfa-white);
+  color: var(--mfa-ink);
+  font-weight: 600;
+  font-size: 14px;
+  text-decoration: none;
+}
+.mfa-admin-inquiry-page-link:hover {
+  border-color: var(--mfa-teal);
+  color: var(--mfa-teal-dark);
+}
+
+.mfa-admin-inquiry-page-status {
+  font-size: 13px;
+  color: var(--mfa-muted);
+  font-weight: 600;
+}
+
+/* ---------- Mobile: card-style rows instead of a horizontal-scroll table ---------- */
+
+@media (max-width: 600px) {
+  .mfa-admin-inquiry-table thead {
+    display: none;
+  }
+  .mfa-admin-inquiry-table,
+  .mfa-admin-inquiry-table tbody,
+  .mfa-admin-inquiry-table tr,
+  .mfa-admin-inquiry-table td {
+    display: block;
+    width: 100%;
+  }
+  .mfa-admin-inquiry-table tr {
+    padding: var(--mfa-space-3) var(--mfa-space-4);
+  }
+  .mfa-admin-inquiry-table td {
+    white-space: normal;
+    padding: 4px 0;
+    border: none;
+  }
+  .mfa-admin-inquiry-table td::before {
+    content: attr(data-label);
+    display: inline-block;
+    min-width: 90px;
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--mfa-label);
+    margin-right: var(--mfa-space-2);
+  }
+  .mfa-admin-inquiry-actions {
+    text-align: left;
+    margin-top: var(--mfa-space-2);
+  }
+  .mfa-admin-inquiry-actions::before {
+    content: none;
+  }
+}

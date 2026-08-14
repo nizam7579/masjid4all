@@ -109,6 +109,26 @@ function mfa_core_enqueue_widget_assets() {
 			wp_enqueue_style( 'mfa-core-admin-blog-list', MFA_CORE_URL . 'assets/css/admin-blog-list-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell' ), $get_version( $admin_blog_list_css ) );
 		}
 
+		if ( $post && 'inquiry' === $post->post_name && 9343 === (int) $post->post_parent ) {
+			$admin_inquiry_list_css = MFA_CORE_PATH . 'assets/css/admin-inquiry-list-v1.css';
+			wp_enqueue_style( 'mfa-core-admin-inquiry-list', MFA_CORE_URL . 'assets/css/admin-inquiry-list-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell' ), $get_version( $admin_inquiry_list_css ) );
+		}
+
+		// /admin/inquiry/info/ - child of the Inquiry page, matched by slug
+		// (not a fixed ID) same reasoning as the crawler-start/website-
+		// generate matches elsewhere in this file. Depends on the list
+		// page's stylesheet for its .mfa-admin-status-* badge classes, same
+		// relationship as admin-member-info-v1.css to admin-member-list.
+		$is_inquiry_info = $post && 'info' === $post->post_name && $post->post_parent
+			&& 'inquiry' === get_post_field( 'post_name', $post->post_parent );
+		if ( $is_inquiry_info ) {
+			$admin_inquiry_list_css = MFA_CORE_PATH . 'assets/css/admin-inquiry-list-v1.css';
+			wp_enqueue_style( 'mfa-core-admin-inquiry-list', MFA_CORE_URL . 'assets/css/admin-inquiry-list-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell' ), $get_version( $admin_inquiry_list_css ) );
+
+			$admin_inquiry_info_css = MFA_CORE_PATH . 'assets/css/admin-inquiry-info-v1.css';
+			wp_enqueue_style( 'mfa-core-admin-inquiry-info', MFA_CORE_URL . 'assets/css/admin-inquiry-info-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell', 'mfa-core-admin-inquiry-list' ), $get_version( $admin_inquiry_info_css ) );
+		}
+
 		// /admin/website/generate/ - child of the Websites page, reuses the
 		// crawler's self-redirecting one-record-per-load stylesheet/classes
 		// (.mfa-crawler, .mfa-crawler-hint, .mfa-crawler-banner.is-paused)
@@ -381,6 +401,8 @@ function mfa_core_litespeed_css_excludes( $excludes ) {
 	$excludes[] = 'mfa-core/assets/css/admin-website-list-v1.css';
 	$excludes[] = 'mfa-core/assets/css/admin-knowledge-list-v1.css';
 	$excludes[] = 'mfa-core/assets/css/admin-blog-list-v1.css';
+	$excludes[] = 'mfa-core/assets/css/admin-inquiry-list-v1.css';
+	$excludes[] = 'mfa-core/assets/css/admin-inquiry-info-v1.css';
 	$excludes[] = 'mfa-core/assets/css/admin-reports-v1.css';
 	$excludes[] = 'mfa-core/assets/css/admin-crawler-v1.css';
 	return $excludes;

@@ -46,7 +46,11 @@ function mfa_is_admin_area( $post_id = 0 ) {
  * by slug, not a fixed ID: staging and live created these pages
  * independently, so each has a different numeric ID per environment - a
  * straight folder copy between environments must not require hand-editing
- * an ID here.
+ * an ID here. /admin/inquiry/info/ hides chrome for the same reason as
+ * 217911 (/admin/member/info/) above - opened in a new tab for a quick
+ * lookup, not primary navigation - but matched by slug like the other two,
+ * since it's a newly-created page (no hardcoded ID exists for it yet on
+ * either environment).
  */
 function mfa_admin_page_hides_chrome( $post_id = 0 ) {
 	$post_id = $post_id ? (int) $post_id : get_queried_object_id();
@@ -63,6 +67,9 @@ function mfa_admin_page_hides_chrome( $post_id = 0 ) {
 			return true;
 		}
 		if ( 'generate' === $post->post_name && 'website' === $parent_slug ) {
+			return true;
+		}
+		if ( 'info' === $post->post_name && 'inquiry' === $parent_slug ) {
 			return true;
 		}
 	}

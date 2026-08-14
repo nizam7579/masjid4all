@@ -1,0 +1,86 @@
+<?php
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * [mfa_admin_inquiry_info] - /admin/inquiry/info/?id={_ID}, linked from
+ * the "View" button in [mfa_admin_inquiry_list] (admin-inquiry-list.php).
+ * `id` is the CCT's own `_ID`, not a user_id - an inquiry isn't
+ * necessarily tied to a logged-in member (cct_author_id is 0 for
+ * logged-out submitters). Reads wp_jet_cct_contact_us directly via
+ * $wpdb, never the JetEngine PHP API, per the project's standing rule.
+ *
+ * Deliberately basic, same precedent as admin-member-info.php's first
+ * version: read-only, no status-editing UI yet - just the full message
+ * (the whole point of this page, since the list table only shows a
+ * preview-free summary) plus a plain mailto: link to reply.
+ */
+
+add_shortcode( 'mfa_admin_inquiry_info', 'mfa_admin_inquiry_info_shortcode' );
+function mfa_admin_inquiry_info_shortcode() {
+	global $wpdb;
+	$cct_table = $wpdb->prefix . 'jet_cct_contact_us';
+
+	$id = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
+
+	ob_start();
+	?>
+	<div class="mfa-admin-inquiry-info">
+		<?php
+		if ( ! $id ) {
+			echo '<p class="mfa-body-muted">No inquiry specified.</p>';
+		} else {
+			$row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$cct_table} WHERE _ID = %d", $id ), ARRAY_A );
+
+			if ( ! $row ) {
+				echo '<p class="mfa-body-muted">Inquiry not found.</p>';
+			} else {
+				$reply_url = ! empty( $row['email'] ) ? 'mailto:' . rawurlencode( $row['email'] ) . '?subject=' . rawurlencode( 'Re: ' . $row['subject'] ) : '';
+				?>
+				<h1 class="mfa-h2"><?php echo esc_html( $row['subject'] ? $row['subject'] : '—' ); ?></h1>
+
+				<div class="mfa-admin-inquiry-info-grid">
+					<div class="mfa-admin-inquiry-info-item">
+						<span class="mfa-label">Name</span>
+						<span class="mfa-body"><?php echo esc_html( $row['name'] ? $row['name'] : '—' ); ?></span>
+					</div>
+					<div class="mfa-admin-inquiry-info-item">
+						<span class="mfa-label">Email</span>
+						<span class="mfa-body"><?php echo esc_html( $row['email'] ? $row['email'] : '—' ); ?></span>
+					</div>
+					<div class="mfa-admin-inquiry-info-item">
+						<span class="mfa-label">Whatsapp / Phone</span>
+						<span class="mfa-body"><?php echo esc_html( $row['phone'] ? $row['phone'] : '—' ); ?></span>
+					</div>
+					<div class="mfa-admin-inquiry-info-item">
+						<span class="mfa-label">Status</span>
+						<span class="mfa-body">
+							<?php if ( ! empty( $row['cct_status'] ) ) : ?>
+								<span class="mfa-admin-status-badge mfa-admin-status-<?php echo esc_attr( sanitize_html_class( strtolower( $row['cct_status'] ) ) ); ?>"><?php echo esc_html( $row['cct_status'] ); ?></span>
+							<?php else : ?>
+								—
+							<?php endif; ?>
+						</span>
+					</div>
+					<div class="mfa-admin-inquiry-info-item">
+						<span class="mfa-label">Received</span>
+						<span class="mfa-body"><?php echo esc_html( $row['cct_created'] ? date_i18n( 'j M Y, g:i a', strtotime( $row['cct_created'] ) ) : '—' ); ?></span>
+					</div>
+					<div class="mfa-admin-inquiry-info-item">
+						<span class="mfa-label">Message</span>
+						<span class="mfa-body mfa-admin-inquiry-info-message"><?php echo nl2br( esc_html( $row['message'] ? $row['message'] : '—' ) ); ?></span>
+					</div>
+				</div>
+
+				<?php if ( $reply_url ) : ?>
+					<a href="<?php echo esc_url( $reply_url ); ?>" class="mfa-btn mfa-btn-primary mfa-admin-inquiry-info-reply-btn">Reply via Email</a>
+				<?php endif; ?>
+				<?php
+			}
+		}
+		?>
+	</div>
+	<?php
+	return ob_get_clean();
+}

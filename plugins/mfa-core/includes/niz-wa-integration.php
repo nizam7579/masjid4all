@@ -95,7 +95,7 @@ function niz_wa_action_register( $user_id, $context ) {
 	$status = get_user_meta( $user_id, 'user_status', true );
 
 	if ( in_array( $status, array( 'member', 'premium' ), true ) ) {
-		return "You're already a registered member. Log in here:\nhttps://staging.masjid4all.com/member";
+		return "You're already a registered member. Log in here:\nhttps://masjid4all.com/member";
 	}
 
 	$user  = get_userdata( $user_id );
@@ -128,7 +128,7 @@ function niz_wa_action_register( $user_id, $context ) {
 	wp_set_password( $temp_pass, $user_id );
 	update_user_meta( $user_id, 'change_password', 'yes' );
 
-	return "Registration successful, {$name}!\n\nYour temporary password is: {$temp_pass}\n\nLogin here:\nhttps://staging.masjid4all.com/member\n\nPlease change your password after login.";
+	return "Registration successful, {$name}!\n\nYour temporary password is: {$temp_pass}\n\nLogin here:\nhttps://masjid4all.com/member\n\nPlease change your password after login.";
 }
 
 function niz_wa_action_reset_password( $user_id, $context ) {
@@ -153,19 +153,19 @@ function niz_wa_action_reset_password( $user_id, $context ) {
 		return "We couldn't reset your password right now. Please try again later.";
 	}
 
-	return "Your temporary password is: {$password}\n\nLogin here:\nhttps://staging.masjid4all.com/member\n\nPlease change your password after login.";
+	return "Your temporary password is: {$password}\n\nLogin here:\nhttps://masjid4all.com/member\n\nPlease change your password after login.";
 }
 
 function niz_wa_action_claim_business( $user_id, $context ) {
-	return "To claim your business listing on Masjid4All, please visit:\nhttps://staging.masjid4all.com/add-business/\n\nIt's a free service — our team will verify and activate your Halal business profile.";
+	return "To claim your business listing on Masjid4All, please visit:\nhttps://masjid4all.com/add-business/\n\nIt's a free service — our team will verify and activate your Halal business profile.";
 }
 
 function niz_wa_action_membership_price( $user_id, $context ) {
-	return "Membership starts from RM19.90 per year.\n\nFor the latest pricing and to upgrade, visit:\nhttps://staging.masjid4all.com/member/premium/";
+	return "Membership starts from RM19.90 per year.\n\nFor the latest pricing and to upgrade, visit:\nhttps://masjid4all.com/member/premium/";
 }
 
 function niz_wa_action_advertise( $user_id, $context ) {
-	return "Interested in advertising with Masjid4All? Learn more here:\nhttps://staging.masjid4all.com/advertise\n\nOr reply here and our team will reach out.";
+	return "Interested in advertising with Masjid4All? Learn more here:\nhttps://masjid4all.com/advertise\n\nOr reply here and our team will reach out.";
 }
 
 /**
@@ -201,6 +201,21 @@ function niz_wa_action_share( $user_id, $context ) {
 	}
 
 	return $message;
+}
+
+/**
+ * General inquiries/complaints/feedback, or anyone asking to reach a
+ * human - points to the /contact-us/ form (2026-08-14), which now
+ * writes into wp_jet_cct_contact_us and emails the sender a
+ * confirmation (see mfa-core/includes/widgets/contact-form.php and
+ * admin-inquiry-list.php/admin-inquiry-info.php for the admin side).
+ * Same production-masjid4all.com convention as every other action
+ * reply in this file, not a staging URL - these replies go out over a
+ * live WhatsApp channel regardless of which environment this backend
+ * happens to be running against.
+ */
+function niz_wa_action_inquiry( $user_id, $context ) {
+	return "For any inquiries, feedback, or to reach our team directly, please visit:\nhttps://masjid4all.com/contact-us/\n\nWe'll get back to you as soon as possible.";
 }
 
 /* ---------------- Action registry seeding ---------------- */
@@ -277,6 +292,15 @@ function niz_wa_seed_actions() {
 			'requires_confirmation' => false,
 			'confirm_message'       => '',
 			'callback_function'     => 'niz_wa_action_share',
+			'enabled'               => true,
+		),
+		array(
+			'intent_key'            => 'inquiry',
+			'keywords'              => 'inquiry,enquiry,complaint,feedback,contact us,contact,speak to someone,talk to someone,human agent,customer service,aduan,soalan,maklum balas,hubungi kami',
+			'description'           => 'User wants to submit an inquiry, complaint, or feedback, or reach a human at Masjid4All',
+			'requires_confirmation' => false,
+			'confirm_message'       => '',
+			'callback_function'     => 'niz_wa_action_inquiry',
 			'enabled'               => true,
 		),
 	);

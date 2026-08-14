@@ -363,11 +363,8 @@ function niz_wa_directory_route( $override, $user_id, $wa_number, $message_text,
 			return niz_wa_web_add_new( $user_id, $wa_number, $conversation, $text );
 		}
 
-		// mosque/business (record creation not built yet): capture + ack.
-		niz_wa_dir_store_submission( $user_id, $type, $text );
-		NWA_DB::set_pending_action( $conversation->id, null );
-		nwa_send_message( $user_id, $wa_number, niz_wa_dir_ack( $type ) );
-		return '';
+		// mosque/business: resolve the Google Maps link -> Serper -> confirm -> create.
+		return niz_wa_place_add_from_link( $user_id, $wa_number, $conversation, $type, $text );
 	}
 
 	if ( 'website_listed' === $step ) {
@@ -440,6 +437,46 @@ function niz_wa_directory_route( $override, $user_id, $wa_number, $message_text,
 
 		nwa_send_message( $user_id, $wa_number,
 			"Please tap *Register as member* to continue, or *Cancel* to stop." );
+		return '';
+	}
+
+	if ( 'await_place_confirm' === $step ) {
+		$ptype = isset( $ctx['type'] ) ? $ctx['type'] : 'mosque';
+		$place = ( isset( $ctx['place'] ) && is_array( $ctx['place'] ) ) ? $ctx['place'] : null;
+		$name  = $place['title'] ?? 'this place';
+		$t     = strtolower( $text );
+
+		if ( false !== strpos( $t, 'yes' ) ) {
+			NWA_DB::set_pending_action( $conversation->id, null );
+
+			if ( ! $place || ! function_exists( 'mfa_geohash_upsert_place' ) ) {
+				nwa_send_message( $user_id, $wa_number, "Sorry, something went wrong adding *{$name}*. Please try again." );
+				return '';
+			}
+
+			$result = mfa_geohash_upsert_place( $ptype, $place );
+			$link   = niz_wa_place_page_url( $ptype, isset( $place['placeId'] ) ? $place['placeId'] : '' );
+			$label  = 'business' === $ptype ? 'business' : 'mosque';
+
+			if ( in_array( $result, array( 'new', 'existing' ), true ) && $link ) {
+				nwa_send_message( $user_id, $wa_number,
+					"✅ *{$name}* has been added to the Masjid4All {$label} directory!\n\n"
+					. "Tap the link below to generate its full details and publish the listing:\n{$link}\n\n"
+					. "Once it's live, you can claim it to manage and update the info." );
+			} else {
+				nwa_send_message( $user_id, $wa_number, "Sorry, I couldn't add *{$name}* right now. Please try again later." );
+			}
+			return '';
+		}
+
+		if ( false !== strpos( $t, 'no' ) ) {
+			NWA_DB::set_pending_action( $conversation->id, 'directory_flow', array( 'step' => 'await_link', 'type' => $ptype ), 30 );
+			nwa_send_message( $user_id, $wa_number,
+				"No problem — paste a different Google Maps link, or type *stop* to cancel." );
+			return '';
+		}
+
+		nwa_send_message( $user_id, $wa_number, "Please tap *Yes, add it* or *No*." . niz_wa_dir_stop_hint() );
 		return '';
 	}
 
@@ -736,22 +773,230 @@ function niz_wa_web_add_new( $user_id, $wa_number, $conversation, $raw_url ) {
  * link can't be resolved to server-side.
  */
 function niz_wa_dir_start_branch( $user_id, $wa_number, $conversation, $type ) {
-	if ( 'website' === $type ) {
-		nwa_send_message( $user_id, $wa_number, niz_wa_dir_link_prompt( 'website' ) );
-		NWA_DB::set_pending_action( $conversation->id, 'directory_flow', array( 'step' => 'await_link', 'type' => 'website' ), 30 );
+	// All three branches ask for the link/URL: website -> the site's own URL;
+	// mosque/business -> a Google Maps link, which Sofia resolves via Serper.
+	nwa_send_message( $user_id, $wa_number, niz_wa_dir_link_prompt( $type ) );
+	NWA_DB::set_pending_action( $conversation->id, 'directory_flow', array( 'step' => 'await_link', 'type' => $type ), 30 );
+	return '';
+}
+
+/* ---------------- Mosque/business add from a Google Maps link ----------------
+   A pasted Maps link is resolved to a Google place entirely via Serper (no
+   Google Places API needed): expand the short link to its final URL, pull the
+   FTID out of it, derive the numeric CID, and look the place up with Serper's
+   {"cid": ...} — which returns the full place (placeId, name, address, phone,
+   website, rating, hours). The record is then created with the crawler's own
+   mfa_geohash_upsert_place(), so it's identical to a crawled listing. */
+
+/**
+ * Resolves a Google Maps link to array( cid, name, lat, lng ), or null.
+ * Follows the maps.app.goo.gl redirect to the full /maps/place URL and parses
+ * the FTID (!1s0x..:0x..) whose second half, as a decimal, is the CID.
+ */
+function niz_wa_maps_resolve( $raw_link ) {
+	$link = trim( (string) $raw_link );
+	if ( '' === $link ) {
+		return null;
+	}
+	if ( ! preg_match( '#^https?://#i', $link ) ) {
+		$link = 'https://' . $link;
+	}
+
+	$ua    = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122 Safari/537.36';
+	$url   = $link;
+	$final = $link;
+	for ( $i = 0; $i < 6; $i++ ) {
+		$r = wp_remote_get( $url, array( 'timeout' => 15, 'redirection' => 0, 'headers' => array( 'User-Agent' => $ua, 'Accept-Language' => 'en-US,en;q=0.9' ) ) );
+		if ( is_wp_error( $r ) ) {
+			break;
+		}
+		$code  = wp_remote_retrieve_response_code( $r );
+		$loc   = wp_remote_retrieve_header( $r, 'location' );
+		$final = $url;
+		if ( $code >= 300 && $code < 400 && $loc ) {
+			$url   = $loc;
+			$final = $loc;
+		} else {
+			break;
+		}
+	}
+
+	$cid = '';
+	if ( preg_match( '/1s(0x[0-9a-f]+:0x[0-9a-f]+)/i', $final, $m ) ) {
+		$parts = explode( ':', $m[1] );
+		$cid   = niz_wa_hex_to_dec( end( $parts ) );
+	}
+	$name = preg_match( '#/place/([^/@?]+)#', $final, $n ) ? str_replace( '+', ' ', urldecode( $n[1] ) ) : '';
+	$lat  = null;
+	$lng  = null;
+	if ( preg_match( '/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/', $final, $c ) ) {
+		$lat = $c[1];
+		$lng = $c[2];
+	} elseif ( preg_match( '/@(-?\d+\.\d+),(-?\d+\.\d+)/', $final, $c ) ) {
+		$lat = $c[1];
+		$lng = $c[2];
+	}
+
+	if ( '' === $cid && '' === $name ) {
+		return null;
+	}
+	return array( 'cid' => $cid, 'name' => $name, 'lat' => $lat, 'lng' => $lng );
+}
+
+/**
+ * Exact big-hex -> decimal (the CID overflows PHP's int, so hexdec() can't be
+ * used). GMP preferred, BCMath fallback.
+ */
+function niz_wa_hex_to_dec( $hex ) {
+	$hex = preg_replace( '/[^0-9a-f]/i', '', (string) $hex );
+	if ( '' === $hex ) {
+		return '';
+	}
+	if ( function_exists( 'gmp_init' ) ) {
+		return gmp_strval( gmp_init( $hex, 16 ) );
+	}
+	if ( function_exists( 'bcadd' ) ) {
+		$dec = '0';
+		for ( $i = 0, $len = strlen( $hex ); $i < $len; $i++ ) {
+			$dec = bcadd( bcmul( $dec, '16' ), (string) hexdec( $hex[ $i ] ) );
+		}
+		return $dec;
+	}
+	return '';
+}
+
+/**
+ * Full place from Serper by CID (its /maps endpoint accepts {"cid": ...}).
+ * Uses the site's configured MFA_SERPER_API_KEY via mfa_serper_key().
+ */
+function niz_wa_serper_by_cid( $cid ) {
+	if ( ! function_exists( 'mfa_serper_key' ) || '' === (string) $cid ) {
+		return null;
+	}
+	$key = mfa_serper_key();
+	if ( ! $key ) {
+		return null;
+	}
+	$r = wp_remote_post( 'https://google.serper.dev/maps', array(
+		'timeout' => 20,
+		'headers' => array( 'X-API-KEY' => $key, 'Content-Type' => 'application/json' ),
+		'body'    => wp_json_encode( array( 'cid' => (string) $cid ) ),
+	) );
+	if ( is_wp_error( $r ) ) {
+		return null;
+	}
+	$d = json_decode( wp_remote_retrieve_body( $r ), true );
+	if ( isset( $d['places'][0] ) ) {
+		return $d['places'][0];
+	}
+	return isset( $d['place'] ) ? $d['place'] : null;
+}
+
+/**
+ * Existing mosque/business row for a placeId -> array( post_id, url ) or null.
+ */
+function niz_wa_place_find_existing( $type, $place_id ) {
+	global $wpdb;
+	if ( '' === (string) $place_id ) {
+		return null;
+	}
+	$table = $wpdb->prefix . ( 'mosque' === $type ? 'jet_cct_mosque' : 'jet_cct_business' );
+	$row   = $wpdb->get_row( $wpdb->prepare( "SELECT cct_single_post_id, page_url FROM {$table} WHERE place_id = %s LIMIT 1", $place_id ), ARRAY_A );
+	if ( ! $row ) {
+		return null;
+	}
+	$post_id = (int) $row['cct_single_post_id'];
+	$url     = ! empty( $row['page_url'] ) ? $row['page_url'] : ( $post_id ? get_permalink( $post_id ) : '' );
+	return array( 'post_id' => $post_id, 'url' => $url );
+}
+
+/**
+ * Listing page URL (?added=1) for a just-created mosque/business by placeId.
+ */
+function niz_wa_place_page_url( $type, $place_id ) {
+	global $wpdb;
+	if ( '' === (string) $place_id ) {
+		return '';
+	}
+	$table   = $wpdb->prefix . ( 'mosque' === $type ? 'jet_cct_mosque' : 'jet_cct_business' );
+	$post_id = (int) $wpdb->get_var( $wpdb->prepare( "SELECT cct_single_post_id FROM {$table} WHERE place_id = %s LIMIT 1", $place_id ) );
+	if ( ! $post_id ) {
+		return '';
+	}
+	return add_query_arg( 'added', '1', get_permalink( $post_id ) );
+}
+
+/**
+ * Soft check that a Serper place looks like a mosque (name/type keywords).
+ */
+function niz_wa_looks_like_mosque( $place ) {
+	$hay = strtolower(
+		( $place['title'] ?? '' ) . ' ' . ( $place['type'] ?? '' ) . ' ' . implode( ' ', (array) ( $place['types'] ?? array() ) )
+	);
+	foreach ( array( 'mosque', 'masjid', 'surau', 'musolla', 'musalla', 'madrasah', 'islamic' ) as $kw ) {
+		if ( false !== strpos( $hay, $kw ) ) {
+			return true;
+		}
+	}
+	return false;
+}
+
+/**
+ * Resolves a pasted Google Maps link to a place, then either reports it's
+ * already listed or asks the user to confirm before creating it. Keeps the
+ * session on await_link when the link can't be resolved so the user can retry.
+ */
+function niz_wa_place_add_from_link( $user_id, $wa_number, $conversation, $type, $raw_link ) {
+	$resolved = niz_wa_maps_resolve( $raw_link );
+
+	if ( ! $resolved || ( '' === $resolved['cid'] && '' === (string) $resolved['name'] ) ) {
+		nwa_send_message( $user_id, $wa_number,
+			"That doesn't look like a Google Maps place link. Open the place in Google Maps, tap *Share* → *Copy link*, and paste it here." . niz_wa_dir_stop_hint() );
 		return '';
 	}
 
-	NWA_DB::set_pending_action( $conversation->id, null );
+	// CID lookup is exact; fall back to a name+coords search only if the link
+	// carried no FTID.
+	$place = '' !== $resolved['cid'] ? niz_wa_serper_by_cid( $resolved['cid'] ) : null;
+	if ( ( ! $place || empty( $place['placeId'] ) ) && '' !== (string) $resolved['name'] && $resolved['lat'] && function_exists( 'mfa_serper_maps' ) ) {
+		$found = mfa_serper_maps( $resolved['name'], (float) $resolved['lat'], (float) $resolved['lng'], 17 );
+		if ( ! is_wp_error( $found ) && ! empty( $found[0] ) ) {
+			$place = $found[0];
+		}
+	}
+
+	if ( ! $place || empty( $place['placeId'] ) ) {
+		nwa_send_message( $user_id, $wa_number,
+			"I couldn't find that place from the link. Please paste the link from the place's *Share* button." . niz_wa_dir_stop_hint() );
+		return '';
+	}
 
 	$label = 'business' === $type ? 'business' : 'mosque';
-	$emoji = 'business' === $type ? '🏪' : '🕌';
-	$path  = 'business' === $type ? '/add-business/' : '/add-mosque/';
-	$link  = home_url( $path );
 
-	nwa_send_message( $user_id, $wa_number,
-		"{$emoji} Let's add your {$label} to Masjid4All.\n\n"
-		. "Tap the link below to open the page, then find your {$label} on Google Maps and add it in a couple of taps:\n{$link}" );
+	// Already in the directory?
+	$existing = niz_wa_place_find_existing( $type, $place['placeId'] );
+	if ( $existing ) {
+		NWA_DB::set_pending_action( $conversation->id, null );
+		$suffix = $existing['url'] ? "\n\n" . $existing['url'] : '';
+		nwa_send_message( $user_id, $wa_number,
+			"✅ *{$place['title']}* is already listed in the Masjid4All {$label} directory.{$suffix}" );
+		return '';
+	}
+
+	// Confirm before creating.
+	$addr = isset( $place['address'] ) ? $place['address'] : '';
+	$warn = ( 'mosque' === $type && ! niz_wa_looks_like_mosque( $place ) )
+		? "\n\n_Note: this doesn't look like a mosque — add it only if it is one._"
+		: '';
+
+	nwa_send_buttons( $user_id, $wa_number,
+		"I found:\n\n*{$place['title']}*\n{$addr}{$warn}\n\nAdd this to the Masjid4All directory?",
+		array(
+			array( 'id' => 'dir_place_yes', 'title' => 'Yes, add it' ),
+			array( 'id' => 'dir_place_no',  'title' => 'No' ),
+		) );
+	NWA_DB::set_pending_action( $conversation->id, 'directory_flow',
+		array( 'step' => 'await_place_confirm', 'type' => $type, 'place' => $place ), 30 );
 	return '';
 }
 

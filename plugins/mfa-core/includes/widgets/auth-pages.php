@@ -46,6 +46,17 @@ function mfa_reset_password_page_shortcode() {
 add_shortcode( 'mfa_forgot_password_page', 'mfa_forgot_password_page_shortcode' );
 function mfa_forgot_password_page_shortcode() {
 	$out = do_shortcode( '[niz_forgot_password]' );
+
+	// Accounts created via WhatsApp have no password to reset — offer the
+	// Sofia magic-login instead, alongside the email reset above.
+	if ( function_exists( 'mfa_assist_popup' ) ) {
+		$login = 'https://wa.me/60189897579?text=' . rawurlencode( 'login' );
+		$out  .= '<div class="mfa-assist-links"><button type="button" class="mfa-assist-link mfa-assist-open" data-target="mfa-auth-login">Registered on WhatsApp? <strong>Log in with WhatsApp</strong> — no reset needed</button></div>';
+		$out  .= mfa_assist_popup( 'mfa-auth-login', '💬', 'Log in with WhatsApp',
+			'Registered via WhatsApp? Tap below and <strong>Sofia</strong> sends you a one-tap login link — no password needed.',
+			'Log in on WhatsApp', $login );
+	}
+
 	if ( is_user_logged_in() ) {
 		$out .= mfa_member_return_button();
 	}

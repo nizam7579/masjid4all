@@ -1,0 +1,91 @@
+/**
+ * Sofia-assist popup for the "Add Your Mosque/Business/Website" CTAs on the
+ * mosque/business/website directory pages (directory-pages.php's
+ * mfa_dir_assist_cta()). A lightweight, dedicated modal — same look as the
+ * footer Sofia popup, but self-contained so these pages don't depend on it.
+ */
+.mfa-assist-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 9999;
+	display: none;
+	align-items: center;
+	justify-content: center;
+	padding: 20px;
+	background: rgba(0, 0, 0, 0.55);
+}
+
+.mfa-assist-overlay.is-open {
+	display: flex;
+}
+
+.mfa-assist-modal {
+	position: relative;
+	width: 100%;
+	max-width: 380px;
+	padding: 34px 26px 28px;
+	text-align: center;
+	background: #fff;
+	border-radius: 16px;
+	box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+}
+
+.mfa-assist-close {
+	position: absolute;
+	top: 12px;
+	right: 12px;
+	padding: 6px;
+	line-height: 0;
+	color: #777;
+	background: none;
+	border: none;
+	cursor: pointer;
+}
+
+.mfa-assist-close svg {
+	width: 22px;
+	height: 22px;
+}
+
+.mfa-assist-emoji {
+	margin-bottom: 12px;
+	font-size: 44px;
+	line-height: 1;
+}
+
+.mfa-assist-title {
+	margin: 0 0 10px;
+	font-size: 20px;
+	line-height: 1.3;
+	color: #006b3e;
+}
+
+.mfa-assist-text {
+	margin: 0 0 22px;
+	font-size: 15px;
+	line-height: 1.55;
+	color: #444;
+}
+
+.mfa-assist-cta {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	width: 100%;
+	box-sizing: border-box;
+	padding: 13px 22px;
+	font-size: 15px;
+	font-weight: 700;
+	color: #fff;
+	text-decoration: none;
+	background: #25d366;
+	border-radius: 10px;
+	transition: background 0.2s ease;
+}
+
+.mfa-assist-cta:hover,
+.mfa-assist-cta:focus {
+	color: #fff;
+	background: #1ebe5b;
+}

@@ -91,6 +91,33 @@ function niz_wa_action_start( $user_id, $context ) {
 	return "Welcome to Masjid4All.\n\nHow can I help you?";
 }
 
+/**
+ * Help / bantuan: an overview of what Sofia can do, with quick-add buttons.
+ * The buttons' titles are exact directory keywords, so tapping them routes
+ * straight into that branch (no session needed).
+ */
+function niz_wa_action_help( $user_id, $context ) {
+	$body = "👋 Hi, I'm *Sofia*, your Masjid4All assistant.\n\n"
+		. "I can help you list and manage things in our free directories:\n"
+		. "🕌 Add your *mosque* (or surau/musolla)\n"
+		. "🏪 Add or *claim* your *business*\n"
+		. "🌐 Add or *claim* your *website*\n\n"
+		. "You can also just ask me a question — for example _how do I get a Google Maps link?_ or _how do I claim my business?_ — and I'll guide you.\n\n"
+		. "What would you like to do?";
+
+	$conversation = NWA_DB::get_conversation_by_user( $user_id );
+	if ( $conversation ) {
+		nwa_send_buttons( $user_id, $conversation->wa_number, $body, array(
+			array( 'id' => 'help_mosque',   'title' => 'Add Mosque' ),
+			array( 'id' => 'help_business', 'title' => 'Add Business' ),
+			array( 'id' => 'help_website',  'title' => 'Add Website' ),
+		) );
+		return '';
+	}
+
+	return $body;
+}
+
 function niz_wa_action_register( $user_id, $context ) {
 	$status    = get_user_meta( $user_id, 'user_status', true );
 	$login_url = home_url( '/member' );
@@ -1152,11 +1179,20 @@ function niz_wa_seed_actions() {
 	$actions = array(
 		array(
 			'intent_key'            => 'start',
-			'keywords'              => 'start,help,menu',
-			'description'           => 'User wants a welcome/help message or main menu',
+			'keywords'              => 'start',
+			'description'           => 'User sends a greeting or wants to begin',
 			'requires_confirmation' => false,
 			'confirm_message'       => '',
 			'callback_function'     => 'niz_wa_action_start',
+			'enabled'               => true,
+		),
+		array(
+			'intent_key'            => 'help',
+			'keywords'              => 'help,bantuan,tolong,menu,panduan',
+			'description'           => 'User asks for help, a menu, or what Sofia / Masjid4All can do',
+			'requires_confirmation' => false,
+			'confirm_message'       => '',
+			'callback_function'     => 'niz_wa_action_help',
 			'enabled'               => true,
 		),
 		array(
@@ -1235,5 +1271,81 @@ function niz_wa_seed_actions() {
 		}
 
 		NWA_DB::save_action( $action );
+	}
+
+	// 'help'/'menu' moved from the 'start' action to the dedicated 'help'
+	// action; narrow any existing start row so its keyword no longer wins the
+	// 'help' match. Idempotent — only updates while it still needs fixing.
+	$wpdb->query( "UPDATE {$table} SET keywords = 'start' WHERE intent_key = 'start' AND keywords <> 'start'" );
+}
+
+/* ---------------- Directory FAQ (knowledge base) ---------------- */
+/* Grounds Sofia's open-ended Q&A (NWA_AI::answer_question searches
+   wp_nwa_knowledge_base) so she can explain the directory/listing/claim
+   features. Idempotent by title; source_type 'directory_faq' tags them. */
+
+add_action( 'admin_init', 'niz_wa_seed_knowledge' );
+
+function niz_wa_seed_knowledge() {
+	if ( ! class_exists( 'NWA_DB' ) ) {
+		return;
+	}
+
+	global $wpdb;
+	$table = NWA_DB::knowledge_table();
+
+	$faqs = array(
+		array(
+			'title'   => 'Masjid4All directories — what you can list',
+			'content' => "Masjid4All has three free community directories you can add to: the Mosque Directory (mosques, suraus, musollas, madrasahs), the Business Directory (halal-friendly businesses), and the Website Directory (useful Islamic websites and resources). On WhatsApp, send \"directory\" to see the options, or just tell Sofia what you want to add — for example \"add mosque\", \"add business\", or \"add website\".",
+		),
+		array(
+			'title'   => 'How to add a mosque to Masjid4All',
+			'content' => "To add a mosque, surau, musolla or madrasah: send \"add mosque\" to Sofia on WhatsApp. She asks for the Google Maps link of the mosque; paste it and she finds the place and asks you to confirm before adding it to the Mosque Directory. Only Islamic places of worship belong in the Mosque Directory — if the place is actually a business, Sofia will suggest the Business Directory instead. New listings show the status \"New\" until their details are generated and reviewed.",
+		),
+		array(
+			'title'   => 'How to add a business to Masjid4All',
+			'content' => "To add your business: send \"add business\" to Sofia and paste the Google Maps link of your business. Sofia finds it and asks you to confirm before adding it to the Business Directory (for halal-friendly businesses). If the business is already listed, she offers to let you claim it. New listings show the status \"New\" until reviewed.",
+		),
+		array(
+			'title'   => 'How to add a website to Masjid4All',
+			'content' => "To add a website: send \"add website\" to Sofia and paste the website address (URL), for example https://example.com. If it is already listed you can visit or claim it; if it is new, Sofia adds it and gives you a link to generate its full details. Only real, reachable websites can be added — an invalid or unreachable address is rejected.",
+		),
+		array(
+			'title'   => 'How to get a Google Maps link (Share link)',
+			'content' => "To get the Google Maps share link for your mosque or business: 1) Open Google Maps. 2) Search for your mosque or business and open its place. 3) Tap Share and copy the link (it looks like https://maps.app.goo.gl/...). 4) Paste that link to Sofia. This link lets Sofia identify the exact place and pull its details (name, address, phone, and more) automatically.",
+		),
+		array(
+			'title'   => 'How to claim your business on Masjid4All',
+			'content' => "If your business is already listed, you can claim it to manage its details. Send \"add business\" and paste your business's Google Maps link; if it is already listed, Sofia shows a \"Claim this business\" button. Claiming requires a free Masjid4All membership — if you are not registered, Sofia registers you first and then claims it for you automatically. Once claimed, you manage the listing from your member area.",
+		),
+		array(
+			'title'   => 'How to claim your website on Masjid4All',
+			'content' => "If your website is already listed, send \"add website\" and paste its URL. Sofia shows a \"Claim this website\" button. Claiming requires a free Masjid4All membership; if you are not registered yet, Sofia registers you and claims it for you. After claiming, you can manage and update the listing.",
+		),
+		array(
+			'title'   => 'Directory listing status and review',
+			'content' => "New directory listings start with the status \"New\" and become fully visible after their details are generated and reviewed. Common statuses are New, Pending (under review), and Approved. A listing marked \"Rejected\" (or Error/Deleted) does not meet our directory guidelines — if you think that is a mistake, please contact us through the Contact Us page.",
+		),
+		array(
+			'title'   => 'Do I need an account to add or claim a listing?',
+			'content' => "Adding a mosque, business, or website through Sofia on WhatsApp does not require an account. Claiming an existing business or website — so that you can manage it — does require a free Masjid4All membership. If you are not registered, Sofia can register you and complete the claim in the same conversation.",
+		),
+		array(
+			'title'   => 'Getting help from Sofia',
+			'content' => "Sofia is the Masjid4All WhatsApp assistant. Send \"help\" (or \"bantuan\") anytime to see what she can do. You can add or claim mosques, businesses, and websites, and ask questions like \"how do I get a Google Maps link?\" or \"how do I claim my business?\". To start, send \"directory\", or \"add mosque\", \"add business\", or \"add website\".",
+		),
+	);
+
+	foreach ( $faqs as $faq ) {
+		$exists = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$table} WHERE title = %s", $faq['title'] ) );
+		if ( $exists ) {
+			continue;
+		}
+		NWA_DB::save_knowledge( array(
+			'title'       => $faq['title'],
+			'content'     => $faq['content'],
+			'source_type' => 'directory_faq',
+		) );
 	}
 }

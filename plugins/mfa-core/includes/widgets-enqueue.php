@@ -99,6 +99,19 @@ function mfa_core_enqueue_widget_assets() {
 			wp_enqueue_style( 'mfa-core-admin-website-list', MFA_CORE_URL . 'assets/css/admin-website-list-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell' ), $get_version( $admin_website_list_css ) );
 		}
 
+		// /admin/website/generate/ - child of the Websites page, reuses the
+		// crawler's self-redirecting one-record-per-load stylesheet/classes
+		// (.mfa-crawler, .mfa-crawler-hint, .mfa-crawler-banner.is-paused)
+		// rather than duplicating them, since it follows the exact same
+		// visual pattern as /admin/crawler/start/. Matched by slug, not a
+		// fixed parent ID, same reasoning as the crawler-start match below.
+		$is_website_generate = $post && 'generate' === $post->post_name && $post->post_parent
+			&& 'website' === get_post_field( 'post_name', $post->post_parent );
+		if ( $is_website_generate ) {
+			$crawler_css = MFA_CORE_PATH . 'assets/css/admin-crawler-v1.css';
+			wp_enqueue_style( 'mfa-core-admin-crawler', MFA_CORE_URL . 'assets/css/admin-crawler-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell' ), $get_version( $crawler_css ) );
+		}
+
 		if ( $post && 'reports' === $post->post_name ) {
 			$admin_reports_css = MFA_CORE_PATH . 'assets/css/admin-reports-v1.css';
 			wp_enqueue_style( 'mfa-core-admin-reports', MFA_CORE_URL . 'assets/css/admin-reports-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell' ), $get_version( $admin_reports_css ) );

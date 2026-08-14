@@ -37,6 +37,35 @@
   display: inline-flex;
 }
 
+.mfa-admin-website-generate-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mfa-admin-website-generate-btn:disabled {
+  opacity: 0.75;
+  cursor: not-allowed;
+}
+
+.mfa-admin-website-generate-spinner {
+  display: none;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: var(--mfa-white, #fff);
+  border-radius: 50%;
+  animation: mfa-admin-website-spin 0.7s linear infinite;
+}
+
+.mfa-admin-website-generate-btn.is-loading .mfa-admin-website-generate-spinner {
+  display: inline-block;
+}
+
+@keyframes mfa-admin-website-spin {
+  to { transform: rotate(360deg); }
+}
+
 .mfa-admin-website-generate-notice {
   margin-bottom: var(--mfa-space-4);
 }

@@ -100,8 +100,22 @@ function mfa_admin_website_list_shortcode() {
 				<form method="post" class="mfa-admin-website-generate-form">
 					<?php wp_nonce_field( 'mfa_admin_website_generate', 'mfa_admin_website_generate_nonce' ); ?>
 					<input type="hidden" name="mfa_admin_website_op" value="generate_next">
-					<button type="submit" class="mfa-btn mfa-btn-solid-dark">Generate Content</button>
+					<button type="submit" class="mfa-btn mfa-btn-solid-dark mfa-admin-website-generate-btn">
+						<span class="mfa-admin-website-generate-spinner" aria-hidden="true"></span>
+						<span class="mfa-admin-website-generate-label">Generate Content</span>
+					</button>
 				</form>
+				<script>
+				( function () {
+					var form = document.currentScript.previousElementSibling;
+					form.addEventListener( 'submit', function () {
+						var btn = form.querySelector( '.mfa-admin-website-generate-btn' );
+						btn.disabled = true;
+						btn.classList.add( 'is-loading' );
+						form.querySelector( '.mfa-admin-website-generate-label' ).textContent = 'Generating…';
+					} );
+				} )();
+				</script>
 			</div>
 		</div>
 

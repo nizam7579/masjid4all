@@ -1,0 +1,229 @@
+/* mfa-core admin-blog-list.css — [mfa_admin_blog_list] on /admin/blog/.
+   Same structure as admin-knowledge-list-v1.css minus the category
+   column (the `blog` CPT has no attached taxonomy). */
+
+.mfa-admin-blog-list {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- Heading + Add New ---------- */
+
+.mfa-admin-blog-list-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--mfa-space-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--mfa-space-4);
+}
+
+.mfa-admin-blog-list-heading > div > .mfa-body-muted {
+  margin-top: var(--mfa-space-1);
+}
+
+/* ---------- Filters ---------- */
+
+.mfa-admin-blog-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mfa-space-3);
+  align-items: center;
+  margin-bottom: var(--mfa-space-5);
+}
+
+.mfa-admin-blog-search {
+  flex: 1;
+  min-width: 200px;
+  padding: 10px var(--mfa-space-4);
+  border: 1px solid var(--mfa-border);
+  border-radius: var(--mfa-radius-sm);
+  font-size: 14px;
+  color: var(--mfa-ink);
+  background: var(--mfa-white);
+}
+.mfa-admin-blog-search:focus {
+  outline: none;
+  border-color: var(--mfa-teal);
+}
+
+.mfa-admin-blog-select {
+  padding: 10px var(--mfa-space-4);
+  border: 1px solid var(--mfa-border);
+  border-radius: var(--mfa-radius-sm);
+  font-size: 14px;
+  color: var(--mfa-ink);
+  background: var(--mfa-white);
+  max-width: 220px;
+}
+
+.mfa-admin-blog-filter-btn {
+  padding: 10px var(--mfa-space-5);
+  font-size: 14px;
+}
+
+.mfa-admin-blog-clear {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mfa-muted);
+  text-decoration: none;
+}
+.mfa-admin-blog-clear:hover {
+  color: var(--mfa-teal-dark);
+}
+
+/* ---------- Table ---------- */
+
+.mfa-admin-blog-table-wrap {
+  background: var(--mfa-white);
+  border: 1px solid var(--mfa-border);
+  border-radius: var(--mfa-radius-md);
+  overflow-x: auto;
+}
+
+.mfa-admin-blog-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.mfa-admin-blog-table th,
+.mfa-admin-blog-table td {
+  padding: var(--mfa-space-3) var(--mfa-space-4);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.mfa-admin-blog-table th {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--mfa-label);
+  border-bottom: 1px solid var(--mfa-border);
+}
+
+.mfa-admin-blog-table tbody tr {
+  border-bottom: 1px solid var(--mfa-border);
+}
+.mfa-admin-blog-table tbody tr:last-child {
+  border-bottom: none;
+}
+.mfa-admin-blog-table tbody tr:hover {
+  background: var(--mfa-mint-bg);
+}
+
+.mfa-admin-blog-table td {
+  color: var(--mfa-ink);
+}
+
+.mfa-admin-blog-empty {
+  text-align: center;
+  color: var(--mfa-muted);
+  padding: var(--mfa-space-8) !important;
+  white-space: normal;
+}
+
+.mfa-admin-blog-actions {
+  text-align: right;
+  display: flex;
+  gap: var(--mfa-space-2, 8px);
+  justify-content: flex-end;
+}
+
+.mfa-admin-blog-view-btn {
+  padding: 6px 16px;
+  font-size: 13px;
+}
+
+/* ---------- Status badges ---------- */
+
+.mfa-admin-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: var(--mfa-radius-pill);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.mfa-admin-status-publish { background: #e6f4f2; color: var(--mfa-teal-dark); }
+.mfa-admin-status-draft { background: var(--mfa-mint-bg); color: var(--mfa-muted); }
+.mfa-admin-status-pending { background: #fdf3e0; color: #9a6b13; }
+.mfa-admin-status-private { background: #eef1fb; color: #4a4fa0; }
+.mfa-admin-status-trash { background: #fbeee9; color: #b8562f; }
+.mfa-admin-status-none { background: var(--mfa-mint-bg); color: var(--mfa-muted); }
+
+/* ---------- Pagination ---------- */
+
+.mfa-admin-blog-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--mfa-space-4);
+  margin-top: var(--mfa-space-5);
+}
+
+.mfa-admin-blog-page-link {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--mfa-space-2) var(--mfa-space-4);
+  border: 1px solid var(--mfa-border);
+  border-radius: var(--mfa-radius-sm);
+  background: var(--mfa-white);
+  color: var(--mfa-ink);
+  font-weight: 600;
+  font-size: 14px;
+  text-decoration: none;
+}
+.mfa-admin-blog-page-link:hover {
+  border-color: var(--mfa-teal);
+  color: var(--mfa-teal-dark);
+}
+
+.mfa-admin-blog-page-status {
+  font-size: 13px;
+  color: var(--mfa-muted);
+  font-weight: 600;
+}
+
+/* ---------- Mobile: card-style rows instead of a horizontal-scroll table ---------- */
+
+@media (max-width: 600px) {
+  .mfa-admin-blog-table thead {
+    display: none;
+  }
+  .mfa-admin-blog-table,
+  .mfa-admin-blog-table tbody,
+  .mfa-admin-blog-table tr,
+  .mfa-admin-blog-table td {
+    display: block;
+    width: 100%;
+  }
+  .mfa-admin-blog-table tr {
+    padding: var(--mfa-space-3) var(--mfa-space-4);
+  }
+  .mfa-admin-blog-table td {
+    white-space: normal;
+    padding: 4px 0;
+    border: none;
+  }
+  .mfa-admin-blog-table td::before {
+    content: attr(data-label);
+    display: inline-block;
+    min-width: 90px;
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--mfa-label);
+    margin-right: var(--mfa-space-2);
+  }
+  .mfa-admin-blog-actions {
+    justify-content: flex-start;
+    margin-top: var(--mfa-space-2);
+  }
+  .mfa-admin-blog-actions::before {
+    content: none;
+  }
+}

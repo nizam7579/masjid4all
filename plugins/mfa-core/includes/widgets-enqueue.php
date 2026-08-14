@@ -99,6 +99,16 @@ function mfa_core_enqueue_widget_assets() {
 			wp_enqueue_style( 'mfa-core-admin-website-list', MFA_CORE_URL . 'assets/css/admin-website-list-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell' ), $get_version( $admin_website_list_css ) );
 		}
 
+		if ( $post && 'knowledge' === $post->post_name && 9343 === (int) $post->post_parent ) {
+			$admin_knowledge_list_css = MFA_CORE_PATH . 'assets/css/admin-knowledge-list-v1.css';
+			wp_enqueue_style( 'mfa-core-admin-knowledge-list', MFA_CORE_URL . 'assets/css/admin-knowledge-list-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell' ), $get_version( $admin_knowledge_list_css ) );
+		}
+
+		if ( $post && 'blog' === $post->post_name && 9343 === (int) $post->post_parent ) {
+			$admin_blog_list_css = MFA_CORE_PATH . 'assets/css/admin-blog-list-v1.css';
+			wp_enqueue_style( 'mfa-core-admin-blog-list', MFA_CORE_URL . 'assets/css/admin-blog-list-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell' ), $get_version( $admin_blog_list_css ) );
+		}
+
 		// /admin/website/generate/ - child of the Websites page, reuses the
 		// crawler's self-redirecting one-record-per-load stylesheet/classes
 		// (.mfa-crawler, .mfa-crawler-hint, .mfa-crawler-banner.is-paused)
@@ -369,6 +379,8 @@ function mfa_core_litespeed_css_excludes( $excludes ) {
 	$excludes[] = 'mfa-core/assets/css/admin-mosque-list-v1.css';
 	$excludes[] = 'mfa-core/assets/css/admin-business-list-v1.css';
 	$excludes[] = 'mfa-core/assets/css/admin-website-list-v1.css';
+	$excludes[] = 'mfa-core/assets/css/admin-knowledge-list-v1.css';
+	$excludes[] = 'mfa-core/assets/css/admin-blog-list-v1.css';
 	$excludes[] = 'mfa-core/assets/css/admin-reports-v1.css';
 	$excludes[] = 'mfa-core/assets/css/admin-crawler-v1.css';
 	return $excludes;

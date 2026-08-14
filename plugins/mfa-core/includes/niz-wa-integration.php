@@ -327,6 +327,15 @@ function niz_wa_directory_route( $override, $user_id, $wa_number, $message_text,
 	$step = isset( $ctx['step'] ) ? $ctx['step'] : '';
 	$text = trim( (string) $message_text );
 
+	// Escape hatch: let the user bail out of the flow at any step. Exact match
+	// (not substring) so a real URL or listing name never trips it.
+	if ( in_array( strtolower( $text ), array( 'stop', 'cancel', 'exit', 'quit', 'batal' ), true ) ) {
+		NWA_DB::set_pending_action( $conversation->id, null );
+		nwa_send_message( $user_id, $wa_number,
+			"No problem, I've cancelled that. 👍\n\nSend *directory* anytime to start again, or just tell me what you need." );
+		return '';
+	}
+
 	if ( 'await_link' === $step ) {
 		$type = isset( $ctx['type'] ) ? $ctx['type'] : 'listing';
 
@@ -336,19 +345,12 @@ function niz_wa_directory_route( $override, $user_id, $wa_number, $message_text,
 			return '';
 		}
 
-		// Website branch: if it's already in our directory, offer Visit / Claim.
+		// Website branch: if it's already in our directory, present its
+		// claim status (already-claimed message, or a Claim button).
 		if ( 'website' === $type ) {
 			$match = niz_wa_web_find_by_url( $text );
 			if ( $match ) {
-				$body = "✅ *" . $match['name'] . "* is already listed in the Masjid4All directory.\n\n"
-					. "What would you like to do?";
-				nwa_send_buttons( $user_id, $wa_number, $body, array(
-					array( 'id' => 'dir_web_visit', 'title' => 'Visit Website' ),
-					array( 'id' => 'dir_web_claim', 'title' => 'Claim Website' ),
-				) );
-				NWA_DB::set_pending_action( $conversation->id, 'directory_flow',
-					array( 'step' => 'website_listed', 'url' => $match['url'], 'name' => $match['name'] ), 30 );
-				return '';
+				return niz_wa_web_present_listing( $user_id, $wa_number, $conversation, $match );
 			}
 		}
 
@@ -360,9 +362,10 @@ function niz_wa_directory_route( $override, $user_id, $wa_number, $message_text,
 	}
 
 	if ( 'website_listed' === $step ) {
-		$url  = isset( $ctx['url'] ) ? $ctx['url'] : '';
-		$name = isset( $ctx['name'] ) ? $ctx['name'] : 'this website';
-		$t    = strtolower( $text );
+		$url     = isset( $ctx['url'] ) ? $ctx['url'] : '';
+		$name    = isset( $ctx['name'] ) ? $ctx['name'] : 'this website';
+		$post_id = isset( $ctx['post_id'] ) ? (int) $ctx['post_id'] : 0;
+		$t       = strtolower( $text );
 
 		if ( false !== strpos( $t, 'visit' ) ) {
 			NWA_DB::set_pending_action( $conversation->id, null );
@@ -371,16 +374,63 @@ function niz_wa_directory_route( $override, $user_id, $wa_number, $message_text,
 		}
 
 		if ( false !== strpos( $t, 'claim' ) ) {
-			// Claim workflow itself is intentionally not built yet (skipped by
-			// design) — this is the placeholder the real claim flow attaches to.
-			NWA_DB::set_pending_action( $conversation->id, null );
-			nwa_send_message( $user_id, $wa_number,
-				"Great — you'd like to claim *{$name}*. 🤲\n\nOur team will help you complete the claim shortly." );
+			$status = get_user_meta( $user_id, 'user_status', true );
+
+			// Registered members claim immediately; a prospect / unregistered
+			// contact must register first (the gate the user asked for).
+			if ( in_array( $status, array( 'member', 'premium' ), true ) ) {
+				$result = niz_wa_web_do_claim( $post_id, $user_id );
+				NWA_DB::set_pending_action( $conversation->id, null );
+				nwa_send_message( $user_id, $wa_number, niz_wa_web_claim_result_message( $result, $name, $post_id ) );
+				return '';
+			}
+
+			nwa_send_buttons( $user_id, $wa_number,
+				"To claim *{$name}*, you'll need a free Masjid4All membership first.\n\nWould you like to register now?",
+				array(
+					array( 'id' => 'dir_web_register', 'title' => 'Register as member' ),
+					array( 'id' => 'dir_web_cancel',   'title' => 'Cancel' ),
+				) );
+			NWA_DB::set_pending_action( $conversation->id, 'directory_flow',
+				array( 'step' => 'claim_need_register', 'url' => $url, 'name' => $name, 'post_id' => $post_id ), 30 );
 			return '';
 		}
 
 		nwa_send_message( $user_id, $wa_number,
-			"Please tap *Visit Website* or *Claim Website* to continue." );
+			"Please tap *Visit Website* or *Claim this website* to continue."
+			. niz_wa_dir_stop_hint() );
+		return '';
+	}
+
+	if ( 'claim_need_register' === $step ) {
+		$name    = isset( $ctx['name'] ) ? $ctx['name'] : 'this website';
+		$post_id = isset( $ctx['post_id'] ) ? (int) $ctx['post_id'] : 0;
+		$t       = strtolower( $text );
+
+		// 'Cancel' is already handled by the global stop-word check above.
+		if ( false !== strpos( $t, 'register' ) ) {
+			NWA_DB::set_pending_action( $conversation->id, null );
+
+			// Register the member (same path as replying REGISTER), then
+			// auto-claim the website they were trying to claim.
+			$reg_message = function_exists( 'niz_wa_action_register' )
+				? (string) niz_wa_action_register( $user_id, array() )
+				: '';
+			$result  = niz_wa_web_do_claim( $post_id, $user_id );
+
+			$message = trim( $reg_message );
+			if ( in_array( $result, array( 'claimed', 'already_yours' ), true ) ) {
+				$message .= ( '' !== $message ? "\n\n" : '' )
+					. "🎉 I've also claimed *{$name}* for you.\n\nManage it here:\n" . niz_wa_web_manage_url( $post_id );
+			}
+
+			nwa_send_message( $user_id, $wa_number,
+				'' !== $message ? $message : "You're registered! You can now claim *{$name}*." );
+			return '';
+		}
+
+		nwa_send_message( $user_id, $wa_number,
+			"Please tap *Register as member* to continue, or *Cancel* to stop." );
 		return '';
 	}
 
@@ -389,7 +439,8 @@ function niz_wa_directory_route( $override, $user_id, $wa_number, $message_text,
 
 	if ( ! $choice ) {
 		nwa_send_message( $user_id, $wa_number,
-			"Please tap one of the buttons above — *Add Mosque*, *Add Business*, or *Add Website* — to continue." );
+			"Please tap one of the buttons above — *Add Mosque*, *Add Business*, or *Add Website* — to continue."
+			. niz_wa_dir_stop_hint() );
 		return '';
 	}
 
@@ -414,15 +465,21 @@ function niz_wa_dir_detect_choice( $text ) {
 	return '';
 }
 
+function niz_wa_dir_stop_hint() {
+	return "\n\n_Or type *stop* to cancel._";
+}
+
 function niz_wa_dir_link_prompt( $type ) {
 	if ( 'website' === $type ) {
-		return "🌐 *Add Website*\n\nPlease send the *website URL* you'd like to list.\nExample: https://example.com";
+		return "🌐 *Add Website*\n\nPlease send the *website URL* you'd like to list.\nExample: https://example.com"
+			. niz_wa_dir_stop_hint();
 	}
 
 	$label = 'business' === $type ? 'business' : 'mosque';
 	return "📍 *Add " . ucfirst( $label ) . "*\n\n"
 		. "Please send the *Google Maps link* of your {$label}.\n\n"
-		. "_Tip: open it in Google Maps → tap Share → Copy link → paste it here._";
+		. "_Tip: open it in Google Maps → tap Share → Copy link → paste it here._"
+		. niz_wa_dir_stop_hint();
 }
 
 function niz_wa_dir_ack( $type ) {
@@ -474,6 +531,111 @@ function niz_wa_web_find_by_url( $url ) {
 		}
 	}
 	return null;
+}
+
+/**
+ * user_id that owns/claimed a listing post (wp_jet_cct_listing_owner), or 0
+ * if unclaimed. Same table + semantics as the single-post Claim Website
+ * (mfa_claim_web_listing_shortcode / mfa_website_user_can_manage).
+ */
+function niz_wa_web_claim_owner( $post_id ) {
+	global $wpdb;
+	$post_id = (int) $post_id;
+	if ( $post_id <= 0 ) {
+		return 0;
+	}
+	$o = $wpdb->prefix . 'jet_cct_listing_owner';
+	return (int) $wpdb->get_var( $wpdb->prepare(
+		"SELECT user_id FROM {$o} WHERE post_id = %d LIMIT 1", $post_id ) );
+}
+
+/**
+ * Claims a website listing for a user by inserting into
+ * wp_jet_cct_listing_owner (mirrors mfa_claim_web_listing_shortcode()'s
+ * insert). Returns 'claimed', 'already_yours', 'taken', or 'error'.
+ */
+function niz_wa_web_do_claim( $post_id, $user_id ) {
+	global $wpdb;
+	$post_id = (int) $post_id;
+	$user_id = (int) $user_id;
+	if ( $post_id <= 0 || $user_id <= 0 ) {
+		return 'error';
+	}
+
+	$owner = niz_wa_web_claim_owner( $post_id );
+	if ( $owner > 0 ) {
+		return $owner === $user_id ? 'already_yours' : 'taken';
+	}
+
+	$o = $wpdb->prefix . 'jet_cct_listing_owner';
+	$wpdb->insert( $o, array(
+		'post_type'   => 'web',
+		'post_id'     => $post_id,
+		'user_id'     => $user_id,
+		'cct_created' => current_time( 'mysql' ),
+	), array( '%s', '%d', '%d', '%s' ) );
+
+	return $wpdb->insert_id ? 'claimed' : 'error';
+}
+
+/**
+ * Manage-listing URL for a claimed listing: /member/business/?id=<post_id>
+ * (the post_id member-listing-single.php reads from ?id). Uses home_url() so
+ * it resolves to the current environment, not a hardcoded domain.
+ */
+function niz_wa_web_manage_url( $post_id ) {
+	return add_query_arg( 'id', (int) $post_id, home_url( '/member/business/' ) );
+}
+
+/**
+ * Human-facing reply for a niz_wa_web_do_claim() result.
+ */
+function niz_wa_web_claim_result_message( $result, $name, $post_id ) {
+	$manage = niz_wa_web_manage_url( $post_id );
+	switch ( $result ) {
+		case 'claimed':
+			return "🎉 Done! You've claimed *{$name}*.\n\nYou can manage its listing here:\n{$manage}";
+		case 'already_yours':
+			return "You've already claimed *{$name}*. 🙂\n\nManage it here:\n{$manage}";
+		case 'taken':
+			return "Sorry — *{$name}* was just claimed by someone else. If you believe that's a mistake, reply here and our team will help.";
+		default:
+			return "Something went wrong claiming *{$name}*. Please try again later.";
+	}
+}
+
+/**
+ * Presents an already-listed website: claim status decides the message and
+ * whether a Claim button is offered, and sets/clears the session as needed.
+ * Always returns '' — the override handler claims the message here.
+ */
+function niz_wa_web_present_listing( $user_id, $wa_number, $conversation, $match ) {
+	$owner = niz_wa_web_claim_owner( $match['post_id'] );
+
+	if ( $owner === (int) $user_id ) {
+		NWA_DB::set_pending_action( $conversation->id, null );
+		nwa_send_message( $user_id, $wa_number,
+			"✅ *{$match['name']}* is already listed — and you've already claimed it. 🎉\n\n🔗 {$match['url']}\n\nManage it here:\n" . niz_wa_web_manage_url( $match['post_id'] ) );
+		return '';
+	}
+
+	if ( $owner > 0 ) {
+		NWA_DB::set_pending_action( $conversation->id, null );
+		nwa_send_message( $user_id, $wa_number,
+			"✅ *{$match['name']}* is already listed in the Masjid4All directory, and it has already been claimed by its owner.\n\n🔗 {$match['url']}\n\nIf you believe that's a mistake, reply here and our team will help." );
+		return '';
+	}
+
+	// Unclaimed — offer Visit / Claim.
+	nwa_send_buttons( $user_id, $wa_number,
+		"✅ *{$match['name']}* is already listed in the Masjid4All directory.\n\nIs this your website?",
+		array(
+			array( 'id' => 'dir_web_visit', 'title' => 'Visit Website' ),
+			array( 'id' => 'dir_web_claim', 'title' => 'Claim this website' ),
+		) );
+	NWA_DB::set_pending_action( $conversation->id, 'directory_flow',
+		array( 'step' => 'website_listed', 'url' => $match['url'], 'name' => $match['name'], 'post_id' => $match['post_id'] ), 30 );
+	return '';
 }
 
 /**

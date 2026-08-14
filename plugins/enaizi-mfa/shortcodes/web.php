@@ -390,7 +390,7 @@ function mfa_claim_web_listing_shortcode() {
             return '<div style="background-color: #d4edda; color: #155724; padding: 20px; border-left: 4px solid #28a745; border-radius: 4px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
                         <strong style="font-size: 16px;">👋 Welcome back, ' . esc_html($current_user->display_name) . '!</strong><br><br>
                         You are the verified manager of this website.<br><br>
-                        <a href="/member/business/" style="display: inline-block; background: #006B3E; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <a href="/member/business/?id=' . $post_id . '" style="display: inline-block; background: #006B3E; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                             Manage Your Website
                         </a>
                     </div>';
@@ -426,13 +426,15 @@ function mfa_claim_web_listing_shortcode() {
             );
 
             if ( $inserted ) {
+                $manage_url = '/member/business/?id=' . $post_id;
                 return '<div style="background-color: #d4edda; color: #155724; padding: 20px; border-left: 4px solid #28a745; border-radius: 4px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
                             <strong style="font-size: 16px;">🎉 Listing Successfully Claimed!</strong><br><br>
-                            You are now verified as the manager of this website.<br><br>
-                            <a href="/member/business/" style="display: inline-block; background: #006B3E; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                                Please go to Member\'s Page to update your website
+                            You are now verified as the manager of this website. Redirecting you to your listing&hellip;<br><br>
+                            <a href="' . esc_url( $manage_url ) . '" style="display: inline-block; background: #006B3E; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                Go to your listing now
                             </a>
-                        </div>';
+                        </div>
+                        <script>setTimeout(function(){window.location.href=' . wp_json_encode( $manage_url ) . ';}, 1500);</script>';
             } else {
                 $error_msg = '<div style="color: #721c24; background: #f8d7da; padding: 10px; border-radius: 4px; margin-bottom: 15px;">Database Error: Could not process your claim. Please try again later.</div>';
             }

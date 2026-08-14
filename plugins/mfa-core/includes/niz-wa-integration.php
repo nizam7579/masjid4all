@@ -477,7 +477,7 @@ function niz_wa_directory_route( $override, $user_id, $wa_number, $message_text,
 		$name  = $place['title'] ?? 'this place';
 		$t     = strtolower( $text );
 
-		if ( false !== strpos( $t, 'yes' ) ) {
+		if ( false !== strpos( $t, 'yes' ) || false !== strpos( $t, 'add' ) ) {
 			NWA_DB::set_pending_action( $conversation->id, null );
 
 			if ( ! $place || ! function_exists( 'mfa_geohash_upsert_place' ) ) {
@@ -552,8 +552,11 @@ function niz_wa_dir_link_prompt( $type ) {
 
 	$label = 'business' === $type ? 'business' : 'mosque';
 	return "📍 *Add " . ucfirst( $label ) . "*\n\n"
-		. "Please send the *Google Maps link* of your {$label}.\n\n"
-		. "_Tip: open it in Google Maps → tap Share → Copy link → paste it here._"
+		. "Please send the *Google Maps link* of your {$label}:\n\n"
+		. "1. Open Google Maps\n"
+		. "2. Search for your {$label}\n"
+		. "3. Tap *Share* and copy the link\n"
+		. "4. Paste the link here"
 		. niz_wa_dir_stop_hint();
 }
 
@@ -964,7 +967,7 @@ function niz_wa_looks_like_mosque( $place ) {
 	$hay = strtolower(
 		( $place['title'] ?? '' ) . ' ' . ( $place['type'] ?? '' ) . ' ' . implode( ' ', (array) ( $place['types'] ?? array() ) )
 	);
-	foreach ( array( 'mosque', 'masjid', 'surau', 'musolla', 'musalla', 'madrasah', 'islamic' ) as $kw ) {
+	foreach ( array( 'mosque', 'masjid', 'surau', 'musolla', 'musalla', 'madrasah', 'islamic centre', 'islamic center' ) as $kw ) {
 		if ( false !== strpos( $hay, $kw ) ) {
 			return true;
 		}
@@ -1040,35 +1043,45 @@ function niz_wa_place_add_from_link( $user_id, $wa_number, $conversation, $type,
 		return '';
 	}
 
-	$label = 'business' === $type ? 'business' : 'mosque';
+	// The place's actual nature decides the directory, not what was asked:
+	// a mosque/surau/etc. only goes in the mosque directory, everything else
+	// in the business directory. If that differs from what the user asked,
+	// suggest the correct one instead of adding it to the wrong directory.
+	$target   = niz_wa_looks_like_mosque( $place ) ? 'mosque' : 'business';
+	$mismatch = ( $target !== $type );
 
-	// Already in the directory?
-	$existing = niz_wa_place_find_existing( $type, $place['placeId'] );
+	// Already in the (correct) directory?
+	$existing = niz_wa_place_find_existing( $target, $place['placeId'] );
 	if ( $existing ) {
-		if ( 'business' === $type ) {
+		if ( 'business' === $target ) {
 			return niz_wa_business_present_listing( $user_id, $wa_number, $conversation, $existing, (string) $place['title'] );
 		}
 		NWA_DB::set_pending_action( $conversation->id, null );
 		$suffix = $existing['url'] ? "\n\n" . $existing['url'] : '';
 		nwa_send_message( $user_id, $wa_number,
-			"✅ *{$place['title']}* is already listed in the Masjid4All {$label} directory.{$suffix}" );
+			"✅ *{$place['title']}* is already listed in the Masjid4All mosque directory.{$suffix}" );
 		return '';
 	}
 
-	// Confirm before creating.
+	// Confirm before creating (redirecting to the right directory if needed).
 	$addr = isset( $place['address'] ) ? $place['address'] : '';
-	$warn = ( 'mosque' === $type && ! niz_wa_looks_like_mosque( $place ) )
-		? "\n\n_Note: this doesn't look like a mosque — add it only if it is one._"
-		: '';
+	if ( $mismatch ) {
+		$target_label = 'business' === $target ? 'Business' : 'Mosque';
+		$body = "I found:\n\n*{$place['title']}*\n{$addr}\n\nThis looks like a *{$target}*, not a *{$type}*. Would you like to add it to the *{$target_label} Directory* instead?";
+		$btn  = 'business' === $target ? 'Add to Business' : 'Add to Mosque';
+	} else {
+		$label = 'business' === $target ? 'business' : 'mosque';
+		$body  = "I found:\n\n*{$place['title']}*\n{$addr}\n\nAdd this to the Masjid4All {$label} directory?";
+		$btn   = 'Yes, add it';
+	}
 
-	nwa_send_buttons( $user_id, $wa_number,
-		"I found:\n\n*{$place['title']}*\n{$addr}{$warn}\n\nAdd this to the Masjid4All directory?",
+	nwa_send_buttons( $user_id, $wa_number, $body,
 		array(
-			array( 'id' => 'dir_place_yes', 'title' => 'Yes, add it' ),
+			array( 'id' => 'dir_place_yes', 'title' => $btn ),
 			array( 'id' => 'dir_place_no',  'title' => 'No' ),
 		) );
 	NWA_DB::set_pending_action( $conversation->id, 'directory_flow',
-		array( 'step' => 'await_place_confirm', 'type' => $type, 'place' => $place ), 30 );
+		array( 'step' => 'await_place_confirm', 'type' => $target, 'place' => $place ), 30 );
 	return '';
 }
 

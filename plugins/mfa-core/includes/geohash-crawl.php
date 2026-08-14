@@ -1141,13 +1141,25 @@ function mfa_geohash_crawl_status() {
 		$by_status[ $r['status'] ] = (int) $r['c'];
 	}
 
+	// Same "listed" status sets as mfa_homepage_live_counts() (homepage-stats.php)
+	// so this panel's Mosques/Businesses cards match the front page exactly -
+	// mosque and business use different status vocabularies (mosque: Active,
+	// no Verified/Premium; business: Verified/Premium, no Active), so they need
+	// separate IN() lists rather than one shared string. These previously came
+	// from SUM(mosque)/SUM(business) on the geohash table - raw Serper discovery
+	// counts per cell, not actual listing counts, which is why the crawler panel
+	// showed inflated numbers (103,690 vs the homepage's 100,100, etc.) that
+	// never matched the real directory.
+	$mosque_total   = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}jet_cct_mosque WHERE listing_status IN ('New','Pending','Approved','Active')" );
+	$business_total = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}jet_cct_business WHERE listing_status IN ('New','Pending','Approved','Verified','Premium')" );
+
 	return array(
 		'table_exists'      => true,
 		'total'             => array_sum( $by_status ),
 		'by_status'         => $by_status,
 		'countries'         => mfa_geohash_country_summary(),
-		'mosque_total'      => (int) $wpdb->get_var( "SELECT SUM(mosque) FROM {$g}" ),
-		'business_total'    => (int) $wpdb->get_var( "SELECT SUM(business) FROM {$g}" ),
+		'mosque_total'      => $mosque_total,
+		'business_total'    => $business_total,
 		'credits_used'      => mfa_crawl_credits_used(),
 		'credits_budget'    => mfa_crawl_credits_budget(),
 		'credits_remaining' => mfa_crawl_credits_remaining(),

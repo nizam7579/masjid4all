@@ -24,10 +24,11 @@ function mfa_admin_crawler_shortcode() {
 		return '<p>You do not have permission to view this page.</p>';
 	}
 
-	$notice    = mfa_admin_crawler_handle_form();
-	$status    = mfa_geohash_crawl_status();
-	$countries = $status['countries'];
-	$start_url = home_url( '/admin/crawler/start/' );
+	$notice       = mfa_admin_crawler_handle_form();
+	$status       = mfa_geohash_crawl_status();
+	$countries    = $status['countries'];
+	$start_url    = home_url( '/admin/crawler/start/' );
+	$city_preview = mfa_admin_crawler_city_preview( $countries );
 
 	if ( ! $status['table_exists'] ) {
 		return '<div class="mfa-crawler"><h1 class="mfa-h2">Directory Crawler</h1><p class="mfa-crawler-hint">Grid table not found.</p></div>';
@@ -96,6 +97,49 @@ function mfa_admin_crawler_shortcode() {
 		</div>
 
 		<div class="mfa-crawler-section">
+			<h3 class="mfa-h3">Crawl by city</h3>
+			<form method="get" class="mfa-crawler-row">
+				<input type="text" name="mfa_city" placeholder="City name, e.g. Jakarta" value="<?php echo esc_attr( $city_preview['city'] ?? '' ); ?>" required>
+				<select name="mfa_city_country">
+					<?php foreach ( $countries as $cc => $d ) : ?>
+						<option value="<?php echo esc_attr( $cc ); ?>" <?php selected( $city_preview['cc'] ?? '', $cc ); ?>><?php echo esc_html( $d['name'] . ' (' . $cc . ')' ); ?></option>
+					<?php endforeach; ?>
+				</select>
+				<label>Radius <input type="number" name="mfa_city_radius" value="<?php echo esc_attr( $city_preview['radius'] ?? 25 ); ?>" min="1" max="200"> km</label>
+				<button class="mfa-crawler-btn" type="submit">Find</button>
+			</form>
+
+			<?php if ( $city_preview ) : ?>
+				<?php if ( ! empty( $city_preview['error'] ) ) : ?>
+					<p class="mfa-crawler-hint">&#9888; <?php echo esc_html( $city_preview['error'] ); ?></p>
+				<?php else :
+					$geo         = $city_preview['geo'];
+					$s           = $city_preview['stats'];
+					$balance     = $s['total'] - $s['done'];
+					$city_start_url = add_query_arg(
+						array(
+							'country' => $city_preview['cc'],
+							'lat'     => $geo['lat'],
+							'lng'     => $geo['lng'],
+							'radius'  => $city_preview['radius'],
+							'label'   => rawurlencode( $city_preview['city'] ),
+						),
+						$start_url
+					);
+					?>
+					<p class="mfa-crawler-hint">
+						Found <strong><?php echo esc_html( $geo['name'] ); ?></strong> &mdash;
+						<strong><?php echo number_format_i18n( $s['total'] ); ?></strong> cells within <?php echo (int) $city_preview['radius']; ?>km
+						(<?php echo number_format_i18n( $s['done'] ); ?> done, <?php echo number_format_i18n( $balance ); ?> remaining).
+					</p>
+					<a href="<?php echo esc_url( $city_start_url ); ?>" target="_blank" class="mfa-crawler-btn mfa-crawler-btn-primary">Start crawl now &rarr;</a>
+				<?php endif; ?>
+			<?php endif; ?>
+
+			<p class="mfa-crawler-hint">Crawls only the existing cells within the radius of a city, instead of the whole country &mdash; far higher-yield for large, mostly-rural countries than blanket crawling (e.g. Indonesia has 33,395 cells, most low-density). Same underlying cells/tables as a normal crawl, so country stats below stay accurate automatically. City lookup uses OpenStreetMap (free) &mdash; only the actual mosque/business search spends Serper credits.</p>
+		</div>
+
+		<div class="mfa-crawler-section">
 			<h3 class="mfa-h3">Coverage by country</h3>
 			<table class="mfa-crawler-table">
 				<thead><tr><th>Country</th><th>Locations</th><th>Done</th><th>Balance</th><th>Mosques</th><th>Businesses</th></tr></thead>
@@ -146,6 +190,39 @@ function mfa_admin_crawler_shortcode() {
 	</div>
 	<?php
 	return ob_get_clean();
+}
+
+/**
+ * Builds the "Crawl by city" preview from the ?mfa_city=/mfa_city_country=/
+ * mfa_city_radius= GET params (plain form, no AJAX, matching this page's
+ * existing pattern) - geocodes the city name and counts matching cells, but
+ * does NOT crawl anything itself (that only happens if the admin clicks
+ * through to /admin/crawler/start/). Returns null if no city was searched
+ * this page load, or an array with either 'error' or 'geo'/'stats'/etc.
+ */
+function mfa_admin_crawler_city_preview( $countries ) {
+	if ( empty( $_GET['mfa_city'] ) ) {
+		return null;
+	}
+
+	$city   = sanitize_text_field( wp_unslash( $_GET['mfa_city'] ) );
+	$cc     = isset( $_GET['mfa_city_country'] ) ? strtoupper( sanitize_text_field( wp_unslash( $_GET['mfa_city_country'] ) ) ) : '';
+	$radius = isset( $_GET['mfa_city_radius'] ) ? max( 1, min( 200, (int) $_GET['mfa_city_radius'] ) ) : 25;
+
+	$base = array( 'city' => $city, 'cc' => $cc, 'radius' => $radius );
+
+	if ( ! isset( $countries[ $cc ] ) ) {
+		return $base + array( 'error' => 'Pick a country for that city first.' );
+	}
+
+	$geo = mfa_geohash_geocode_city( $city, $countries[ $cc ]['name'] );
+	if ( is_wp_error( $geo ) ) {
+		return $base + array( 'error' => $geo->get_error_message() );
+	}
+
+	$stats = mfa_geohash_city_cell_stats( $cc, $geo['lat'], $geo['lng'], $radius );
+
+	return $base + array( 'geo' => $geo, 'stats' => $stats );
 }
 
 /**

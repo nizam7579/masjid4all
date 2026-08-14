@@ -648,6 +648,75 @@ function mfa_geohash_country_totals( $country_code ) {
 }
 
 /**
+ * Free-text city -> lat/lng, via OpenStreetMap's free Nominatim geocoder (no
+ * API key, no Serper credit cost - Serper stays reserved for actual mosque/
+ * business discovery, not one-off place-name lookups). Used by the "Crawl by
+ * city" admin panel section (2026-08-14): the existing wp_jet_cct_cities
+ * seed data turned out to be granular village/place names with no usable
+ * city-level hierarchy (e.g. "Jakarta" has zero matches in it), so a real
+ * city name has to be geocoded on demand rather than picked from existing
+ * data. This is an admin-triggered, occasional lookup (not a bulk/repeated
+ * path), so Nominatim's usage policy (~1 req/sec, identify via User-Agent)
+ * is a non-issue here.
+ *
+ * @return array{lat:float,lng:float,name:string}|WP_Error
+ */
+function mfa_geohash_geocode_city( $city, $country = '' ) {
+	$city = trim( (string) $city );
+	if ( '' === $city ) {
+		return new WP_Error( 'empty_query', 'Enter a city name.' );
+	}
+	$query = $country ? "{$city}, {$country}" : $city;
+
+	$url = 'https://nominatim.openstreetmap.org/search?' . http_build_query( array(
+		'q'      => $query,
+		'format' => 'json',
+		'limit'  => 1,
+	) );
+
+	$resp = wp_remote_get( $url, array(
+		'timeout' => 15,
+		'headers' => array( 'User-Agent' => 'Masjid4AllCrawler/1.0 (admin tool; ' . home_url() . ')' ),
+	) );
+	if ( is_wp_error( $resp ) ) {
+		return $resp;
+	}
+
+	$data = json_decode( wp_remote_retrieve_body( $resp ), true );
+	if ( empty( $data[0]['lat'] ) || empty( $data[0]['lon'] ) ) {
+		return new WP_Error( 'not_found', 'Could not find "' . $city . '" - try a different spelling, or include the country in the name.' );
+	}
+
+	return array(
+		'lat'  => (float) $data[0]['lat'],
+		'lng'  => (float) $data[0]['lon'],
+		'name' => isset( $data[0]['display_name'] ) ? $data[0]['display_name'] : $city,
+	);
+}
+
+/**
+ * Total cells + Done count within $radius_km of (lat,lng), scoped to one
+ * country - the city-crawl equivalent of mfa_geohash_country_totals(). Same
+ * Haversine formula used elsewhere in this project (business.php/mosque.php
+ * "nearby" queries).
+ */
+function mfa_geohash_city_cell_stats( $country_code, $lat, $lng, $radius_km ) {
+	global $wpdb;
+	$g = mfa_geohash_table();
+	$r = $wpdb->get_row( $wpdb->prepare(
+		"SELECT COUNT(*) AS total, SUM(status = 'Done') AS done FROM (
+			SELECT status,
+			       ( 6371 * acos( cos( radians(%f) ) * cos( radians( latitude ) ) * cos( radians( longitude ) - radians(%f) ) + sin( radians(%f) ) * sin( radians( latitude ) ) ) ) AS distance
+			FROM {$g}
+			WHERE country_code = %s
+		 ) d
+		 WHERE distance <= %f",
+		$lat, $lng, $lat, strtoupper( $country_code ), $radius_km
+	), ARRAY_A );
+	return array( 'total' => (int) $r['total'], 'done' => (int) $r['done'] );
+}
+
+/**
  * Claim and crawl exactly one non-Done cell for a country - the engine behind
  * /admin/crawler/start/, which drives itself via full page reloads (one cell
  * per page load) instead of an in-page AJAX loop, so several browser tabs can
@@ -659,6 +728,12 @@ function mfa_geohash_country_totals( $country_code ) {
  * separate "queue a country" step - opening a start page for a country is
  * enough to begin crawling it.
  *
+ * Optional $lat/$lng/$radius_km scope the claim to cells within that radius
+ * (the "Crawl by city" mode, 2026-08-14) instead of the whole country -
+ * same table, same claim/lock mechanism, just an added distance filter, so
+ * a city-scoped crawl still rolls up into the normal country-level stats
+ * automatically.
+ *
  * @return array One of:
  *   array('state'=>'paused', 'reason'=>string)
  *   array('state'=>'busy')
@@ -666,10 +741,16 @@ function mfa_geohash_country_totals( $country_code ) {
  *   array('state'=>'error', 'message'=>string, 'geohash'=>string)
  *   array('state'=>'ok', 'cell'=>array, 'result'=>array, 'totals'=>array)
  */
-function mfa_geohash_crawl_claim_and_run_one( $country_code ) {
+function mfa_geohash_crawl_claim_and_run_one( $country_code, $lat = null, $lng = null, $radius_km = null ) {
 	global $wpdb;
 	$g            = mfa_geohash_table();
 	$country_code = strtoupper( sanitize_text_field( $country_code ) );
+	$is_city      = ( null !== $lat && null !== $lng && $radius_km );
+	$get_totals   = function () use ( $country_code, $lat, $lng, $radius_km, $is_city ) {
+		return $is_city
+			? mfa_geohash_city_cell_stats( $country_code, $lat, $lng, $radius_km )
+			: mfa_geohash_country_totals( $country_code );
+	};
 
 	if ( mfa_crawl_is_paused() ) {
 		return array( 'state' => 'paused', 'reason' => (string) mfa_crawl_opt( 'pause_reason', '' ) );
@@ -696,17 +777,28 @@ function mfa_geohash_crawl_claim_and_run_one( $country_code ) {
 		// selecting on status <> 'Done' alone would still match a cell another
 		// tab just claimed as 'Pending', letting two tabs grab the same cell.
 		$wpdb->query( 'START TRANSACTION' );
-		$cell = $wpdb->get_row( $wpdb->prepare(
-			"SELECT * FROM {$g} WHERE country_code = %s AND status IN ('New','Pending') ORDER BY id LIMIT 1 FOR UPDATE",
-			$country_code
-		), ARRAY_A );
+		if ( $is_city ) {
+			$cell = $wpdb->get_row( $wpdb->prepare(
+				"SELECT *, ( 6371 * acos( cos( radians(%f) ) * cos( radians( latitude ) ) * cos( radians( longitude ) - radians(%f) ) + sin( radians(%f) ) * sin( radians( latitude ) ) ) ) AS distance
+				 FROM {$g}
+				 WHERE country_code = %s AND status IN ('New','Pending')
+				 HAVING distance <= %f
+				 ORDER BY distance ASC LIMIT 1 FOR UPDATE",
+				$lat, $lng, $lat, $country_code, $radius_km
+			), ARRAY_A );
+		} else {
+			$cell = $wpdb->get_row( $wpdb->prepare(
+				"SELECT * FROM {$g} WHERE country_code = %s AND status IN ('New','Pending') ORDER BY id LIMIT 1 FOR UPDATE",
+				$country_code
+			), ARRAY_A );
+		}
 		if ( $cell ) {
 			$wpdb->update( $g, array( 'status' => 'Claimed', 'updated_at' => current_time( 'mysql' ) ), array( 'geohash' => $cell['geohash'] ) );
 		}
 		$wpdb->query( 'COMMIT' );
 
 		if ( ! $cell ) {
-			return array( 'state' => 'done_all', 'totals' => mfa_geohash_country_totals( $country_code ) );
+			return array( 'state' => 'done_all', 'totals' => $get_totals() );
 		}
 
 		// The browser tab's own page load initiated this request - a client-side
@@ -747,7 +839,7 @@ function mfa_geohash_crawl_claim_and_run_one( $country_code ) {
 			'state'  => 'ok',
 			'cell'   => $cell,
 			'result' => $res,
-			'totals' => mfa_geohash_country_totals( $country_code ),
+			'totals' => $get_totals(),
 		);
 	} finally {
 		mfa_crawl_release_slot( $slot );

@@ -326,6 +326,11 @@ function niz_wa_directory_route( $override, $user_id, $wa_number, $message_text,
 
 	// get_active_pending_action() auto-clears the session once its TTL passes.
 	if ( 'directory_flow' !== NWA_DB::get_active_pending_action( $conversation ) ) {
+		// Not mid-flow — but catch the "Add Another …" completion buttons.
+		$another = niz_wa_dir_detect_another( $message_text );
+		if ( '' !== $another ) {
+			return niz_wa_dir_start_branch( $user_id, $wa_number, $conversation, $another );
+		}
 		return $override;
 	}
 
@@ -387,7 +392,7 @@ function niz_wa_directory_route( $override, $user_id, $wa_number, $message_text,
 			if ( in_array( $status, array( 'member', 'premium' ), true ) ) {
 				$result = niz_wa_web_do_claim( $post_id, $user_id );
 				NWA_DB::set_pending_action( $conversation->id, null );
-				nwa_send_message( $user_id, $wa_number, niz_wa_web_claim_result_message( $result, $name, $post_id ) );
+				niz_wa_dir_send_done( $user_id, $wa_number, niz_wa_web_claim_result_message( $result, $name, $post_id ) );
 				return '';
 			}
 
@@ -430,7 +435,7 @@ function niz_wa_directory_route( $override, $user_id, $wa_number, $message_text,
 					. "🎉 I've also claimed *{$name}* for you.\n\nManage it here:\n" . niz_wa_web_manage_url( $post_id );
 			}
 
-			nwa_send_message( $user_id, $wa_number,
+			niz_wa_dir_send_done( $user_id, $wa_number,
 				'' !== $message ? $message : "You're registered! You can now claim *{$name}*." );
 			return '';
 		}
@@ -451,7 +456,7 @@ function niz_wa_directory_route( $override, $user_id, $wa_number, $message_text,
 			if ( in_array( $status, array( 'member', 'premium' ), true ) ) {
 				$result = niz_wa_web_do_claim( $post_id, $user_id, 'business' );
 				NWA_DB::set_pending_action( $conversation->id, null );
-				nwa_send_message( $user_id, $wa_number, niz_wa_web_claim_result_message( $result, $name, $post_id ) );
+				niz_wa_dir_send_done( $user_id, $wa_number, niz_wa_web_claim_result_message( $result, $name, $post_id ) );
 				return '';
 			}
 
@@ -490,7 +495,7 @@ function niz_wa_directory_route( $override, $user_id, $wa_number, $message_text,
 			$label  = 'business' === $ptype ? 'business' : 'mosque';
 
 			if ( in_array( $result, array( 'new', 'existing' ), true ) && $link ) {
-				nwa_send_message( $user_id, $wa_number,
+				niz_wa_dir_send_done( $user_id, $wa_number,
 					"✅ *{$name}* has been added to the Masjid4All {$label} directory!\n\n"
 					. "Tap the link below to generate its full details and publish the listing:\n{$link}\n\n"
 					. "Once it's live, you can claim it to manage and update the info." );
@@ -542,6 +547,39 @@ function niz_wa_dir_detect_choice( $text ) {
 
 function niz_wa_dir_stop_hint() {
 	return "\n\n_Or type *stop* to cancel._";
+}
+
+/**
+ * "Add Another …" buttons shown at the end of a completed flow to nudge the
+ * user to list more. Titles are caught by niz_wa_dir_detect_another() in the
+ * override handler, so they route even with no active session.
+ */
+function niz_wa_dir_another_buttons() {
+	return array(
+		array( 'id' => 'dir_more_mosque',   'title' => 'Add Another Mosque' ),
+		array( 'id' => 'dir_more_business', 'title' => 'Add Another Business' ),
+		array( 'id' => 'dir_more_website',  'title' => 'Add Another Website' ),
+	);
+}
+
+/**
+ * Sends a flow-completion message together with the "Add Another …" buttons.
+ * Use this instead of nwa_send_message() at any terminal point of the flow.
+ */
+function niz_wa_dir_send_done( $user_id, $wa_number, $message ) {
+	nwa_send_buttons( $user_id, $wa_number,
+		$message . "\n\nWould you like to add another listing to Masjid4All?",
+		niz_wa_dir_another_buttons() );
+}
+
+/**
+ * Detects an "Add Another Mosque/Business/Website" tap -> its type, else ''.
+ */
+function niz_wa_dir_detect_another( $text ) {
+	if ( false === strpos( strtolower( (string) $text ), 'another' ) ) {
+		return '';
+	}
+	return niz_wa_dir_detect_choice( $text );
 }
 
 function niz_wa_dir_link_prompt( $type ) {
@@ -694,7 +732,7 @@ function niz_wa_web_present_listing( $user_id, $wa_number, $conversation, $match
 	$status = isset( $match['status'] ) ? $match['status'] : '';
 	if ( in_array( strtolower( $status ), array( 'rejected', 'error', 'deleted' ), true ) ) {
 		NWA_DB::set_pending_action( $conversation->id, null );
-		nwa_send_message( $user_id, $wa_number,
+		niz_wa_dir_send_done( $user_id, $wa_number,
 			"The website *{$match['name']}* is listed, but its status is *{$status}*.\n\n"
 			. "If you think this is an error, please contact us:\n" . home_url( '/contact-us/' ) );
 		return '';
@@ -704,14 +742,14 @@ function niz_wa_web_present_listing( $user_id, $wa_number, $conversation, $match
 
 	if ( $owner === (int) $user_id ) {
 		NWA_DB::set_pending_action( $conversation->id, null );
-		nwa_send_message( $user_id, $wa_number,
+		niz_wa_dir_send_done( $user_id, $wa_number,
 			"✅ *{$match['name']}* is already listed — and you've already claimed it. 🎉\n\n🔗 {$match['url']}\n\nManage it here:\n" . niz_wa_web_manage_url( $match['post_id'] ) );
 		return '';
 	}
 
 	if ( $owner > 0 ) {
 		NWA_DB::set_pending_action( $conversation->id, null );
-		nwa_send_message( $user_id, $wa_number,
+		niz_wa_dir_send_done( $user_id, $wa_number,
 			"✅ *{$match['name']}* is already listed in the Masjid4All directory, and it has already been claimed by its owner.\n\n🔗 {$match['url']}\n\nIf you believe that's a mistake, reply here and our team will help." );
 		return '';
 	}
@@ -791,7 +829,7 @@ function niz_wa_web_add_new( $user_id, $wa_number, $conversation, $raw_url ) {
 
 	$link = add_query_arg( 'added', '1', get_permalink( $result['post_id'] ) );
 
-	nwa_send_message( $user_id, $wa_number,
+	niz_wa_dir_send_done( $user_id, $wa_number,
 		"✅ *{$name}* has been added to the Masjid4All directory!\n\n"
 		. "Tap the link below to generate its full details and publish the listing:\n{$link}\n\n"
 		. "Once it's live, you can claim it to manage and update the info." );
@@ -988,7 +1026,7 @@ function niz_wa_business_present_listing( $user_id, $wa_number, $conversation, $
 
 	if ( $owner === (int) $user_id ) {
 		NWA_DB::set_pending_action( $conversation->id, null );
-		nwa_send_message( $user_id, $wa_number,
+		niz_wa_dir_send_done( $user_id, $wa_number,
 			"✅ *{$name}* is already listed — and you've already claimed it. 🎉\n\n" . $url
 			. "\n\nManage it here:\n" . niz_wa_web_manage_url( $post_id ) );
 		return '';
@@ -996,7 +1034,7 @@ function niz_wa_business_present_listing( $user_id, $wa_number, $conversation, $
 
 	if ( $owner > 0 ) {
 		NWA_DB::set_pending_action( $conversation->id, null );
-		nwa_send_message( $user_id, $wa_number,
+		niz_wa_dir_send_done( $user_id, $wa_number,
 			"✅ *{$name}* is already listed in the Masjid4All business directory, and it has already been claimed by its owner.\n\n" . $url
 			. "\n\nIf you believe that's a mistake, reply here and our team will help." );
 		return '';
@@ -1058,7 +1096,7 @@ function niz_wa_place_add_from_link( $user_id, $wa_number, $conversation, $type,
 		}
 		NWA_DB::set_pending_action( $conversation->id, null );
 		$suffix = $existing['url'] ? "\n\n" . $existing['url'] : '';
-		nwa_send_message( $user_id, $wa_number,
+		niz_wa_dir_send_done( $user_id, $wa_number,
 			"✅ *{$place['title']}* is already listed in the Masjid4All mosque directory.{$suffix}" );
 		return '';
 	}

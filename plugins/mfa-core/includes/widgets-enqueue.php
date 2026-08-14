@@ -256,11 +256,14 @@ function mfa_core_enqueue_widget_assets() {
 		wp_enqueue_style( 'mfa-core-tool-page', MFA_CORE_URL . 'assets/css/tool-page-v9.css', array(), $get_version( $css ) );
 	}
 
-	// Sofia-assist popup on the "Add Your X" CTAs (directory-pages.php's
-	// mfa_dir_assist_cta()) — only the mosque/business/website directory pages
-	// carry that CTA.
-	$is_dir_add_page = $post && in_array( $post->post_name, array( 'masjid', 'business', 'web' ), true );
-	if ( $is_dir_add_page ) {
+	// Sofia-assist popup (.mfa-assist-* component): the "Add Your X" CTAs on the
+	// mosque/business/website directory pages, and the "Register/Log in with
+	// Sofia" popups on the member + forgot-password pages.
+	$is_assist_page = $post && (
+		in_array( $post->post_name, array( 'masjid', 'business', 'web', 'member', 'forgot-password' ), true )
+		|| in_array( $post->post_type, array( 'masjid', 'business', 'web' ), true )
+	);
+	if ( $is_assist_page ) {
 		$assist_css = MFA_CORE_PATH . 'assets/css/dir-assist-v1.css';
 		wp_enqueue_style( 'mfa-core-dir-assist', MFA_CORE_URL . 'assets/css/dir-assist-v1.css', array(), $get_version( $assist_css ) );
 		$assist_js = MFA_CORE_PATH . 'assets/js/dir-assist-v1.js';

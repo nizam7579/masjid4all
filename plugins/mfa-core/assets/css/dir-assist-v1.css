@@ -89,3 +89,30 @@
 	color: #fff;
 	background: #1ebe5b;
 }
+
+/* Text-link triggers (e.g. the /member login page's Sofia register/login links) */
+.mfa-assist-links {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin: 18px 0 4px;
+	text-align: center;
+}
+
+.mfa-assist-link {
+	padding: 6px;
+	font-size: 15px;
+	color: #444;
+	background: none;
+	border: none;
+	cursor: pointer;
+}
+
+.mfa-assist-link strong {
+	color: #006b3e;
+}
+
+.mfa-assist-link:hover strong,
+.mfa-assist-link:focus strong {
+	text-decoration: underline;
+}

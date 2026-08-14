@@ -398,7 +398,7 @@ function niz_wa_directory_route( $override, $user_id, $wa_number, $message_text,
 					array( 'id' => 'dir_web_cancel',   'title' => 'Cancel' ),
 				) );
 			NWA_DB::set_pending_action( $conversation->id, 'directory_flow',
-				array( 'step' => 'claim_need_register', 'url' => $url, 'name' => $name, 'post_id' => $post_id ), 30 );
+				array( 'step' => 'claim_need_register', 'url' => $url, 'name' => $name, 'post_id' => $post_id, 'dtype' => 'web' ), 30 );
 			return '';
 		}
 
@@ -422,7 +422,7 @@ function niz_wa_directory_route( $override, $user_id, $wa_number, $message_text,
 			$reg_message = function_exists( 'niz_wa_action_register' )
 				? (string) niz_wa_action_register( $user_id, array() )
 				: '';
-			$result  = niz_wa_web_do_claim( $post_id, $user_id );
+			$result  = niz_wa_web_do_claim( $post_id, $user_id, ( isset( $ctx['dtype'] ) ? $ctx['dtype'] : 'web' ) );
 
 			$message = trim( $reg_message );
 			if ( in_array( $result, array( 'claimed', 'already_yours' ), true ) ) {
@@ -437,6 +437,37 @@ function niz_wa_directory_route( $override, $user_id, $wa_number, $message_text,
 
 		nwa_send_message( $user_id, $wa_number,
 			"Please tap *Register as member* to continue, or *Cancel* to stop." );
+		return '';
+	}
+
+	if ( 'business_listed' === $step ) {
+		$name    = isset( $ctx['name'] ) ? $ctx['name'] : 'this business';
+		$post_id = isset( $ctx['post_id'] ) ? (int) $ctx['post_id'] : 0;
+		$t       = strtolower( $text );
+
+		if ( false !== strpos( $t, 'claim' ) ) {
+			$status = get_user_meta( $user_id, 'user_status', true );
+
+			if ( in_array( $status, array( 'member', 'premium' ), true ) ) {
+				$result = niz_wa_web_do_claim( $post_id, $user_id, 'business' );
+				NWA_DB::set_pending_action( $conversation->id, null );
+				nwa_send_message( $user_id, $wa_number, niz_wa_web_claim_result_message( $result, $name, $post_id ) );
+				return '';
+			}
+
+			nwa_send_buttons( $user_id, $wa_number,
+				"To claim *{$name}*, you'll need a free Masjid4All membership first.\n\nWould you like to register now?",
+				array(
+					array( 'id' => 'dir_biz_register', 'title' => 'Register as member' ),
+					array( 'id' => 'dir_biz_cancel',   'title' => 'Cancel' ),
+				) );
+			NWA_DB::set_pending_action( $conversation->id, 'directory_flow',
+				array( 'step' => 'claim_need_register', 'name' => $name, 'post_id' => $post_id, 'dtype' => 'business' ), 30 );
+			return '';
+		}
+
+		nwa_send_message( $user_id, $wa_number,
+			"Please tap *Claim this business* to continue." . niz_wa_dir_stop_hint() );
 		return '';
 	}
 
@@ -599,7 +630,7 @@ function niz_wa_web_claim_owner( $post_id ) {
  * wp_jet_cct_listing_owner (mirrors mfa_claim_web_listing_shortcode()'s
  * insert). Returns 'claimed', 'already_yours', 'taken', or 'error'.
  */
-function niz_wa_web_do_claim( $post_id, $user_id ) {
+function niz_wa_web_do_claim( $post_id, $user_id, $post_type = 'web' ) {
 	global $wpdb;
 	$post_id = (int) $post_id;
 	$user_id = (int) $user_id;
@@ -614,7 +645,7 @@ function niz_wa_web_do_claim( $post_id, $user_id ) {
 
 	$o = $wpdb->prefix . 'jet_cct_listing_owner';
 	$wpdb->insert( $o, array(
-		'post_type'   => 'web',
+		'post_type'   => ( 'business' === $post_type ? 'business' : 'web' ),
 		'post_id'     => $post_id,
 		'user_id'     => $user_id,
 		'cct_created' => current_time( 'mysql' ),
@@ -942,6 +973,44 @@ function niz_wa_looks_like_mosque( $place ) {
 }
 
 /**
+ * Already-listed business: mirror the website claim presenter. Owned by the
+ * user -> "you've claimed it"; owned by someone else -> "already claimed";
+ * unclaimed -> a Claim button (business_listed step). Claims write the same
+ * wp_jet_cct_listing_owner table, keyed by post_id, post_type 'business'.
+ */
+function niz_wa_business_present_listing( $user_id, $wa_number, $conversation, $existing, $name ) {
+	$post_id = (int) $existing['post_id'];
+	$url     = (string) $existing['url'];
+	$owner   = niz_wa_web_claim_owner( $post_id );
+
+	if ( $owner === (int) $user_id ) {
+		NWA_DB::set_pending_action( $conversation->id, null );
+		nwa_send_message( $user_id, $wa_number,
+			"✅ *{$name}* is already listed — and you've already claimed it. 🎉\n\n" . $url
+			. "\n\nManage it here:\n" . niz_wa_web_manage_url( $post_id ) );
+		return '';
+	}
+
+	if ( $owner > 0 ) {
+		NWA_DB::set_pending_action( $conversation->id, null );
+		nwa_send_message( $user_id, $wa_number,
+			"✅ *{$name}* is already listed in the Masjid4All business directory, and it has already been claimed by its owner.\n\n" . $url
+			. "\n\nIf you believe that's a mistake, reply here and our team will help." );
+		return '';
+	}
+
+	nwa_send_buttons( $user_id, $wa_number,
+		"✅ *{$name}* is already listed in the Masjid4All business directory.\n\n" . $url
+		. "\n\nIs this your business? You can claim it to manage the listing.",
+		array(
+			array( 'id' => 'dir_biz_claim', 'title' => 'Claim this business' ),
+		) );
+	NWA_DB::set_pending_action( $conversation->id, 'directory_flow',
+		array( 'step' => 'business_listed', 'post_id' => $post_id, 'name' => $name, 'url' => $url ), 30 );
+	return '';
+}
+
+/**
  * Resolves a pasted Google Maps link to a place, then either reports it's
  * already listed or asks the user to confirm before creating it. Keeps the
  * session on await_link when the link can't be resolved so the user can retry.
@@ -976,6 +1045,9 @@ function niz_wa_place_add_from_link( $user_id, $wa_number, $conversation, $type,
 	// Already in the directory?
 	$existing = niz_wa_place_find_existing( $type, $place['placeId'] );
 	if ( $existing ) {
+		if ( 'business' === $type ) {
+			return niz_wa_business_present_listing( $user_id, $wa_number, $conversation, $existing, (string) $place['title'] );
+		}
 		NWA_DB::set_pending_action( $conversation->id, null );
 		$suffix = $existing['url'] ? "\n\n" . $existing['url'] : '';
 		nwa_send_message( $user_id, $wa_number,

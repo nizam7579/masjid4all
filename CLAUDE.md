@@ -6,6 +6,39 @@
 - **Purpose of this connection**: plugin development, WordPress design/theme work
 - **Production**: masjid4all.com — never push directly to production from here. All changes go through staging first and get reviewed before promotion.
 
+## Working Model — Claude Desktop vs Claude CLI
+Two Claude surfaces are used on this project, with deliberately different jobs.
+Respect the boundary.
+
+- **Claude Desktop = discuss & scope only. No coding.** The user works in
+  Desktop to talk through and scope a module — it's easier to read there and to
+  attach documents/images. Desktop's job is to help think through requirements,
+  agree on scope, and then **produce a written implementation brief for Claude
+  CLI to execute.** If you are Claude on Desktop: do not write code and do not
+  edit the codebase. Finish by handing off a clear, self-contained
+  implementation instruction for the CLI (what to build, where, constraints,
+  acceptance criteria).
+
+- **Claude CLI (Claude Code) = implement, but propose first — never jump
+  straight to coding.** The CLI does the actual coding and staging work, but
+  the user has repeatedly seen Claude start coding before they finished
+  explaining, producing work that's off-target. So:
+  - **Let the user finish.** If they're still describing the requirement, do
+    not start editing files. Assume more explanation is coming unless they say
+    otherwise.
+  - **Restate + propose before acting.** Reflect back what you understood and
+    show what you plan to do (the approach, files, and any flow/copy), then
+    **wait for an explicit go-ahead** before writing code or changing staging.
+  - **Investigation is fine; implementation waits.** Reading code, inspecting
+    the DB/schema, and asking clarifying questions to form the proposal are
+    encouraged. Creating/editing code or mutating staging is what waits for
+    confirmation.
+
+  Order of operations for the CLI: **understand → propose → confirm →
+  implement.** When in doubt, show the plan and ask rather than assume. When the
+  CLI is handed a Desktop-authored brief, still restate your understanding of it
+  and confirm before coding, rather than executing it blind.
+
 ## Site Context
 Masjid4All is an Islamic digital ecosystem: mosque directory, prayer times, Qibla
 direction, halal business listings, Islamic knowledge resources, and an AI WhatsApp

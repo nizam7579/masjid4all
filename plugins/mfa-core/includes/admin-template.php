@@ -40,12 +40,13 @@ function mfa_is_admin_area( $post_id = 0 ) {
  * - 217911 (/admin/member/info/): opened from the Members list's "View"
  *   button in a new tab for a quick lookup, not primary navigation.
  *
- * /admin/crawler/start/ hides chrome too (meant to be opened in several tabs
- * at once, each reloading itself every few seconds - the nav would just be
- * re-rendered dead weight on every cycle) but is matched by slug, not a
- * fixed ID: staging and live created this page independently, so it has a
- * different numeric ID on each - a straight folder copy between
- * environments must not require hand-editing an ID here.
+ * /admin/crawler/start/ and /admin/website/generate/ hide chrome too (both
+ * meant to be opened in a tab that reloads itself every few seconds - the
+ * nav would just be re-rendered dead weight on every cycle) but are matched
+ * by slug, not a fixed ID: staging and live created these pages
+ * independently, so each has a different numeric ID per environment - a
+ * straight folder copy between environments must not require hand-editing
+ * an ID here.
  */
 function mfa_admin_page_hides_chrome( $post_id = 0 ) {
 	$post_id = $post_id ? (int) $post_id : get_queried_object_id();
@@ -56,8 +57,14 @@ function mfa_admin_page_hides_chrome( $post_id = 0 ) {
 	}
 
 	$post = get_post( $post_id );
-	if ( $post && 'start' === $post->post_name && $post->post_parent ) {
-		return 'crawler' === get_post_field( 'post_name', $post->post_parent );
+	if ( $post && $post->post_parent ) {
+		$parent_slug = get_post_field( 'post_name', $post->post_parent );
+		if ( 'start' === $post->post_name && 'crawler' === $parent_slug ) {
+			return true;
+		}
+		if ( 'generate' === $post->post_name && 'website' === $parent_slug ) {
+			return true;
+		}
 	}
 
 	return false;

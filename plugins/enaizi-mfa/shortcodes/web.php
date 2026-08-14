@@ -476,9 +476,21 @@ function mfa_claim_web_listing_shortcode() {
 }
 
 /**
- * Triggers an AI content update for an existing Business listing.
- * Does not require a logged-in user or a form submission.
- * * @param int $post_id The WordPress Post ID of the business.
+ * Triggers an AI content update for an existing website listing - analyzes
+ * the listing's own URL via niz_perplexity_web() (add-website.php) and
+ * writes the result back into both the CCT record and the WP post/SEO meta.
+ * Does not require a logged-in user or a form submission (called from the
+ * per-listing "Update Content" button and the /admin/website/ "Generate
+ * Content" batch button alike).
+ *
+ * Rebuilt 2026-08-14 - this function existed but its actual DB/content
+ * update logic was entirely commented out (and its own AI dependency,
+ * niz_perplexity_web(), didn't exist as a live function at all), so
+ * "Update Content" silently did nothing on every click. Field mapping and
+ * flow follow niz_mfa_mosques_callback()'s proven pattern (enaizi/
+ * mosque.php) adapted to the website schema.
+ *
+ * @param int $post_id The WordPress Post ID of the website.
  * @return array|WP_Error Returns success message array or WP_Error on failure.
  */
 function web_update_content( $post_id ) {
@@ -503,194 +515,90 @@ function web_update_content( $post_id ) {
         return new WP_Error( 'cct_not_found', 'Web record not found in the database.' );
     }
 
-    // Decode opening hours if they are stored as JSON strings
-    $opening_hours = !empty($web['opening_hours']) ? json_decode($web['opening_hours'], true) : [];
-
-    // 3. Prepare Payload for Perplexity AI
-    $raw_info = array(
-        'name'         => $web['name'],
-        'address'      => $web['address'],
-        'email'        => $web['email'],
-        'website'      => $web['website'],
-        'phone'        => $web['phone'],
-        'whatsapp'     => $web['whatsapp'],
-        'city'         => $web['city'],
-        'country'      => $web['country'],
-        'introduction' => $web['introduction'],
-        'fb'           => $web['fb'],
-        'linkedin'     => $web['linkedin'],
-        'insta'        => $web['insta'],
-        'tiktok'       => $web['tiktok'],
-        'opening_hours'=> $opening_hours
-    );
-
-
     $old_status = $web['listing_status'];
-    $name = $web['name'];
-    // Strip out empty values to prevent AI crawler crashes
-    $clean_info = array_filter($raw_info, function($value) {
-        return $value !== '' && $value !== null && $value !== [];
-    });
+    $name       = $web['name'];
 
-    // 4. Call the AI Function
+    // 3. Call the AI Function
     if ( ! function_exists( 'niz_perplexity_web' ) ) {
-        return new WP_Error( 'missing_function', 'mfa_web_perplexity function is missing.' );
+        return new WP_Error( 'missing_function', 'niz_perplexity_web function is missing.' );
     }
 
     $url = $web['url'];
     if ( empty( $url ) ) {
         return new WP_Error( 'missing_url', 'This record has no URL to analyze.' );
     }
-    $json_output = niz_perplexity_web($url);
-    $data = json_decode($json_output, true);
+    $json_output = niz_perplexity_web( $url );
+    $data        = json_decode( $json_output, true );
 
-    if (!$data || isset($data['error'])) {
-        return new WP_Error('api_failure', isset($data['error']) ? $data['error'] : 'Data extraction schema parsing error from Perplexity API.');
+    if ( ! is_array( $data ) || isset( $data['error'] ) || empty( $data['Content'] ) ) {
+        return new WP_Error( 'api_failure', isset( $data['error'] ) ? $data['error'] : 'Invalid AI content received.' );
     }
 
-    // 3. Structure Ingestion Payload Properties
-    $status   = !empty($data['status']) ? $data['status'] : 'Pending';
-    $reason   = !empty($data['status_detail']) ? $data['status_detail'] : '';
-    $keywords = isset($data['keywords']) ? $data['keywords'] : '';
+    // 4. Structure and write the CCT update
+    $status = ! empty( $data['status'] ) ? sanitize_text_field( $data['status'] ) : 'Pending';
 
-    $update_fields = [
-        'name'          => !empty($data['Name']) ? $data['Name'] : $base_url,
-        'category'      => isset($data['Category']) ? $data['Category'] : '',
-        'introduction'  => isset($data['Introduction']) ? $data['Introduction'] : '',
-        'whatsapp'      => isset($data['whatsapp']) ? $data['whatsapp'] : '',
-        'email'         => isset($data['email']) ? $data['email'] : '',
-        'status'        => $status,
-        'status_detail' => isset($data['status_detail']) ? $data['status_detail'] : '',
-        'content'       => isset($data['Content']) ? $data['Content'] : '',
-        'country'       => isset($data['country']) ? $data['country'] : '',
-        'cct_modified'  => current_time('mysql'),
-    ];
-
-    // 4. Update or Insert CCT Record
-//    if ($existing_cct_id) {
-//        $db_action = $wpdb->update($table_name, $update_fields, ['_ID' => $existing_cct_id]);
-//        $record_id = $existing_cct_id;
-//    } else {
-//        $update_fields['cct_author_id'] = $current_user_id;
-//        $update_fields['cct_created']   = current_time('mysql');
-//        $db_action = $wpdb->insert($table_name, $update_fields);
-//        $record_id = $wpdb->insert_id;
-//    }
-
-//    if ($db_action === false) {
-//        return new WP_Error('db_error', 'Database write operation execution failure.');
-//    }
-
-    // 5. Generate and Link Custom Directory Post Asset Mapping
-//    $post_id = niz_create_wordpress_post($record_id, $base_url, $update_fields, $keywords);
-
-    if (is_wp_error($post_id)) {
-        if (!$existing_cct_id) { $wpdb->delete($table_name, ['_ID' => $record_id]); }
-        return $post_id;
-    }
-
-//    $wpdb->update($table_name, ['cct_single_post_id' => $post_id], ['_ID' => $record_id]);
-
-//    if ($is_admin_mode) {
-//        return '<div class="alert alert-success">✓ <strong>Processed:</strong> ' . esc_html($base_url) . ' | 📝 <strong>Post ID:</strong> ' . intval($post_id) . '</div>';
-//    }
-
-/*
-
-    $msg = '<div class="alert alert-success">';
-    if ($status === 'Approved' && function_exists('niz_user_add_points')) {
-        $desc = 'Add website - ' . $update_fields['name'];
-//        niz_user_add_points($current_user_id, $desc, 10);
-
-        $msg .= '✅ Website successfully analyzed and added to the directory!<br>';
-        $msg .= 'Status : ' . esc_html($status) . '<br>';
-        $msg .= 'Link : ' . '<a href="' . esc_url(get_permalink($post_id)) . '" target="_blank"><strong>' . esc_html($update_fields['name']) . '</strong></a><br>';
-
-        $msg .= '<br><p style="color:#155724; font-weight:bold;">✨ Congratulations! You earned 10 Barakah points.</p>';
-    } else {
-        $msg .= '✅ Website NOT ADDED to the directory!<br>';
-        $msg .= 'Status : ' . esc_html($status) . '<br>';
-        $msg .= 'Reason : ' . esc_html($reason) . '<br>';
-        $msg .= 'Link : <a href="' . esc_url(get_permalink($post_id)) . '" target="_blank"><strong>' . esc_html($update_fields['name']) . '</strong></a>';
-        $msg .= '<br><p style="color:#155724; font-weight:bold;">You will earn 10 Barakah points if we approve the website.</p>';
-    }
-    $msg .= '</div>';
-
-    return $msg;
-*/
-
-
-    /*
-
-    $ai_data  = json_decode( $json_raw, true );
-
-    // 5. Validate AI Response
-    if ( ! $ai_data || isset( $ai_data['error'] ) || empty( $ai_data['content'] ) ) {
-        $error_reason = isset( $ai_data['reason'] ) ? $ai_data['reason'] : 'API Parsing Failure';
-        error_log( 'Web AI Update Failed for Post ID ' . $post_id . ': ' . $error_reason );
-        return new WP_Error( 'ai_failure', 'AI generation failed: ' . $error_reason );
-    }
-
-    // 6. Update CCT Table Data
-    $cct_update_data = array(
-        'business_status' => 'Updated'
+    $cct_update = array(
+        'status'         => 'Updated',
+        'status_detail'  => isset( $data['status_detail'] ) ? sanitize_textarea_field( $data['status_detail'] ) : '',
+        'listing_status' => $status,
+        'cct_modified'   => current_time( 'mysql' ),
     );
-
-    $listing_status = $ai_data['listingStatus'];
-
-    if ( ! empty( $ai_data['listingStatus'] ) ) {
-        $cct_update_data['listing_status'] = sanitize_text_field( $ai_data['listingStatus'] );
+    if ( ! empty( $data['Introduction'] ) ) {
+        $cct_update['introduction'] = sanitize_textarea_field( $data['Introduction'] );
     }
-    if ( ! empty( $ai_data['category'] ) ) {
-        $cct_update_data['category'] = sanitize_text_field( $ai_data['category'] );
+    if ( ! empty( $data['Category'] ) ) {
+        $cct_update['category'] = sanitize_text_field( $data['Category'] );
     }
-    if ( ! empty( $ai_data['introduction'] ) ) {
-        $cct_update_data['introduction'] = sanitize_text_field( $ai_data['introduction'] );
+    // Only fill in country when it's currently missing - a crawled listing's
+    // country (from the source Serper business record) is more reliable
+    // than an AI guess from browsing the site content, and the AI sometimes
+    // answers with a placeholder like "Unknown" rather than leaving it
+    // blank (found 2026-08-14: overwrote a correct "Malaysia" this way on
+    // the first real test run).
+    if ( empty( $web['country'] ) && ! empty( $data['country'] ) && ! preg_match( '/^(unknown|n\/?a|none|not (specified|available|known))$/i', trim( $data['country'] ) ) ) {
+        $cct_update['country'] = sanitize_text_field( $data['country'] );
+    }
+    if ( ! empty( $data['whatsapp'] ) ) {
+        $cct_update['whatsapp'] = sanitize_text_field( $data['whatsapp'] );
+    }
+    if ( ! empty( $data['email'] ) ) {
+        $cct_update['email'] = sanitize_text_field( $data['email'] );
     }
 
-    $wpdb->update(
-        $table_name,
-        $cct_update_data,
-        array( '_ID' => $item_id )
-    );
+    $wpdb->update( $table_name, $cct_update, array( '_ID' => $item_id ) );
 
-    // 7. Update WordPress Post Content & SEO Meta
-    $post_update = array(
+    // 5. Update WordPress Post Content & SEO Meta
+    $post_update = wp_update_post( array(
         'ID'           => $post_id,
-        'post_content' => wp_kses_post( $ai_data['content'] )
-    );
-    wp_update_post( $post_update );
+        'post_content' => wp_kses_post( $data['Content'] ),
+    ), true );
 
-    if ( ! empty( $ai_data['title'] ) ) {
-        update_post_meta( $post_id, 'rank_math_title', sanitize_text_field( $ai_data['title'] ) );
-    }
-    if ( ! empty( $ai_data['metaDescription'] ) ) {
-        update_post_meta( $post_id, 'rank_math_description', sanitize_textarea_field( $ai_data['metaDescription'] ) );
-    }
-    if ( ! empty( $ai_data['keywords'] ) ) {
-        update_post_meta( $post_id, 'rank_math_focus_keyword', sanitize_text_field( $ai_data['keywords'] ) );
+    if ( is_wp_error( $post_update ) ) {
+        return $post_update;
     }
 
-    // Barakah Point, if Approved
-    if ($old_status === 'New' || $old_status === 'Pending' || empty($old_status)){
-        if ($listing_status == 'Approved'){
-            // Give Baraqah Point
-            $author_id = get_post_field('post_author', $post_id);
-            $desc = 'Add Web - ' . $name;
-            niz_user_add_points($author_id, $desc, 10);
-        }
+    if ( ! empty( $data['Name'] ) ) {
+        update_post_meta( $post_id, 'rank_math_title', sanitize_text_field( $data['Name'] ) . ' | Islamic Website Directory' );
+    }
+    if ( ! empty( $data['Introduction'] ) ) {
+        update_post_meta( $post_id, 'rank_math_description', sanitize_textarea_field( mb_strimwidth( $data['Introduction'], 0, 160, '...' ) ) );
+    }
+    if ( ! empty( $data['keywords'] ) ) {
+        update_post_meta( $post_id, 'rank_math_focus_keyword', sanitize_text_field( $data['keywords'] ) );
     }
 
-    */
+    // Barakah Point, if newly Approved (mirrors mosque/business updaters).
+    if ( ( in_array( $old_status, array( 'New', 'Pending' ), true ) || empty( $old_status ) ) && 'Approved' === $status && function_exists( 'niz_user_add_points' ) ) {
+        $author_id = get_post_field( 'post_author', $post_id );
+        niz_user_add_points( $author_id, 'Add Website - ' . $name, 10 );
+    }
 
-    // 8. Return Success
+    // 6. Return Success
     return array(
         'success' => true,
         'message' => $name . ' successfully updated.',
-        'status'  => isset($cct_update_data['listing_status']) ? $cct_update_data['listing_status'] : 'Pending'
+        'status'  => $status,
     );
-
-
 }
 
 
@@ -814,7 +722,7 @@ function niz_ajax_web_ai_update_handler() {
     }
 
     // FIRE THE FUNCTION!
-    //$result = web_update_content($post_id);
+    $result = web_update_content($post_id);
 
     // Read the response from your AI function and return it to the JavaScript
     if ( is_wp_error($result) ) {

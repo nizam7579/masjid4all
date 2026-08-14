@@ -33,6 +33,8 @@ function mfa_admin_website_list_shortcode() {
 	global $wpdb;
 	$cct_table = $wpdb->prefix . 'jet_cct_web';
 
+	$generate_notice = mfa_admin_website_handle_generate();
+
 	$search         = isset( $_GET['website_search'] ) ? sanitize_text_field( wp_unslash( $_GET['website_search'] ) ) : '';
 	$status_filter  = isset( $_GET['status'] ) ? sanitize_text_field( wp_unslash( $_GET['status'] ) ) : '';
 	$category_filter = isset( $_GET['category'] ) ? sanitize_text_field( wp_unslash( $_GET['category'] ) ) : '';
@@ -93,8 +95,19 @@ function mfa_admin_website_list_shortcode() {
 				<h1 class="mfa-h2">Websites</h1>
 				<p class="mfa-body-muted"><?php echo esc_html( number_format_i18n( $total ) ); ?> website<?php echo 1 === $total ? '' : 's'; ?></p>
 			</div>
-			<a href="<?php echo esc_url( home_url( '/add-website/' ) ); ?>" target="_blank" rel="noopener" class="mfa-btn mfa-btn-primary">Add New</a>
+			<div class="mfa-admin-website-heading-actions">
+				<a href="<?php echo esc_url( home_url( '/add-website/' ) ); ?>" target="_blank" rel="noopener" class="mfa-btn mfa-btn-primary">Add New</a>
+				<form method="post" class="mfa-admin-website-generate-form">
+					<?php wp_nonce_field( 'mfa_admin_website_generate', 'mfa_admin_website_generate_nonce' ); ?>
+					<input type="hidden" name="mfa_admin_website_op" value="generate_next">
+					<button type="submit" class="mfa-btn mfa-btn-solid-dark">Generate Content</button>
+				</form>
+			</div>
 		</div>
+
+		<?php if ( $generate_notice ) : ?>
+			<p class="mfa-body-muted mfa-admin-website-generate-notice"><?php echo esc_html( $generate_notice ); ?></p>
+		<?php endif; ?>
 
 		<form method="get" class="mfa-admin-website-filters">
 			<input type="text" name="website_search" value="<?php echo esc_attr( $search ); ?>" placeholder="Search name, address, or city" class="mfa-admin-website-search">
@@ -183,4 +196,46 @@ function mfa_admin_website_list_shortcode() {
 	</div>
 	<?php
 	return ob_get_clean();
+}
+
+/**
+ * Handles the "Generate Content" button's plain POST form - same
+ * no-AJAX, full-page-reload pattern as the crawler panel's buttons
+ * (admin-crawler.php). Picks ONE website whose listing_status is New or
+ * Pending (oldest first) and runs the same AI generation as the per-
+ * listing "Update Content" button (web_update_content(), enaizi-mfa/
+ * shortcodes/web.php), so admins can work through the New/Pending
+ * backlog a click at a time on whatever cadence suits them, mirroring
+ * how the mosque/business crawler itself is run manually rather than on
+ * an automatic schedule. Returns a notice string for the page to show,
+ * or '' if the button wasn't the one submitted.
+ */
+function mfa_admin_website_handle_generate() {
+	if ( empty( $_POST['mfa_admin_website_op'] ) || 'generate_next' !== $_POST['mfa_admin_website_op'] || ! current_user_can( 'manage_options' ) ) {
+		return '';
+	}
+	if ( ! isset( $_POST['mfa_admin_website_generate_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['mfa_admin_website_generate_nonce'] ) ), 'mfa_admin_website_generate' ) ) {
+		return 'Security check failed - please try again.';
+	}
+
+	global $wpdb;
+	$table = $wpdb->prefix . 'jet_cct_web';
+
+	$row = $wpdb->get_row( "SELECT _ID, name, cct_single_post_id FROM {$table} WHERE listing_status IN ('New','Pending') AND cct_single_post_id IS NOT NULL ORDER BY _ID ASC LIMIT 1", ARRAY_A );
+
+	if ( ! $row ) {
+		return 'No more records to generate - every website has already moved past New/Pending.';
+	}
+
+	if ( ! function_exists( 'web_update_content' ) ) {
+		return 'Content generation is unavailable.';
+	}
+
+	$result = web_update_content( (int) $row['cct_single_post_id'] );
+
+	if ( is_wp_error( $result ) ) {
+		return sprintf( 'Error generating content for "%s": %s', $row['name'], $result->get_error_message() );
+	}
+
+	return sprintf( 'Generated content for "%s" - new status: %s.', $row['name'], $result['status'] );
 }

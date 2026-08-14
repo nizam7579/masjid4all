@@ -26,6 +26,21 @@
   margin-top: var(--mfa-space-1);
 }
 
+.mfa-admin-website-heading-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--mfa-space-2, 8px);
+  flex-wrap: wrap;
+}
+
+.mfa-admin-website-generate-form {
+  display: inline-flex;
+}
+
+.mfa-admin-website-generate-notice {
+  margin-bottom: var(--mfa-space-4);
+}
+
 /* ---------- Filters ---------- */
 
 .mfa-admin-website-filters {

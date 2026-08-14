@@ -516,6 +516,7 @@ function mfa_website_perplexity($url,$schema_data=[]) {
     $categories_list = implode(', ', $categories);
 
     // --- Build the prompt for Perplexity ---
+    $schema_text = json_encode( $schema_data, JSON_PRETTY_PRINT );
 $prompt = <<<PROMPT
 You are an expert SEO analyst and Islamic website directory editor.
 
@@ -528,10 +529,6 @@ Additional structured data extracted from the website:
 
 
 {$schema_text}
-$schema_text = json_encode(
-    $schema_data,
-    JSON_PRETTY_PRINT
-);
 
 Use this information as a verified source.
 

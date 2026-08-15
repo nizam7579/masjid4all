@@ -30,3 +30,54 @@
   margin-top: var(--mfa-space-5);
   display: inline-flex;
 }
+
+.mfa-admin-inquiry-whatsapp-form {
+  margin-top: var(--mfa-space-5);
+  max-width: 640px;
+}
+
+.mfa-admin-inquiry-whatsapp-form .mfa-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mfa-admin-inquiry-whatsapp-form label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--mfa-muted, #56655f);
+}
+
+.mfa-admin-inquiry-whatsapp-form textarea {
+  border: 1px solid var(--mfa-border, #d7e4e1);
+  border-radius: var(--mfa-radius-sm, 8px);
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--mfa-ink, #12181f);
+  resize: vertical;
+}
+
+.mfa-admin-inquiry-whatsapp-form textarea:focus {
+  outline: 2px solid var(--mfa-teal, #0d8f83);
+  outline-offset: 1px;
+}
+
+.mfa-admin-inquiry-whatsapp-form button {
+  margin-top: var(--mfa-space-3);
+}
+
+.mfa-admin-inquiry-whatsapp-form .mfa-modal-message {
+  margin: var(--mfa-space-2) 0 0;
+  font-size: 13px;
+  min-height: 18px;
+  color: #b3261e;
+}
+
+.mfa-admin-inquiry-whatsapp-form .mfa-modal-message.is-success {
+  color: var(--mfa-teal-dark, #0d4d47);
+}
+
+.mfa-admin-inquiry-whatsapp-note {
+  margin-top: var(--mfa-space-5);
+}

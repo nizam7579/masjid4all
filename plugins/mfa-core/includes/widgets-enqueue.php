@@ -127,6 +127,9 @@ function mfa_core_enqueue_widget_assets() {
 
 			$admin_inquiry_info_css = MFA_CORE_PATH . 'assets/css/admin-inquiry-info-v1.css';
 			wp_enqueue_style( 'mfa-core-admin-inquiry-info', MFA_CORE_URL . 'assets/css/admin-inquiry-info-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell', 'mfa-core-admin-inquiry-list' ), $get_version( $admin_inquiry_info_css ) );
+
+			$admin_inquiry_info_js = MFA_CORE_PATH . 'assets/js/admin-inquiry-info-v1.js';
+			wp_enqueue_script( 'mfa-core-admin-inquiry-info', MFA_CORE_URL . 'assets/js/admin-inquiry-info-v1.js', array(), $get_version( $admin_inquiry_info_js ), true );
 		}
 
 		// /admin/website/generate/ - child of the Websites page, reuses the

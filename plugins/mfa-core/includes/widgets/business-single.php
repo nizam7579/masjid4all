@@ -68,6 +68,8 @@ function mfa_business_home_tab_shortcode() {
 				echo do_shortcode( '[mfa_modal id="biz-image-' . esc_attr( $post_id ) . '" title="Upload Image" label="Upload Image" button_class="mfa-biz-action-btn" icon=\'' . $upload_icon . '\'][cpt_image_manager][niz_business_ai_updater][/mfa_modal]' );
 				?>
 			<?php endif; ?>
+
+			<?php echo mfa_claim_or_manage_cta( 'business', $post_id ); // phpcs:ignore WordPress.Security.EscapeOutput ?>
 		</div>
 
 		<?php echo mfa_business_info_display( $post_id ); ?>

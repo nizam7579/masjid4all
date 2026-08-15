@@ -77,6 +77,8 @@ function mfa_website_home_tab_shortcode() {
 				echo do_shortcode( '[mfa_modal id="web-image-' . esc_attr( $post_id ) . '" title="Upload Image" label="Upload Image" button_class="mfa-web-action-btn" icon=\'' . $upload_icon . '\'][cpt_image_manager][mfa_website_update][/mfa_modal]' );
 				?>
 			<?php endif; ?>
+
+			<?php echo mfa_claim_or_manage_cta( 'web', $post_id ); // phpcs:ignore WordPress.Security.EscapeOutput ?>
 		</div>
 
 		<?php echo mfa_web_info_display( $post_id ); ?>

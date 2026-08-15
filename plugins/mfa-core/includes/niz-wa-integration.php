@@ -496,25 +496,230 @@ function niz_wa_action_share( $user_id, $context ) {
  * (e.g. triggered some other way than normal routing).
  */
 function niz_wa_action_inquiry( $user_id, $context ) {
-	$url      = home_url( '/contact-us/' );
-	$fallback = "For any inquiries, feedback, or to reach our team directly, please visit:\n{$url}\n\nWe'll get back to you as soon as possible.";
+	return niz_wa_contact_start( $user_id, $context );
+}
 
-	$message_text = isset( $context['message_text'] ) ? trim( (string) $context['message_text'] ) : '';
+/* ---------------- Contact-Us flow (multi-step) ----------------
+   Sofia now takes the user's message to the team in-chat instead of handing
+   out the /contact-us/ URL (changed 2026-08-15). Steps: name -> email ->
+   subject -> message -> review -> send. Name/email are pre-offered from the
+   member's record when known (a real email is anything not ending in
+   @mfa.com, the WhatsApp placeholder domain). The in-progress step lives in
+   niz-wa's own pending_action/pending_context columns (intent_key
+   'contact_flow'); niz_wa_contact_route() claims every message while the
+   session is live. On send it calls the shared mfa_contact_us_store()
+   (contact-form.php) so the WhatsApp and web channels write identical
+   wp_jet_cct_contact_us rows + notifications. Phone is not asked - it is the
+   user's WhatsApp number. */
 
-	if ( '' === $message_text || ! class_exists( 'NWA_AI' ) || ! method_exists( 'NWA_AI', 'call_ai' ) ) {
-		return $fallback;
+// Priority 25: runs after whatsapp-verify (10), account (15) and directory
+// (20) overrides, so their sessions/codes always win if somehow both open.
+add_filter( 'nwa_route_message_override', 'niz_wa_contact_route', 25, 5 );
+
+/** A display name we can offer to reuse, or '' if we don't have a usable one. */
+function niz_wa_contact_known_name( $user_id ) {
+	$u = get_userdata( $user_id );
+	if ( ! $u ) {
+		return '';
+	}
+	$name = trim( (string) $u->display_name );
+	if ( '' === $name || 0 === strpos( $name, 'mfa_' ) ) {
+		$name = trim( (string) $u->first_name );
+	}
+	// Reject empty or a bare phone number (WhatsApp default names are often the number).
+	$digits_only = preg_replace( '/[\s+\-]/', '', $name );
+	if ( '' === $name || ( '' !== $digits_only && ctype_digit( $digits_only ) ) ) {
+		return '';
+	}
+	return $name;
+}
+
+/** A real (non-placeholder) email we can offer to reuse, or '' if none. */
+function niz_wa_contact_known_email( $user_id ) {
+	$u = get_userdata( $user_id );
+	if ( ! $u ) {
+		return '';
+	}
+	$email = trim( (string) $u->user_email );
+	if ( '' === $email || ! is_email( $email ) ) {
+		return '';
+	}
+	// WhatsApp-created accounts get a <phone>@mfa.com placeholder they can't use.
+	if ( preg_match( '/@mfa\.com$/i', $email ) ) {
+		return '';
+	}
+	return $email;
+}
+
+/** Did the user reply with a short affirmative ("ok", "yes", "use it", ...)? */
+function niz_wa_contact_is_affirmative( $text ) {
+	$t = strtolower( trim( $text ) );
+	return in_array( $t, array( 'ok', 'okay', 'yes', 'yes please', 'ya', 'yup', 'yep', 'y', 'betul', 'use it', 'ok use it' ), true );
+}
+
+/**
+ * Entry point for the 'inquiry' action: open the contact session and ask for
+ * the first field (offering the known name when we have one). Sends its own
+ * message and returns '' so NWA_Router sends nothing further.
+ */
+function niz_wa_contact_start( $user_id, $context ) {
+	$conversation = NWA_DB::get_conversation_by_user( $user_id );
+	if ( ! $conversation ) {
+		// Fallback to the old URL reply if we somehow have no conversation row.
+		return "I'd love to pass your message to our team. Please use our contact form:\n" . home_url( '/contact-us/' );
 	}
 
-	$persona = method_exists( 'NWA_AI', 'default_persona' ) ? NWA_AI::default_persona() : '';
-	$system  = trim( $persona . "\n\nThe user just sent a message that is an inquiry, complaint, piece of feedback, or a request to reach the team - for example a business collaboration, partnership, or advertising proposal, or a general question that needs a human. Reply with exactly two short lines, both written in the SAME language as the user's message:\nLine 1: ONE short, warm sentence that specifically acknowledges what THEY asked about - do not be generic or vague, do not ask them further questions.\nLine 2: a short closing phrase inviting them to reach the team through the contact link below (the equivalent of 'You can reach our team here:') - do NOT include any URL or link yourself, a real link will be appended automatically right after your reply.\nOutput ONLY those two lines, nothing else." );
+	$wa_number  = $conversation->wa_number;
+	$known_name = niz_wa_contact_known_name( $user_id );
 
-	$ai_reply = NWA_AI::call_ai( $system, $message_text );
+	$intro = "I'd be glad to pass your message to the Masjid4All team. 📝\n\nLet's put it together — you can reply *stop* anytime to cancel.\n\n";
 
-	if ( ! is_string( $ai_reply ) || '' === trim( $ai_reply ) ) {
-		return $fallback;
+	if ( '' !== $known_name ) {
+		nwa_send_message( $user_id, $wa_number,
+			$intro . "First, your *name* — I have it as *{$known_name}*.\nReply *OK* to use it, or type a different name." );
+	} else {
+		nwa_send_message( $user_id, $wa_number, $intro . "First, what's your *name*?" );
 	}
 
-	return trim( $ai_reply ) . "\n{$url}";
+	NWA_DB::set_pending_action( $conversation->id, 'contact_flow', array( 'step' => 'name', 'known_name' => $known_name ), 30 );
+	return '';
+}
+
+/**
+ * Drives the Contact-Us steps while a 'contact_flow' session is active.
+ * Returns '' to claim the message (we send our own replies), or the
+ * unchanged $override so normal routing continues when no session is live.
+ */
+function niz_wa_contact_route( $override, $user_id, $wa_number, $message_text, $conversation ) {
+	if ( null !== $override ) {
+		return $override;
+	}
+	if ( ! class_exists( 'NWA_DB' ) ) {
+		return $override;
+	}
+	if ( 'contact_flow' !== NWA_DB::get_active_pending_action( $conversation ) ) {
+		return $override;
+	}
+
+	$ctx  = json_decode( (string) $conversation->pending_context, true );
+	$ctx  = is_array( $ctx ) ? $ctx : array();
+	$step = isset( $ctx['step'] ) ? $ctx['step'] : '';
+	$text = trim( (string) $message_text );
+
+	// Escape hatch at any step (exact match so a real subject/message never trips it).
+	if ( in_array( strtolower( $text ), array( 'stop', 'cancel', 'exit', 'quit', 'batal' ), true ) ) {
+		NWA_DB::set_pending_action( $conversation->id, null );
+		nwa_send_message( $user_id, $wa_number, "No problem, I've cancelled that. 👍\n\nMessage *contact* anytime to reach our team." );
+		return '';
+	}
+
+	if ( 'name' === $step ) {
+		$known = isset( $ctx['known_name'] ) ? (string) $ctx['known_name'] : '';
+		$name  = ( '' !== $known && niz_wa_contact_is_affirmative( $text ) ) ? $known : sanitize_text_field( $text );
+		if ( '' === $name ) {
+			nwa_send_message( $user_id, $wa_number, "Please type your *name* so we know who to reply to." );
+			return '';
+		}
+
+		$known_email = niz_wa_contact_known_email( $user_id );
+		NWA_DB::set_pending_action( $conversation->id, 'contact_flow',
+			array( 'step' => 'email', 'name' => $name, 'known_email' => $known_email ), 30 );
+
+		if ( '' !== $known_email ) {
+			nwa_send_message( $user_id, $wa_number,
+				"Thanks, *{$name}*! What *email* should we reply to?\nI have *{$known_email}* — reply *OK* to use it, or type another." );
+		} else {
+			nwa_send_message( $user_id, $wa_number, "Thanks, *{$name}*! What's your *email address*?" );
+		}
+		return '';
+	}
+
+	if ( 'email' === $step ) {
+		$known = isset( $ctx['known_email'] ) ? (string) $ctx['known_email'] : '';
+		$email = ( '' !== $known && niz_wa_contact_is_affirmative( $text ) ) ? $known : sanitize_email( $text );
+		if ( '' === $email || ! is_email( $email ) ) {
+			nwa_send_message( $user_id, $wa_number, "That doesn't look like a valid email. Please type your *email address*." );
+			return '';
+		}
+
+		$ctx['step']  = 'subject';
+		$ctx['email'] = $email;
+		unset( $ctx['known_email'] );
+		NWA_DB::set_pending_action( $conversation->id, 'contact_flow', $ctx, 30 );
+		nwa_send_message( $user_id, $wa_number, "Got it. What's the *subject*? (a few words on what it's about)" );
+		return '';
+	}
+
+	if ( 'subject' === $step ) {
+		$subject = sanitize_text_field( $text );
+		if ( '' === $subject ) {
+			nwa_send_message( $user_id, $wa_number, "Please type a short *subject* for your message." );
+			return '';
+		}
+		$ctx['step']    = 'message';
+		$ctx['subject'] = $subject;
+		NWA_DB::set_pending_action( $conversation->id, 'contact_flow', $ctx, 30 );
+		nwa_send_message( $user_id, $wa_number, "And finally, please type your *message*." );
+		return '';
+	}
+
+	if ( 'message' === $step ) {
+		$message = sanitize_textarea_field( $text );
+		if ( '' === $message ) {
+			nwa_send_message( $user_id, $wa_number, "Please type the *message* you'd like to send to our team." );
+			return '';
+		}
+		$ctx['step']    = 'review';
+		$ctx['message'] = $message;
+		NWA_DB::set_pending_action( $conversation->id, 'contact_flow', $ctx, 30 );
+
+		$summary = "Please review 👇\n\n"
+			. "*Name:* {$ctx['name']}\n"
+			. "*Email:* {$ctx['email']}\n"
+			. "*Subject:* {$ctx['subject']}\n"
+			. "*Message:* {$message}\n\n"
+			. "Send this to our team?";
+		nwa_send_buttons( $user_id, $wa_number, $summary, array(
+			array( 'id' => 'contact_send',   'title' => 'Send' ),
+			array( 'id' => 'contact_cancel', 'title' => 'Cancel' ),
+		) );
+		return '';
+	}
+
+	if ( 'review' === $step ) {
+		$t = strtolower( $text );
+		if ( false !== strpos( $t, 'cancel' ) ) {
+			NWA_DB::set_pending_action( $conversation->id, null );
+			nwa_send_message( $user_id, $wa_number, "No problem, I've cancelled that. 👍\n\nMessage *contact* anytime to reach our team." );
+			return '';
+		}
+		if ( false !== strpos( $t, 'send' ) ) {
+			$name    = isset( $ctx['name'] ) ? $ctx['name'] : '';
+			$email   = isset( $ctx['email'] ) ? $ctx['email'] : '';
+			$subject = isset( $ctx['subject'] ) ? $ctx['subject'] : '';
+			$message = isset( $ctx['message'] ) ? $ctx['message'] : '';
+
+			$stored = function_exists( 'mfa_contact_us_store' )
+				? mfa_contact_us_store( $name, $email, $wa_number, $subject, $message, (int) $user_id )
+				: false;
+
+			NWA_DB::set_pending_action( $conversation->id, null );
+
+			if ( $stored ) {
+				nwa_send_message( $user_id, $wa_number, "✅ Sent! Our team has your message and will get back to you soon, In sha Allah.\n\nJazakAllah khair for reaching out. 🤲" );
+			} else {
+				nwa_send_message( $user_id, $wa_number, "Sorry, something went wrong saving your message. Please try again later, or use " . home_url( '/contact-us/' ) . "." );
+			}
+			return '';
+		}
+
+		nwa_send_message( $user_id, $wa_number, "Please tap *Send* to submit, or *Cancel* to discard." );
+		return '';
+	}
+
+	// Unknown step — reset gracefully so the next message routes normally.
+	NWA_DB::set_pending_action( $conversation->id, null );
+	return $override;
 }
 
 /* ---------------- Directory listing flow (multi-step) ----------------

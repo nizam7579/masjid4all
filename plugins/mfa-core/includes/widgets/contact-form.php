@@ -114,28 +114,32 @@ function mfa_ajax_contact_submit() {
 		}
 	}
 
-	$to      = 'nizam7579@gmail.com';
-	$email_subject = 'Contact Us - ' . $subject;
-	$body    = "Name: {$name}\n"
-		. "Email: {$email}\n"
-		. "Whatsapp Number: {$phone}\n"
-		. "Subject: {$subject}\n"
-		. "Message: {$message}\n\n"
-		. 'This form submitted at: ' . home_url( '/contact-us/' );
+	$stored = mfa_contact_us_store( $name, $email, $phone, $subject, $message, get_current_user_id() );
 
-	$headers = array( 'From: Masjid4All <' . get_option( 'admin_email' ) . '>' );
-	$sent    = wp_mail( $to, $email_subject, $body, $headers );
-
-	if ( ! $sent ) {
+	if ( ! $stored ) {
 		wp_send_json_error( array( 'message' => 'Could not send your message. Please try again later.' ) );
 	}
 
-	// Store the inquiry (feeds /admin/inquiry/ - admin-inquiry-list.php).
-	// Best-effort: a DB hiccup here shouldn't block the user from seeing a
-	// success message, since the admin notification email above (the
-	// original, gating side effect) already went out.
+	wp_send_json_success( array( 'message' => "Thank you! We've received your message and will get back to you soon." ) );
+}
+
+/**
+ * Store a Contact-Us submission and send the notifications. Shared by the
+ * web form's AJAX handler above and Sofia's WhatsApp contact flow
+ * (niz-wa-integration.php's niz_wa_contact_route()), so both channels write
+ * the same wp_jet_cct_contact_us row (status "New", feeds /admin/inquiry/)
+ * and send the same team + sender emails.
+ *
+ * The stored CCT row is the durable record and the success criterion; both
+ * emails are best-effort - a mail failure (staging's sender subdomain isn't
+ * always deliverable) must not lose the submission. Returns true if the row
+ * was stored. $phone is the WhatsApp number for the WhatsApp channel, or the
+ * number typed into the web form.
+ */
+function mfa_contact_us_store( $name, $email, $phone, $subject, $message, $author_id = 0 ) {
 	global $wpdb;
-	$wpdb->insert(
+
+	$stored = $wpdb->insert(
 		$wpdb->prefix . 'jet_cct_contact_us',
 		array(
 			'cct_status'    => 'New',
@@ -144,22 +148,32 @@ function mfa_ajax_contact_submit() {
 			'phone'         => $phone,
 			'subject'       => $subject,
 			'message'       => $message,
-			'cct_author_id' => get_current_user_id(),
+			'cct_author_id' => (int) $author_id,
 			'cct_created'   => current_time( 'mysql' ),
 			'cct_modified'  => current_time( 'mysql' ),
 		),
 		array( '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s' )
 	);
 
-	// Confirmation to the sender - also best-effort, doesn't block success.
-	$confirm_subject = "We've received your message - Masjid4All";
-	$confirm_body    = "Assalamualaikum {$name},\n\n"
+	$headers = array( 'From: Masjid4All <' . get_option( 'admin_email' ) . '>' );
+
+	// Notify the team.
+	$team_body = "Name: {$name}\n"
+		. "Email: {$email}\n"
+		. "Whatsapp Number: {$phone}\n"
+		. "Subject: {$subject}\n"
+		. "Message: {$message}\n\n"
+		. 'Submitted via: ' . home_url( '/contact-us/' );
+	wp_mail( 'nizam7579@gmail.com', 'Contact Us - ' . $subject, $team_body, $headers );
+
+	// Confirm to the sender.
+	$confirm_body = "Assalamualaikum {$name},\n\n"
 		. "Thank you for reaching out to Masjid4All. We've received your message and our team will get back to you soon.\n\n"
 		. "Your message:\n"
 		. "Subject: {$subject}\n"
 		. "{$message}\n\n"
 		. "JazakAllah khair,\nMasjid4All Team";
-	wp_mail( $email, $confirm_subject, $confirm_body, $headers );
+	wp_mail( $email, "We've received your message - Masjid4All", $confirm_body, $headers );
 
-	wp_send_json_success( array( 'message' => "Thank you! We've received your message and will get back to you soon." ) );
+	return (bool) $stored;
 }

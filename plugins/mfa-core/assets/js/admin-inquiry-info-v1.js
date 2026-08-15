@@ -34,9 +34,13 @@
 						if ( textarea ) {
 							textarea.value = '';
 						}
-					} else {
-						msg.textContent = ( result.data && result.data.message ) || 'Something went wrong. Please try again.';
+						// Reload so the Status badge picks up the "Replied" update
+						// the AJAX handler just made — same pattern as the business
+						// update form's own success reload.
+						setTimeout( function () { location.reload(); }, 1200 );
+						return;
 					}
+					msg.textContent = ( result.data && result.data.message ) || 'Something went wrong. Please try again.';
 				}
 				if ( btn ) {
 					btn.disabled = false;

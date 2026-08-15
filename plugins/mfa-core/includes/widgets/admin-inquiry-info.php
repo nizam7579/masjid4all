@@ -177,5 +177,15 @@ function mfa_ajax_admin_inquiry_reply_whatsapp() {
 		wp_send_json_error( array( 'message' => 'Failed to send: ' . ( $result['error'] ?? 'unknown error' ) ) );
 	}
 
+	// Best-effort: the message already sent successfully, so a status-update
+	// hiccup here shouldn't turn a real send into a reported failure.
+	$wpdb->update(
+		$wpdb->prefix . 'jet_cct_contact_us',
+		array( 'cct_status' => 'Replied', 'cct_modified' => current_time( 'mysql' ) ),
+		array( '_ID' => $id ),
+		array( '%s', '%s' ),
+		array( '%d' )
+	);
+
 	wp_send_json_success( array( 'message' => 'Sent via WhatsApp.' ) );
 }

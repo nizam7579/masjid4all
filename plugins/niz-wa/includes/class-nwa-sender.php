@@ -136,6 +136,65 @@ class NWA_Sender {
 	}
 
 	/**
+	 * Interactive WhatsApp Flow message — opens a native in-chat form. Like
+	 * send_message()/send_buttons(), only valid inside the 24h window. The
+	 * flow must already be published in Meta's WhatsApp Manager; $screen_id
+	 * is that flow's first screen id. $flow_token isn't needed back to
+	 * correlate the eventual nfm_reply (it arrives on the same conversation
+	 * thread like any other inbound message) — it only shows up in Meta's
+	 * own flow analytics, so a generated one is fine when the caller has
+	 * nothing more meaningful to pass.
+	 */
+	public static function send_flow( $user_id, $to, $body_text, $flow_id, $flow_cta, $screen_id, $flow_token = null ) {
+		$conversation = NWA_DB::get_conversation_by_user( $user_id );
+
+		if ( ! $conversation || ! NWA_DB::is_within_window( $conversation ) ) {
+			error_log( 'Niz WA: send_flow blocked — user_id=' . $user_id . ' to=' . $to
+				. ' conversation_found=' . ( $conversation ? 'yes' : 'no' ) );
+			return array( 'success' => false, 'error' => 'outside_window', 'message_id' => null );
+		}
+
+		$flow_token = $flow_token ?: ( 'nwa_flow_' . $conversation->id . '_' . time() );
+
+		$body = array(
+			'messaging_product' => 'whatsapp',
+			'to'                => $to,
+			'type'              => 'interactive',
+			'interactive'       => array(
+				'type'   => 'flow',
+				'body'   => array( 'text' => $body_text ),
+				'action' => array(
+					'name'       => 'flow',
+					'parameters' => array(
+						'flow_message_version' => '3',
+						'flow_token'            => $flow_token,
+						'flow_id'               => $flow_id,
+						'flow_cta'              => $flow_cta,
+						'flow_action'           => 'navigate',
+						'flow_action_payload'   => array( 'screen' => $screen_id ),
+					),
+				),
+			),
+		);
+
+		$response = self::api_request( $body );
+
+		if ( $response['success'] ) {
+			NWA_DB::insert_outbound_message( array(
+				'user_id'         => $user_id,
+				'conversation_id' => $conversation->id,
+				'wa_number'       => $to,
+				'msg_type'        => 'interactive',
+				'content'         => $body_text,
+				'meta_message_id' => $response['message_id'],
+			) );
+			NWA_DB::touch_outbound( $conversation->id, current_time( 'mysql' ) );
+		}
+
+		return $response;
+	}
+
+	/**
 	 * Marks an inbound message as read and shows the 'typing…' indicator in
 	 * the user's chat while a reply is being generated. WhatsApp clears the
 	 * indicator automatically after ~25s or as soon as the next message is
@@ -237,4 +296,8 @@ function nwa_send_template( $to, $template_name, $lang_code = 'en_US', $componen
 
 function nwa_send_buttons( $user_id, $to, $body_text, $buttons ) {
 	return NWA_Sender::send_buttons( $user_id, $to, $body_text, $buttons );
+}
+
+function nwa_send_flow( $user_id, $to, $body_text, $flow_id, $flow_cta, $screen_id, $flow_token = null ) {
+	return NWA_Sender::send_flow( $user_id, $to, $body_text, $flow_id, $flow_cta, $screen_id, $flow_token );
 }

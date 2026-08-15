@@ -499,18 +499,83 @@ function niz_wa_action_inquiry( $user_id, $context ) {
 	return niz_wa_contact_start( $user_id, $context );
 }
 
-/* ---------------- Contact-Us flow (multi-step) ----------------
+/* ---------------- Contact-Us flow ----------------
    Sofia now takes the user's message to the team in-chat instead of handing
-   out the /contact-us/ URL (changed 2026-08-15). Steps: name -> email ->
-   subject -> message -> review -> send. Name/email are pre-offered from the
-   member's record when known (a real email is anything not ending in
-   @mfa.com, the WhatsApp placeholder domain). The in-progress step lives in
-   niz-wa's own pending_action/pending_context columns (intent_key
-   'contact_flow'); niz_wa_contact_route() claims every message while the
-   session is live. On send it calls the shared mfa_contact_us_store()
-   (contact-form.php) so the WhatsApp and web channels write identical
-   wp_jet_cct_contact_us rows + notifications. Phone is not asked - it is the
-   user's WhatsApp number. */
+   out the /contact-us/ URL (changed 2026-08-15). Primary path (added
+   2026-08-15) is a native WhatsApp Flow — MFA_CONTACT_FLOW_ID is Meta's
+   published id for the "Masjid4All - Contact Us" flow (single screen, id
+   CONTACT_FORM, fields name/email/subject/message) — so the user fills a
+   real in-chat form instead of answering one question at a time. If sending
+   the flow message fails for any reason (outside the 24h window, API error,
+   flow not configured), niz_wa_contact_start() falls back to the older
+   multi-step text conversation below (name -> email -> subject -> message ->
+   review -> send), which stays fully intact as a safety net. Name/email are
+   pre-offered from the member's record when known in the fallback path (a
+   real email is anything not ending in @mfa.com, the WhatsApp placeholder
+   domain). The fallback's in-progress step lives in niz-wa's own
+   pending_action/pending_context columns (intent_key 'contact_flow');
+   niz_wa_contact_route() claims every message while that session is live.
+   Both paths end at the shared mfa_contact_us_store() (contact-form.php) so
+   WhatsApp and the web form write identical wp_jet_cct_contact_us rows +
+   notifications. Phone is not asked - it is the user's WhatsApp number. */
+
+// Meta's published id for the single-screen "Masjid4All - Contact Us" flow
+// (WABA 27070199045967929 - the one actually behind niz-wa's sending number,
+// +60 18-989 7579 - screen id CONTACT_FORM). Not a secret, just this WABA's
+// resource id - see the flow-message note above. A flow created against the
+// wrong WABA (119349044605868, Meta's default "Test" WABA) sends but every
+// send 400s with error 131009 ("flow_id is invalid... doesn't belong to your
+// WhatsApp Business Account") - confirmed live 2026-08-15, don't reuse that
+// id.
+define( 'MFA_CONTACT_FLOW_ID', '1673813523692341' );
+
+// Priority 5: runs before every other stateful session override, since its
+// guard (message_text must decode to JSON containing an nfm_reply key) is
+// narrow enough that it can never misfire on a plain-text reply meant for
+// another flow.
+add_filter( 'nwa_route_message_override', 'niz_wa_contact_flow_reply_route', 5, 5 );
+
+/**
+ * Claims the completed-form reply from the native WhatsApp Flow sent by
+ * niz_wa_contact_start(). Meta delivers this as a normal inbound message
+ * whose content (already JSON-encoded by NWA_Webhook::extract_content(),
+ * since it isn't a button_reply/list_reply) is the raw 'interactive' object;
+ * nfm_reply.response_json inside it holds the submitted field values. Only
+ * one flow exists today, so no flow_token/name matching is needed to tell
+ * flows apart - add that if a second Flow (e.g. Faraid) goes live.
+ */
+function niz_wa_contact_flow_reply_route( $override, $user_id, $wa_number, $message_text, $conversation ) {
+	if ( null !== $override ) {
+		return $override;
+	}
+
+	$interactive = json_decode( (string) $message_text, true );
+	if ( ! is_array( $interactive ) || ! isset( $interactive['nfm_reply']['response_json'] ) ) {
+		return $override;
+	}
+
+	$fields = json_decode( (string) $interactive['nfm_reply']['response_json'], true );
+	$fields = is_array( $fields ) ? $fields : array();
+
+	$name    = sanitize_text_field( $fields['name'] ?? '' );
+	$email   = sanitize_email( $fields['email'] ?? '' );
+	$subject = sanitize_text_field( $fields['subject'] ?? '' );
+	$message = sanitize_textarea_field( $fields['message'] ?? '' );
+
+	if ( '' === $name || '' === $email || ! is_email( $email ) || '' === $subject || '' === $message ) {
+		return "Sorry, I couldn't read that submission properly. Please try again, or message *contact* to restart.";
+	}
+
+	$stored = function_exists( 'mfa_contact_us_store' )
+		? mfa_contact_us_store( $name, $email, $wa_number, $subject, $message, (int) $user_id )
+		: false;
+
+	if ( $stored ) {
+		return "✅ Sent! Our team has your message and will get back to you soon, In sha Allah.\n\nJazakAllah khair for reaching out. 🤲";
+	}
+
+	return "Sorry, something went wrong saving your message. Please try again later, or use " . home_url( '/contact-us/' ) . ".";
+}
 
 // Priority 25: runs after whatsapp-verify (10), account (15) and directory
 // (20) overrides, so their sessions/codes always win if somehow both open.
@@ -558,9 +623,10 @@ function niz_wa_contact_is_affirmative( $text ) {
 }
 
 /**
- * Entry point for the 'inquiry' action: open the contact session and ask for
- * the first field (offering the known name when we have one). Sends its own
- * message and returns '' so NWA_Router sends nothing further.
+ * Entry point for the 'inquiry' action. Tries the native WhatsApp Flow form
+ * first; if that send fails (outside the 24h window, API error, etc.) falls
+ * back to the step-by-step text conversation below. Either way sends its own
+ * message(s) and returns '' so NWA_Router sends nothing further.
  */
 function niz_wa_contact_start( $user_id, $context ) {
 	$conversation = NWA_DB::get_conversation_by_user( $user_id );
@@ -569,7 +635,22 @@ function niz_wa_contact_start( $user_id, $context ) {
 		return "I'd love to pass your message to our team. Please use our contact form:\n" . home_url( '/contact-us/' );
 	}
 
-	$wa_number  = $conversation->wa_number;
+	$wa_number = $conversation->wa_number;
+
+	if ( function_exists( 'nwa_send_flow' ) ) {
+		$sent = nwa_send_flow(
+			$user_id,
+			$wa_number,
+			"I'd be glad to pass your message to the Masjid4All team. 📝\n\nJust fill in the short form below and tap Submit — you can cancel anytime.",
+			MFA_CONTACT_FLOW_ID,
+			'Contact Us',
+			'CONTACT_FORM'
+		);
+		if ( ! empty( $sent['success'] ) ) {
+			return '';
+		}
+	}
+
 	$known_name = niz_wa_contact_known_name( $user_id );
 
 	$intro = "I'd be glad to pass your message to the Masjid4All team. 📝\n\nLet's put it together — you can reply *stop* anytime to cancel.\n\n";

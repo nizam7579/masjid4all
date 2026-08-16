@@ -909,6 +909,19 @@ function niz_business_ai_updater_shortcode() {
     </div>
 
     <script>
+        // 2026-08-17: this inline script is duplicated once per
+        // [niz_business_ai_updater] call on the page (unlike website's
+        // equivalent, a properly wp_enqueue_script()'d file WP dedupes
+        // automatically) - business-single.php now renders this shortcode
+        // twice on New/Pending listings (the always-visible action-row
+        // button plus the inline prompt), which without this guard would
+        // attach the click listener twice per button and double-fire the
+        // AJAX call on every click. window.__nizAiUpdateWired makes only
+        // the first copy of this script actually wire anything up; by then
+        // every instance's button already exists in the server-rendered
+        // HTML, so one querySelectorAll pass still finds all of them.
+        if (!window.__nizAiUpdateWired) {
+        window.__nizAiUpdateWired = true;
         document.addEventListener('DOMContentLoaded', function() {
             // Find all update buttons on the page (just in case there are multiple)
             const updateBtns = document.querySelectorAll('.niz-ai-update-btn');
@@ -970,6 +983,7 @@ function niz_business_ai_updater_shortcode() {
                 });
             });
         });
+        }
     </script>
     <?php
     

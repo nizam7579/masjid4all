@@ -74,7 +74,16 @@ function mfa_website_home_tab_shortcode() {
 			<?php if ( $is_admin ) : ?>
 				<?php
 				$upload_icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>';
-				echo do_shortcode( '[mfa_modal id="web-image-' . esc_attr( $post_id ) . '" title="Upload Image" label="Upload Image" button_class="mfa-web-action-btn" icon=\'' . $upload_icon . '\'][cpt_image_manager][mfa_website_update][/mfa_modal]' );
+				echo do_shortcode( '[mfa_modal id="web-image-' . esc_attr( $post_id ) . '" title="Upload Image" label="Upload Image" button_class="mfa-web-action-btn" icon=\'' . $upload_icon . '\'][cpt_image_manager][/mfa_modal]' );
+
+				// Always-visible "Update Content" (2026-08-17, moved out of the
+				// Upload Image modal above where it was previously buried -
+				// [mfa_website_update] was enclosed inside that modal's content,
+				// easy to miss). Same engine as the inline New/Pending prompt in
+				// mfa_web_info_display() below - its own JS is already
+				// querySelectorAll-based, safe to render in both places - just
+				// available regardless of listing_status.
+				echo do_shortcode( '[mfa_website_update]' );
 				?>
 			<?php endif; ?>
 

@@ -110,6 +110,62 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ---------- listing tabs ----------
+   Both panels stay in the DOM regardless of JS (see place-hub.php) - the
+   "hide the inactive panel" rule only applies once place-hub-v1.js has
+   added .mfa-place-tabs-js, so a no-JS visitor (or a crawler) just sees
+   both sections stacked, same as before tabs existed. */
+
+.mfa-place-tablist {
+  display: flex;
+  gap: var(--mfa-space-2, 8px);
+  border-bottom: 1px solid var(--mfa-border, #e7efed);
+  margin-bottom: var(--mfa-space-6, 24px);
+}
+.mfa-place-tab {
+  appearance: none;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -1px;
+  padding: var(--mfa-space-3, 12px) var(--mfa-space-1, 4px);
+  font: inherit;
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--mfa-muted, #5b6b66);
+  cursor: pointer;
+}
+.mfa-place-tab:hover,
+.mfa-place-tab:focus-visible {
+  color: var(--mfa-green-dark, #0d4d47);
+}
+.mfa-place-tab.is-active {
+  color: var(--mfa-green-dark, #0d4d47);
+  border-bottom-color: var(--mfa-teal, #25988b);
+}
+.mfa-place-tab-count {
+  color: var(--mfa-muted, #5b6b66);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+.mfa-place-tab.is-active .mfa-place-tab-count {
+  color: inherit;
+}
+
+.mfa-place-tabs-js .mfa-place-tabpanel {
+  display: none;
+}
+.mfa-place-tabs-js .mfa-place-tabpanel.is-active {
+  display: block;
+}
+
+/* Tab panels already carry .mfa-place-section's own bottom margin, but the
+   last one inside an active tab shouldn't add trailing space the tabs
+   container doesn't need. */
+.mfa-place-tabpanel .mfa-place-section:last-child {
+  margin-bottom: 0;
+}
+
 /* ---------- listings ---------- */
 
 .mfa-place-list {

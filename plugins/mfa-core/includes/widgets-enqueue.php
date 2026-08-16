@@ -218,6 +218,9 @@ function mfa_core_enqueue_widget_assets() {
 	if ( defined( 'MFA_PLACE_POST_TYPE' ) && is_singular( MFA_PLACE_POST_TYPE ) ) {
 		$place_css = MFA_CORE_PATH . 'assets/css/place-hub-v1.css';
 		wp_enqueue_style( 'mfa-core-place-hub', MFA_CORE_URL . 'assets/css/place-hub-v1.css', array( 'mfa-core-global' ), $get_version( $place_css ) );
+
+		$place_js = MFA_CORE_PATH . 'assets/js/place-hub-v1.js';
+		wp_enqueue_script( 'mfa-core-place-hub', MFA_CORE_URL . 'assets/js/place-hub-v1.js', array(), $get_version( $place_js ), true );
 	}
 
 	// Reusable content/ad two-column layout utility — sitewide, not tied

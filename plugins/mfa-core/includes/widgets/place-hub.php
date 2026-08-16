@@ -35,8 +35,13 @@ function mfa_place_template_include( $template ) {
  * internal link, and the whole job of this page is to hand out link equity. */
 const MFA_PLACE_PER_PAGE = 24;
 
-function mfa_place_current_page() {
-	return isset( $_GET['pg'] ) ? max( 1, absint( $_GET['pg'] ) ) : 1;
+/** Each listing type paginates independently ($type is 'mosque' or
+ * 'business') via its own ?mosque_pg=/?business_pg= query arg - a shared
+ * ?pg= meant paging through one tab's list silently moved the other tab's
+ * list to the same page number too. */
+function mfa_place_current_page( $type ) {
+	$key = $type . '_pg';
+	return isset( $_GET[ $key ] ) ? max( 1, absint( $_GET[ $key ] ) ) : 1;
 }
 
 /** A listing's public URL - page_url is what the directory's own AJAX loader
@@ -62,10 +67,12 @@ function mfa_place_hub_shortcode() {
 	$geo      = mfa_place_geo( $place_id );
 	$counts   = mfa_place_counts( $place_id );
 	$children = mfa_place_children( $place_id );
-	$paged    = mfa_place_current_page();
 
-	$mosques    = mfa_place_listings( $place_id, 'mosque', $paged, MFA_PLACE_PER_PAGE );
-	$businesses = mfa_place_listings( $place_id, 'business', $paged, MFA_PLACE_PER_PAGE );
+	$mosque_paged   = mfa_place_current_page( 'mosque' );
+	$business_paged = mfa_place_current_page( 'business' );
+
+	$mosques    = mfa_place_listings( $place_id, 'mosque', $mosque_paged, MFA_PLACE_PER_PAGE );
+	$businesses = mfa_place_listings( $place_id, 'business', $business_paged, MFA_PLACE_PER_PAGE );
 
 	$ancestors = array_reverse( get_post_ancestors( $place_id ) );
 
@@ -121,8 +128,39 @@ function mfa_place_hub_shortcode() {
 		<?php endif; ?>
 
 		<?php
-		echo mfa_place_listing_section( 'Mosques in ' . $title, $mosques, $paged, 'mosque' ); // phpcs:ignore WordPress.Security.EscapeOutput
-		echo mfa_place_listing_section( 'Halal businesses in ' . $title, $businesses, $paged, 'business' ); // phpcs:ignore WordPress.Security.EscapeOutput
+		$mosque_html   = mfa_place_listing_section( 'Mosques in ' . $title, $mosques, $mosque_paged, 'mosque' );
+		$business_html = mfa_place_listing_section( 'Halal businesses in ' . $title, $businesses, $business_paged, 'business' );
+
+		if ( $mosque_html && $business_html ) :
+			// Both lists exist - tabs, so a user can switch between them
+			// without scrolling. Both panels stay in the markup either way
+			// (only CSS/JS toggles which shows) so this stays exactly as
+			// crawlable as the untabbed version - see this file's top
+			// docblock on why nothing here loads over AJAX.
+			//
+			// Default tab follows whichever pager was just clicked (a
+			// pagination link is a plain full-page reload, not an in-tab
+			// JS swap) - otherwise "Next" on the Businesses tab would land
+			// back on the Mosques tab. Falls back to Mosques first when
+			// neither pager is in the URL.
+			$default_tab = isset( $_GET['business_pg'] ) && ! isset( $_GET['mosque_pg'] ) ? 'business' : 'mosque';
+			?>
+			<div class="mfa-place-tabs">
+				<div class="mfa-place-tablist" role="tablist">
+					<button type="button" class="mfa-place-tab<?php echo 'mosque' === $default_tab ? ' is-active' : ''; ?>" data-tab="mosque" role="tab" aria-selected="<?php echo 'mosque' === $default_tab ? 'true' : 'false'; ?>">
+						Mosques <span class="mfa-place-tab-count"><?php echo esc_html( number_format_i18n( $counts['mosque'] ) ); ?></span>
+					</button>
+					<button type="button" class="mfa-place-tab<?php echo 'business' === $default_tab ? ' is-active' : ''; ?>" data-tab="business" role="tab" aria-selected="<?php echo 'business' === $default_tab ? 'true' : 'false'; ?>">
+						Halal Businesses <span class="mfa-place-tab-count"><?php echo esc_html( number_format_i18n( $counts['business'] ) ); ?></span>
+					</button>
+				</div>
+				<div class="mfa-place-tabpanel<?php echo 'mosque' === $default_tab ? ' is-active' : ''; ?>" data-tabpanel="mosque"><?php echo $mosque_html; // phpcs:ignore WordPress.Security.EscapeOutput ?></div>
+				<div class="mfa-place-tabpanel<?php echo 'business' === $default_tab ? ' is-active' : ''; ?>" data-tabpanel="business"><?php echo $business_html; // phpcs:ignore WordPress.Security.EscapeOutput ?></div>
+			</div>
+			<?php
+		else :
+			echo $mosque_html . $business_html; // phpcs:ignore WordPress.Security.EscapeOutput
+		endif;
 		?>
 
 		<?php
@@ -158,8 +196,9 @@ function mfa_place_hub_shortcode() {
 
 /**
  * One listing section with its own pagination. Pagination is plain links
- * (?pg=N), not a JS "load more", so every page of results is reachable by a
- * crawler that doesn't run scripts.
+ * (?mosque_pg=N / ?business_pg=N - separate per type, see
+ * mfa_place_current_page()), not a JS "load more", so every page of results
+ * is reachable by a crawler that doesn't run scripts.
  */
 function mfa_place_listing_section( $heading, $result, $paged, $type ) {
 	if ( ! $result['rows'] ) {
@@ -194,11 +233,11 @@ function mfa_place_listing_section( $heading, $result, $paged, $type ) {
 		<?php if ( $pages > 1 ) : ?>
 			<nav class="mfa-place-pager" aria-label="<?php echo esc_attr( $heading ); ?> pages">
 				<?php if ( $paged > 1 ) : ?>
-					<a href="<?php echo esc_url( add_query_arg( 'pg', $paged - 1 ) ); ?>" rel="prev">&larr; Previous</a>
+					<a href="<?php echo esc_url( add_query_arg( $type . '_pg', $paged - 1 ) ); ?>" rel="prev">&larr; Previous</a>
 				<?php endif; ?>
 				<span>Page <?php echo esc_html( number_format_i18n( $paged ) ); ?> of <?php echo esc_html( number_format_i18n( $pages ) ); ?></span>
 				<?php if ( $paged < $pages ) : ?>
-					<a href="<?php echo esc_url( add_query_arg( 'pg', $paged + 1 ) ); ?>" rel="next">Next &rarr;</a>
+					<a href="<?php echo esc_url( add_query_arg( $type . '_pg', $paged + 1 ) ); ?>" rel="next">Next &rarr;</a>
 				<?php endif; ?>
 			</nav>
 		<?php endif; ?>

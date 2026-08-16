@@ -66,8 +66,21 @@ function mfa_admin_inquiry_info_shortcode() {
 			if ( ! $row ) {
 				echo '<p class="mfa-body-muted">Inquiry not found.</p>';
 			} else {
+				// Only New -> Read, opening an already-Replied/Archived inquiry
+				// shouldn't downgrade its status.
+				if ( 'New' === $row['cct_status'] ) {
+					$wpdb->update(
+						$cct_table,
+						array( 'cct_status' => 'Read', 'cct_modified' => current_time( 'mysql' ) ),
+						array( '_ID' => $id ),
+						array( '%s', '%s' ),
+						array( '%d' )
+					);
+					$row['cct_status'] = 'Read';
+				}
+
 				$reply_url   = ! empty( $row['email'] ) ? 'mailto:' . rawurlencode( $row['email'] ) . '?subject=' . rawurlencode( 'Re: ' . $row['subject'] ) : '';
-					$wa_eligible = mfa_admin_inquiry_whatsapp_eligibility( $row['cct_author_id'] ?? 0 );
+				$wa_eligible = mfa_admin_inquiry_whatsapp_eligibility( $row['cct_author_id'] ?? 0 );
 				?>
 				<h1 class="mfa-h2"><?php echo esc_html( $row['subject'] ? $row['subject'] : '—' ); ?></h1>
 

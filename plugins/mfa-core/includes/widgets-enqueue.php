@@ -211,6 +211,15 @@ function mfa_core_enqueue_widget_assets() {
 		wp_enqueue_script( 'mfa-core-header', MFA_CORE_URL . 'assets/js/header-v3.js', array(), $get_version( $header_js_path ), true );
 	}
 
+	// /places/* geographic hubs. Keyed on the post type rather than
+	// has_shortcode(), because the shortcode lives in templates/place-page.php
+	// (the CPT's own template), never in the post's editor content — the same
+	// PHP-wrapped-shortcode blind spot noted for the tool pages above.
+	if ( defined( 'MFA_PLACE_POST_TYPE' ) && is_singular( MFA_PLACE_POST_TYPE ) ) {
+		$place_css = MFA_CORE_PATH . 'assets/css/place-hub-v1.css';
+		wp_enqueue_style( 'mfa-core-place-hub', MFA_CORE_URL . 'assets/css/place-hub-v1.css', array( 'mfa-core-global' ), $get_version( $place_css ) );
+	}
+
 	// Reusable content/ad two-column layout utility — sitewide, not tied
 	// to a specific page or shortcode. See page-layout-v2.css for usage.
 	$page_layout_css = MFA_CORE_PATH . 'assets/css/page-layout-v2.css';

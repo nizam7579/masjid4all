@@ -1,0 +1,212 @@
+/* mfa-core place-hub.css — the /places/... geographic hub pages
+   ([mfa_place_hub]). Uses global-v2 tokens. Selectors are scoped to their
+   own element/class rather than descendant catch-alls like ".mfa-place a",
+   deliberately: a broad link rule inside a container is what caused the
+   invisible-CTA and wrong-font-size bugs elsewhere in this project. */
+
+.mfa-place {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: var(--mfa-space-6, 24px) var(--mfa-space-5, 20px) var(--mfa-space-9, 48px);
+}
+
+/* ---------- breadcrumb ---------- */
+
+.mfa-place-crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--mfa-space-2, 8px);
+  font-size: 14px;
+  color: var(--mfa-muted, #5b6b66);
+  margin-bottom: var(--mfa-space-5, 20px);
+}
+.mfa-place-crumbs a {
+  color: var(--mfa-teal, #25988b);
+  text-decoration: none;
+}
+.mfa-place-crumbs a:hover,
+.mfa-place-crumbs a:focus-visible {
+  text-decoration: underline;
+}
+.mfa-place-crumbs [aria-current="page"] {
+  color: var(--mfa-green-dark, #0d4d47);
+  font-weight: 600;
+}
+
+/* ---------- heading ---------- */
+
+.mfa-place-head {
+  padding-bottom: var(--mfa-space-5, 20px);
+  border-bottom: 1px solid var(--mfa-border, #e7efed);
+  margin-bottom: var(--mfa-space-7, 32px);
+}
+.mfa-place-title {
+  color: var(--mfa-green-dark, #0d4d47);
+  font-size: clamp(1.6rem, 4vw, 2.3rem);
+  line-height: 1.2;
+  margin: 0 0 var(--mfa-space-3, 12px);
+  text-wrap: balance;
+}
+.mfa-place-counts {
+  margin: 0;
+  color: var(--mfa-muted, #5b6b66);
+  font-size: 15px;
+}
+.mfa-place-counts strong {
+  color: var(--mfa-ink, #12181f);
+  font-variant-numeric: tabular-nums;
+}
+
+.mfa-place-intro {
+  margin-bottom: var(--mfa-space-7, 32px);
+  color: var(--mfa-ink, #12181f);
+}
+
+/* ---------- sections ---------- */
+
+.mfa-place-section {
+  margin-bottom: var(--mfa-space-9, 48px);
+}
+.mfa-place-h2 {
+  color: var(--mfa-green-dark, #0d4d47);
+  font-size: 1.25rem;
+  margin: 0 0 var(--mfa-space-5, 20px);
+}
+
+/* ---------- child hubs (states / districts) ---------- */
+
+.mfa-place-children {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--mfa-space-3, 12px);
+}
+.mfa-place-children > li > a {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mfa-space-1, 4px);
+  padding: var(--mfa-space-4, 16px);
+  background: var(--mfa-mint-bg, #f4faf9);
+  border: 1px solid var(--mfa-border, #e7efed);
+  border-radius: var(--mfa-radius-md, 16px);
+  text-decoration: none;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.mfa-place-children > li > a:hover,
+.mfa-place-children > li > a:focus-visible {
+  border-color: var(--mfa-teal, #25988b);
+  transform: translateY(-1px);
+}
+.mfa-place-child-name {
+  color: var(--mfa-green-dark, #0d4d47);
+  font-weight: 600;
+}
+.mfa-place-child-count {
+  color: var(--mfa-muted, #5b6b66);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- listings ---------- */
+
+.mfa-place-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--mfa-space-3, 12px);
+}
+.mfa-place-item > a {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mfa-space-1, 4px);
+  height: 100%;
+  padding: var(--mfa-space-4, 16px);
+  background: var(--mfa-white, #fff);
+  border: 1px solid var(--mfa-border, #e7efed);
+  border-radius: var(--mfa-radius-md, 16px);
+  text-decoration: none;
+  box-shadow: var(--mfa-shadow-card, 0 4px 14px -6px rgba(13, 77, 71, 0.12));
+  transition: border-color 0.15s ease;
+}
+.mfa-place-item > a:hover,
+.mfa-place-item > a:focus-visible {
+  border-color: var(--mfa-teal, #25988b);
+}
+.mfa-place-item-name {
+  color: var(--mfa-green-dark, #0d4d47);
+  font-weight: 600;
+  line-height: 1.35;
+}
+.mfa-place-item-addr {
+  color: var(--mfa-muted, #5b6b66);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+/* ---------- pagination ---------- */
+
+.mfa-place-pager {
+  display: flex;
+  align-items: center;
+  gap: var(--mfa-space-4, 16px);
+  margin-top: var(--mfa-space-5, 20px);
+  font-size: 14px;
+  color: var(--mfa-muted, #5b6b66);
+}
+.mfa-place-pager a {
+  color: var(--mfa-teal, #25988b);
+  font-weight: 600;
+  text-decoration: none;
+}
+.mfa-place-pager a:hover,
+.mfa-place-pager a:focus-visible {
+  text-decoration: underline;
+}
+
+/* ---------- sibling cross-links ---------- */
+
+.mfa-place-siblings {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mfa-space-2, 8px);
+}
+.mfa-place-siblings > li > a {
+  display: inline-block;
+  padding: var(--mfa-space-2, 8px) var(--mfa-space-4, 16px);
+  background: var(--mfa-mint-bg, #f4faf9);
+  border: 1px solid var(--mfa-border, #e7efed);
+  border-radius: var(--mfa-radius-pill, 999px);
+  color: var(--mfa-green-dark, #0d4d47);
+  font-size: 14px;
+  text-decoration: none;
+}
+.mfa-place-siblings > li > a:hover,
+.mfa-place-siblings > li > a:focus-visible {
+  border-color: var(--mfa-teal, #25988b);
+  color: var(--mfa-teal, #25988b);
+}
+
+.mfa-place-empty {
+  padding: var(--mfa-space-6, 24px);
+  background: var(--mfa-mint-bg, #f4faf9);
+  border: 1px solid var(--mfa-border, #e7efed);
+  border-radius: var(--mfa-radius-md, 16px);
+  color: var(--mfa-muted, #5b6b66);
+}
+
+@media (max-width: 600px) {
+  .mfa-place {
+    padding: var(--mfa-space-4, 16px) var(--mfa-space-4, 16px) var(--mfa-space-8, 40px);
+  }
+  .mfa-place-section {
+    margin-bottom: var(--mfa-space-7, 32px);
+  }
+}

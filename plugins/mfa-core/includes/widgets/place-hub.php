@@ -74,12 +74,14 @@ function mfa_place_hub_shortcode() {
 	<div class="mfa-place">
 
 		<nav class="mfa-place-crumbs" aria-label="Breadcrumb">
-			<a href="/places/">Places</a>
-			<?php foreach ( $ancestors as $ancestor_id ) : ?>
-				<span aria-hidden="true">&rsaquo;</span>
+			<?php
+			// No /places/ root crumb - the post type has no archive, so linking
+			// one would 404 on every hub page. The chain starts at the country.
+			foreach ( $ancestors as $ancestor_id ) :
+				?>
 				<a href="<?php echo esc_url( get_permalink( $ancestor_id ) ); ?>"><?php echo esc_html( get_the_title( $ancestor_id ) ); ?></a>
+				<span aria-hidden="true">&rsaquo;</span>
 			<?php endforeach; ?>
-			<span aria-hidden="true">&rsaquo;</span>
 			<span aria-current="page"><?php echo esc_html( $title ); ?></span>
 		</nav>
 

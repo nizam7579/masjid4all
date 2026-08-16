@@ -16,18 +16,48 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 function mfa_admin_nav_items() {
 	return array(
-		array( 'id' => 9343,   'label' => 'Dashboard', 'url' => home_url( '/admin/' ),          'icon' => 'dashboard' ),
-		array( 'id' => 229457, 'label' => 'Inquiry',   'url' => home_url( '/admin/inquiry/' ),  'icon' => 'mail' ),
-		array( 'id' => 217771, 'label' => 'Members',   'url' => home_url( '/admin/member/' ),   'icon' => 'users' ),
-		array( 'id' => 66564,  'label' => 'WhatsApp',  'url' => home_url( '/admin/whatsapp/' ), 'icon' => 'chat' ),
-		array( 'id' => 32963,  'label' => 'Mosque',    'url' => home_url( '/admin/mosque/' ),   'icon' => 'mosque' ),
-		array( 'id' => 33096,  'label' => 'Business',  'url' => home_url( '/admin/business/' ), 'icon' => 'briefcase' ),
-		array( 'id' => 229366, 'label' => 'Website',        'url' => home_url( '/admin/website/' ),   'icon' => 'globe' ),
-		array( 'id' => 230657, 'label' => 'Knowledge Base', 'url' => home_url( '/admin/knowledge/' ), 'icon' => 'book' ),
-		array( 'id' => 230658, 'label' => 'Blogs',          'url' => home_url( '/admin/blog/' ),      'icon' => 'edit' ),
-		array( 'id' => 229449, 'label' => 'Reports',        'url' => home_url( '/admin/reports/' ),   'icon' => 'chart' ),
-		array( 'id' => 230695, 'label' => 'Crawler',        'url' => home_url( '/admin/crawler/' ),   'icon' => 'radar' ),
+		array( 'label' => 'Dashboard', 'url' => home_url( '/admin/' ),          'icon' => 'dashboard', 'section' => 'dashboard' ),
+		array( 'label' => 'Inquiry',   'url' => home_url( '/admin/inquiry/' ),  'icon' => 'mail',      'section' => 'inquiry' ),
+		array( 'label' => 'Members',   'url' => home_url( '/admin/member/' ),   'icon' => 'users',     'section' => 'member' ),
+		array( 'label' => 'WhatsApp',  'url' => home_url( '/admin/whatsapp/' ), 'icon' => 'chat',      'section' => 'whatsapp' ),
+		array( 'label' => 'Mosque',    'url' => home_url( '/admin/mosque/' ),   'icon' => 'mosque',    'section' => 'mosque' ),
+		array( 'label' => 'Business',  'url' => home_url( '/admin/business/' ), 'icon' => 'briefcase', 'section' => 'business' ),
+		array( 'label' => 'Website',        'url' => home_url( '/admin/website/' ),   'icon' => 'globe', 'section' => 'website' ),
+		array( 'label' => 'Knowledge Base', 'url' => home_url( '/admin/knowledge/' ), 'icon' => 'book',   'section' => 'knowledge' ),
+		array( 'label' => 'Blogs',          'url' => home_url( '/admin/blog/' ),      'icon' => 'edit',   'section' => 'blog' ),
+		array( 'label' => 'Reports',        'url' => home_url( '/admin/reports/' ),   'icon' => 'chart',  'section' => 'reports' ),
+		array( 'label' => 'Crawler',        'url' => home_url( '/admin/crawler/' ),   'icon' => 'radar',  'section' => 'crawler' ),
 	);
+}
+
+/**
+ * Whether the current user can reach a nav item's section - true when the
+ * role model isn't loaded (defensive default, shouldn't happen since
+ * admin-access-control.php loads before this file in mfa-core.php's
+ * includes array) so a missing dependency fails open to "show it" rather
+ * than silently hiding every section.
+ */
+function mfa_admin_nav_item_has_access( $item ) {
+	return ! function_exists( 'mfa_user_can_access_admin_section' ) || mfa_user_can_access_admin_section( $item['section'] );
+}
+
+/**
+ * Path-prefix match instead of a hardcoded post ID: staging and production
+ * assign different post IDs to the same /admin/* page (their ID sequences
+ * diverged after the first few pages), so matching by ID silently breaks
+ * active-tab highlighting on whichever environment doesn't have the ID
+ * baked in here. The URL is already environment-correct (home_url()), so
+ * comparing paths works identically on both. Dashboard's '/admin/' is a
+ * prefix of every other admin path, so it's always active alongside
+ * whichever section is current - same behavior the old ancestor check had
+ * (every admin page is a descendant of the root).
+ */
+function mfa_admin_nav_is_active( $item_url ) {
+	$request_path = isset( $_SERVER['REQUEST_URI'] ) ? wp_parse_url( wp_unslash( $_SERVER['REQUEST_URI'] ), PHP_URL_PATH ) : '';
+	$request_path = '/' . trim( (string) $request_path, '/' ) . '/';
+	$item_path    = '/' . trim( (string) wp_parse_url( $item_url, PHP_URL_PATH ), '/' ) . '/';
+
+	return 0 === strpos( $request_path, $item_path );
 }
 
 function mfa_admin_nav_icon_svg( $icon ) {
@@ -59,20 +89,19 @@ function mfa_admin_header_shortcode() {
 		$initial      = strtoupper( mb_substr( $display_name, 0, 1 ) );
 	}
 
-	$current_id = get_queried_object_id();
-	$ancestors  = $current_id ? get_post_ancestors( $current_id ) : array();
-
 	ob_start();
 	?>
 	<header class="mfa-admin-header">
 		<div class="mfa-admin-header-inner">
 			<nav class="mfa-admin-topnav" aria-label="Admin sections">
 				<?php foreach ( mfa_admin_nav_items() as $item ) :
-					$is_active = ( $current_id === $item['id'] ) || in_array( $item['id'], $ancestors, true );
+					$is_active  = mfa_admin_nav_is_active( $item['url'] );
+					$has_access = mfa_admin_nav_item_has_access( $item );
 					?>
-					<a href="<?php echo esc_url( $item['url'] ); ?>" class="mfa-admin-topnav-link<?php echo $is_active ? ' is-active' : ''; ?>">
+					<a href="<?php echo esc_url( $item['url'] ); ?>" class="mfa-admin-topnav-link<?php echo $is_active ? ' is-active' : ''; ?><?php echo ! $has_access ? ' is-no-access' : ''; ?>">
 						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><?php echo mfa_admin_nav_icon_svg( $item['icon'] ); ?></svg>
 						<span><?php echo esc_html( $item['label'] ); ?></span>
+						<?php if ( ! $has_access ) : ?><small class="mfa-admin-topnav-noaccess">No Access</small><?php endif; ?>
 					</a>
 				<?php endforeach; ?>
 			</nav>
@@ -119,10 +148,13 @@ function mfa_admin_home_shortcode() {
 		<h1 class="mfa-h2">Assalamualaikum, <?php echo esc_html( $name ); ?></h1>
 		<p class="mfa-body-muted">Choose a section to get started.</p>
 		<div class="mfa-admin-home-grid">
-			<?php foreach ( $nav_items as $item ) : ?>
-				<a href="<?php echo esc_url( $item['url'] ); ?>" class="mfa-admin-home-card">
+			<?php foreach ( $nav_items as $item ) :
+				$has_access = mfa_admin_nav_item_has_access( $item );
+				?>
+				<a href="<?php echo esc_url( $item['url'] ); ?>" class="mfa-admin-home-card<?php echo ! $has_access ? ' is-no-access' : ''; ?>">
 					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><?php echo mfa_admin_nav_icon_svg( $item['icon'] ); ?></svg>
 					<span><?php echo esc_html( $item['label'] ); ?></span>
+					<?php if ( ! $has_access ) : ?><small class="mfa-admin-home-card-noaccess">No Access</small><?php endif; ?>
 				</a>
 			<?php endforeach; ?>
 		</div>

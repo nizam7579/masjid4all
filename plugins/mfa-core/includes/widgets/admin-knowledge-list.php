@@ -30,6 +30,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 add_shortcode( 'mfa_admin_knowledge_list', 'mfa_admin_knowledge_list_shortcode' );
 function mfa_admin_knowledge_list_shortcode() {
+	if ( function_exists( 'mfa_admin_require_section_access' ) ) {
+		$no_access = mfa_admin_require_section_access( 'knowledge' );
+		if ( $no_access ) {
+			return $no_access;
+		}
+	}
+
 	global $wpdb;
 
 	$search          = isset( $_GET['knowledge_search'] ) ? sanitize_text_field( wp_unslash( $_GET['knowledge_search'] ) ) : '';

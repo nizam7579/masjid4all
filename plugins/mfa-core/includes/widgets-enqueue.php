@@ -77,8 +77,8 @@ function mfa_core_enqueue_widget_assets() {
 	$is_admin_area  = function_exists( 'mfa_is_admin_area' ) && mfa_is_admin_area();
 
 	if ( $is_admin_area ) {
-		$admin_shell_css = MFA_CORE_PATH . 'assets/css/admin-shell-v1.css';
-		wp_enqueue_style( 'mfa-core-admin-shell', MFA_CORE_URL . 'assets/css/admin-shell-v1.css', array( 'mfa-core-global' ), $get_version( $admin_shell_css ) );
+		$admin_shell_css = MFA_CORE_PATH . 'assets/css/admin-shell-v3.css';
+		wp_enqueue_style( 'mfa-core-admin-shell', MFA_CORE_URL . 'assets/css/admin-shell-v3.css', array( 'mfa-core-global' ), $get_version( $admin_shell_css ) );
 
 		if ( $post && 'member' === $post->post_name ) {
 			$admin_member_list_css = MFA_CORE_PATH . 'assets/css/admin-member-list-v1.css';
@@ -91,8 +91,11 @@ function mfa_core_enqueue_widget_assets() {
 			$admin_member_list_css = MFA_CORE_PATH . 'assets/css/admin-member-list-v1.css';
 			wp_enqueue_style( 'mfa-core-admin-member-list', MFA_CORE_URL . 'assets/css/admin-member-list-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell' ), $get_version( $admin_member_list_css ) );
 
-			$admin_member_info_css = MFA_CORE_PATH . 'assets/css/admin-member-info-v1.css';
-			wp_enqueue_style( 'mfa-core-admin-member-info', MFA_CORE_URL . 'assets/css/admin-member-info-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell', 'mfa-core-admin-member-list' ), $get_version( $admin_member_info_css ) );
+			$admin_member_info_css = MFA_CORE_PATH . 'assets/css/admin-member-info-v3.css';
+			wp_enqueue_style( 'mfa-core-admin-member-info', MFA_CORE_URL . 'assets/css/admin-member-info-v3.css', array( 'mfa-core-global', 'mfa-core-admin-shell', 'mfa-core-admin-member-list' ), $get_version( $admin_member_info_css ) );
+
+			$admin_tabs_js = MFA_CORE_PATH . 'assets/js/admin-tabs-v1.js';
+			wp_enqueue_script( 'mfa-core-admin-tabs', MFA_CORE_URL . 'assets/js/admin-tabs-v1.js', array(), $get_version( $admin_tabs_js ), true );
 		}
 
 		if ( $post && 'mosque' === $post->post_name && 9343 === (int) $post->post_parent ) {
@@ -136,8 +139,8 @@ function mfa_core_enqueue_widget_assets() {
 			$admin_inquiry_list_css = MFA_CORE_PATH . 'assets/css/admin-inquiry-list-v1.css';
 			wp_enqueue_style( 'mfa-core-admin-inquiry-list', MFA_CORE_URL . 'assets/css/admin-inquiry-list-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell' ), $get_version( $admin_inquiry_list_css ) );
 
-			$admin_inquiry_info_css = MFA_CORE_PATH . 'assets/css/admin-inquiry-info-v1.css';
-			wp_enqueue_style( 'mfa-core-admin-inquiry-info', MFA_CORE_URL . 'assets/css/admin-inquiry-info-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell', 'mfa-core-admin-inquiry-list' ), $get_version( $admin_inquiry_info_css ) );
+			$admin_inquiry_info_css = MFA_CORE_PATH . 'assets/css/admin-inquiry-info-v2.css';
+			wp_enqueue_style( 'mfa-core-admin-inquiry-info', MFA_CORE_URL . 'assets/css/admin-inquiry-info-v2.css', array( 'mfa-core-global', 'mfa-core-admin-shell', 'mfa-core-admin-inquiry-list' ), $get_version( $admin_inquiry_info_css ) );
 
 			$admin_inquiry_info_js = MFA_CORE_PATH . 'assets/js/admin-inquiry-info-v1.js';
 			wp_enqueue_script( 'mfa-core-admin-inquiry-info', MFA_CORE_URL . 'assets/js/admin-inquiry-info-v1.js', array(), $get_version( $admin_inquiry_info_js ), true );
@@ -157,8 +160,13 @@ function mfa_core_enqueue_widget_assets() {
 		}
 
 		if ( $post && 'reports' === $post->post_name ) {
-			$admin_reports_css = MFA_CORE_PATH . 'assets/css/admin-reports-v1.css';
-			wp_enqueue_style( 'mfa-core-admin-reports', MFA_CORE_URL . 'assets/css/admin-reports-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell' ), $get_version( $admin_reports_css ) );
+			$admin_reports_css = MFA_CORE_PATH . 'assets/css/admin-reports-v2.css';
+			wp_enqueue_style( 'mfa-core-admin-reports', MFA_CORE_URL . 'assets/css/admin-reports-v2.css', array( 'mfa-core-global', 'mfa-core-admin-shell' ), $get_version( $admin_reports_css ) );
+
+			// [mfa_admin_reports]'s 4-tab layout (2026-08-17) reuses the same
+			// tab-switching JS as [mfa_admin_member_info].
+			$admin_tabs_js = MFA_CORE_PATH . 'assets/js/admin-tabs-v1.js';
+			wp_enqueue_script( 'mfa-core-admin-tabs', MFA_CORE_URL . 'assets/js/admin-tabs-v1.js', array(), $get_version( $admin_tabs_js ), true );
 		}
 
 		// Crawler overview page, plus its child /admin/crawler/start/ page -
@@ -363,8 +371,20 @@ function mfa_core_enqueue_widget_assets() {
 	// anywhere (verified via DB query 2026-08-13) - Upload Image was the
 	// only modal this template ever had, and it's [mfa_modal]-based now.
 	if ( $post && 'masjid' === $post->post_type ) {
-		$css = MFA_CORE_PATH . 'assets/css/mosque-single-v2.css';
-		wp_enqueue_style( 'mfa-core-mosque-single', MFA_CORE_URL . 'assets/css/mosque-single-v2.css', array(), $get_version( $css ) );
+		$css = MFA_CORE_PATH . 'assets/css/mosque-single-v3.css';
+		wp_enqueue_style( 'mfa-core-mosque-single', MFA_CORE_URL . 'assets/css/mosque-single-v3.css', array(), $get_version( $css ) );
+
+		// [mfa_mosque_update_form]'s AJAX submit (Edit Mosque modal,
+		// Administrator/Editor only). Its .mfa-form-group/.mfa-form-row/
+		// .mfa-modal-message field styling comes from
+		// mfa-core-member-account-modals (enqueued above for every public
+		// page), same as business-update-form-v1.js's dependency.
+		$mosque_form_js = MFA_CORE_PATH . 'assets/js/mosque-update-form-v1.js';
+		wp_enqueue_script( 'mfa-core-mosque-update-form', MFA_CORE_URL . 'assets/js/mosque-update-form-v1.js', array(), $get_version( $mosque_form_js ), true );
+
+		// [mfa_mosque_ai_updater]'s "Update Content" AJAX wiring.
+		$mosque_ai_js = MFA_CORE_PATH . 'assets/js/mosque-ai-updater-v1.js';
+		wp_enqueue_script( 'mfa-core-mosque-ai-updater', MFA_CORE_URL . 'assets/js/mosque-ai-updater-v1.js', array(), $get_version( $mosque_ai_js ), true );
 	}
 
 	// Single website post. Same story as business above: renders via
@@ -424,7 +444,7 @@ function mfa_core_litespeed_css_excludes( $excludes ) {
 	$excludes[] = 'mfa-core/assets/css/share-button-v15.css';
 	$excludes[] = 'mfa-core/assets/css/sofia-button-v1.css';
 	$excludes[] = 'mfa-core/assets/css/business-single-v5.css';
-	$excludes[] = 'mfa-core/assets/css/mosque-single-v2.css';
+	$excludes[] = 'mfa-core/assets/css/mosque-single-v3.css';
 	$excludes[] = 'mfa-core/assets/css/website-single-v2.css';
 	$excludes[] = 'mfa-core/assets/css/coming-soon-v1.css';
 	$excludes[] = 'mfa-core/assets/css/knowledge-single-v1.css';
@@ -433,17 +453,17 @@ function mfa_core_litespeed_css_excludes( $excludes ) {
 	$excludes[] = 'mfa-core/assets/css/member-dashboard-v1.css';
 	$excludes[] = 'mfa-core/assets/css/member-account-modals-v1.css';
 	$excludes[] = 'mfa-core/assets/css/global-v2.css';
-	$excludes[] = 'mfa-core/assets/css/admin-shell-v1.css';
+	$excludes[] = 'mfa-core/assets/css/admin-shell-v3.css';
 	$excludes[] = 'mfa-core/assets/css/admin-member-list-v1.css';
-	$excludes[] = 'mfa-core/assets/css/admin-member-info-v1.css';
+	$excludes[] = 'mfa-core/assets/css/admin-member-info-v3.css';
 	$excludes[] = 'mfa-core/assets/css/admin-mosque-list-v1.css';
 	$excludes[] = 'mfa-core/assets/css/admin-business-list-v1.css';
 	$excludes[] = 'mfa-core/assets/css/admin-website-list-v1.css';
 	$excludes[] = 'mfa-core/assets/css/admin-knowledge-list-v1.css';
 	$excludes[] = 'mfa-core/assets/css/admin-blog-list-v1.css';
 	$excludes[] = 'mfa-core/assets/css/admin-inquiry-list-v1.css';
-	$excludes[] = 'mfa-core/assets/css/admin-inquiry-info-v1.css';
-	$excludes[] = 'mfa-core/assets/css/admin-reports-v1.css';
+	$excludes[] = 'mfa-core/assets/css/admin-inquiry-info-v2.css';
+	$excludes[] = 'mfa-core/assets/css/admin-reports-v2.css';
 	$excludes[] = 'mfa-core/assets/css/admin-crawler-v1.css';
 	return $excludes;
 }

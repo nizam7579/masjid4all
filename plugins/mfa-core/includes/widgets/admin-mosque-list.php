@@ -31,6 +31,13 @@ function mfa_admin_mosque_status_options() {
 
 add_shortcode( 'mfa_admin_mosque_list', 'mfa_admin_mosque_list_shortcode' );
 function mfa_admin_mosque_list_shortcode() {
+	if ( function_exists( 'mfa_admin_require_section_access' ) ) {
+		$no_access = mfa_admin_require_section_access( 'mosque' );
+		if ( $no_access ) {
+			return $no_access;
+		}
+	}
+
 	global $wpdb;
 	$cct_table = $wpdb->prefix . 'jet_cct_mosque';
 

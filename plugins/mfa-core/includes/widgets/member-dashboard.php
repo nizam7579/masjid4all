@@ -203,6 +203,17 @@ function mfa_member_dashboard_shortcode() {
 				</span>
 			</div>
 			<div class="mfa-dash-profile-actions">
+				<?php
+				// Staff-role shortcut into the custom /admin/ area - shown for
+				// exactly the roles admin-access-control.php's
+				// mfa_user_can_access_admin_area() admits (Administrator/Editor/
+				// Author, or Helpline via niz-wa's own capability), so a role
+				// change there doesn't need a second edit here to stay in sync.
+				$mfa_dash_show_admin_btn = function_exists( 'mfa_user_can_access_admin_area' ) && mfa_user_can_access_admin_area();
+				if ( $mfa_dash_show_admin_btn ) :
+					?>
+					<a href="<?php echo esc_url( home_url( '/admin/' ) ); ?>" class="mfa-dash-link-btn">Admin</a>
+				<?php endif; ?>
 				<button type="button" class="mfa-dash-link-btn" data-mfa-modal-open="mfa-change-password-modal">Change Password</button>
 			</div>
 		</section>

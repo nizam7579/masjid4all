@@ -30,10 +30,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 add_shortcode( 'mfa_admin_website_list', 'mfa_admin_website_list_shortcode' );
 function mfa_admin_website_list_shortcode() {
+	if ( function_exists( 'mfa_admin_require_section_access' ) ) {
+		$no_access = mfa_admin_require_section_access( 'website' );
+		if ( $no_access ) {
+			return $no_access;
+		}
+	}
+
 	global $wpdb;
 	$cct_table = $wpdb->prefix . 'jet_cct_web';
-
-	$generate_url = home_url( '/admin/website/generate/' );
 
 	$search         = isset( $_GET['website_search'] ) ? sanitize_text_field( wp_unslash( $_GET['website_search'] ) ) : '';
 	$status_filter  = isset( $_GET['status'] ) ? sanitize_text_field( wp_unslash( $_GET['status'] ) ) : '';
@@ -97,7 +102,7 @@ function mfa_admin_website_list_shortcode() {
 			</div>
 			<div class="mfa-admin-website-heading-actions">
 				<a href="<?php echo esc_url( home_url( '/add-website/' ) ); ?>" target="_blank" rel="noopener" class="mfa-btn mfa-btn-primary">Add New</a>
-				<a href="<?php echo esc_url( $generate_url ); ?>" target="_blank" rel="noopener" class="mfa-btn mfa-btn-solid-dark">Generate Content</a>
+				<?php // Generate Content button hidden for now (2026-08-17, user request); /admin/website/generate/ still works if linked to directly, just not surfaced here. ?>
 			</div>
 		</div>
 

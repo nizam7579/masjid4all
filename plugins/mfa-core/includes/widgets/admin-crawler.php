@@ -20,7 +20,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 add_shortcode( 'mfa_admin_crawler', 'mfa_admin_crawler_shortcode' );
 function mfa_admin_crawler_shortcode() {
-	if ( ! current_user_can( 'manage_options' ) ) {
+	if ( function_exists( 'mfa_admin_require_section_access' ) ) {
+		$no_access = mfa_admin_require_section_access( 'crawler' );
+		if ( $no_access ) {
+			return $no_access;
+		}
+	} elseif ( ! current_user_can( 'manage_options' ) ) {
 		return '<p>You do not have permission to view this page.</p>';
 	}
 
@@ -231,7 +236,8 @@ function mfa_admin_crawler_city_preview( $countries ) {
  * Returns a short notice string for the next render, or ''.
  */
 function mfa_admin_crawler_handle_form() {
-	if ( empty( $_POST['mfa_crawler_op'] ) || ! current_user_can( 'manage_options' ) ) {
+	$can_access = function_exists( 'mfa_user_can_access_admin_section' ) ? mfa_user_can_access_admin_section( 'crawler' ) : current_user_can( 'manage_options' );
+	if ( empty( $_POST['mfa_crawler_op'] ) || ! $can_access ) {
 		return '';
 	}
 	if ( ! isset( $_POST['mfa_crawler_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['mfa_crawler_nonce'] ) ), 'mfa_crawler_action' ) ) {

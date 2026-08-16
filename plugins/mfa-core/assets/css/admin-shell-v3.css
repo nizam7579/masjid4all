@@ -1,6 +1,16 @@
 /* mfa-core admin-shell.css — chrome for /admin/* (staff-only area: Helpline
-   Staff, Editors, Administrators). See includes/admin-template.php and
-   includes/widgets/admin-shell.php. Builds on global-v2.css tokens. */
+   Staff, Authors, Editors, Administrators). See includes/admin-template.php and
+   includes/widgets/admin-shell.php. Builds on global-v2.css tokens.
+   v3 (2026-08-17): moved the shared .mfa-admin-tabs/-tab/-tabpanel rules in
+   here from admin-member-info-v2.css, where they'd been living even though
+   they're a generic cross-page component (admin-tabs-v1.js) - Reports
+   started using the same tabs the same day and broke, because this file
+   (loaded on every /admin/ page) never actually had the "hide the inactive
+   panel" rule; only member-info's own page-specific stylesheet did, which
+   only loads on that one page. Renamed v2 -> v3 rather than edited in
+   place, this file is on the LiteSpeed CSS-exclude list so an in-place
+   edit wouldn't reach browsers (see mfa_core_litespeed_css_excludes() in
+   widgets-enqueue.php). */
 
 body.mfa-admin-area {
   background: var(--mfa-mint-bg);
@@ -61,6 +71,46 @@ body.mfa-admin-area {
 .mfa-admin-topnav-link.is-active {
   background: var(--mfa-green-dark);
   color: var(--mfa-white);
+}
+
+/* ---------- No Access (2026-08-17) ----------
+   Sections a role can't reach still show in the nav/dashboard grid (so the
+   whole app's shape stays visible) but are visually muted with a small
+   "No Access" label - the link itself still works, landing on the actual
+   page shows the same "No Access." text server-side
+   (mfa_admin_require_section_access()), so this styling is a hint, not the
+   real enforcement. */
+
+.mfa-admin-topnav-link.is-no-access {
+  color: var(--mfa-muted);
+  opacity: 0.55;
+}
+.mfa-admin-topnav-link.is-no-access:hover {
+  background: none;
+  color: var(--mfa-muted);
+}
+.mfa-admin-topnav-noaccess {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.mfa-admin-home-card.is-no-access {
+  color: var(--mfa-muted);
+  opacity: 0.6;
+}
+.mfa-admin-home-card.is-no-access:hover {
+  transform: none;
+  box-shadow: none;
+}
+.mfa-admin-home-card-noaccess {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--mfa-muted);
 }
 
 .mfa-admin-header-account {
@@ -158,6 +208,63 @@ body.mfa-admin-area {
 .mfa-admin-home-card:hover {
   transform: translateY(-2px);
   box-shadow: var(--mfa-shadow-card);
+}
+
+/* ---------- Tabs (shared cross-page component, admin-tabs-v1.js) ----------
+   Used by [mfa_admin_member_info] (Activity/WhatsApp/Inquiry) and
+   [mfa_admin_reports] (Member/Mosque/Business/Website) so far - lives here,
+   not in either page's own stylesheet, precisely because it's shared.
+   Both panels/all panels stay in the DOM regardless of JS - the "hide the
+   inactive panel" rule only applies once admin-tabs-v1.js has added
+   .mfa-admin-tabs-js, so a no-JS view just shows every panel stacked. */
+
+.mfa-admin-tablist {
+  display: flex;
+  gap: var(--mfa-space-2);
+  border-bottom: 1px solid var(--mfa-border);
+  margin-bottom: var(--mfa-space-5);
+}
+
+.mfa-admin-tab {
+  appearance: none;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -1px;
+  padding: var(--mfa-space-3) var(--mfa-space-1);
+  font: inherit;
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--mfa-muted);
+  cursor: pointer;
+}
+
+.mfa-admin-tab:hover,
+.mfa-admin-tab:focus-visible {
+  color: var(--mfa-green-dark);
+}
+
+.mfa-admin-tab.is-active {
+  color: var(--mfa-green-dark);
+  border-bottom-color: var(--mfa-teal);
+}
+
+.mfa-admin-tab-count {
+  color: var(--mfa-muted);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+.mfa-admin-tab.is-active .mfa-admin-tab-count {
+  color: inherit;
+}
+
+.mfa-admin-tabs-js .mfa-admin-tabpanel {
+  display: none;
+}
+
+.mfa-admin-tabs-js .mfa-admin-tabpanel.is-active {
+  display: block;
 }
 
 /* ---------- Footer ---------- */

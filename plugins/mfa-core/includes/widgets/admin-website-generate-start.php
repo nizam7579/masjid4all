@@ -31,7 +31,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 add_shortcode( 'mfa_admin_website_generate_start', 'mfa_admin_website_generate_start_shortcode' );
 function mfa_admin_website_generate_start_shortcode() {
-	if ( ! current_user_can( 'manage_options' ) ) {
+	if ( function_exists( 'mfa_admin_require_section_access' ) ) {
+		$no_access = mfa_admin_require_section_access( 'website' );
+		if ( $no_access ) {
+			return $no_access;
+		}
+	} elseif ( ! current_user_can( 'manage_options' ) ) {
 		return '<p>You do not have permission to view this page.</p>';
 	}
 

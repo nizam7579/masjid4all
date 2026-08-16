@@ -329,10 +329,20 @@ function mfa_place_seed_seo_meta( $post_id, $post ) {
 
 /**
  * WHERE fragment + args selecting the listings that belong to a hub.
- * Country hubs match on the indexed `country` column alone; deeper hubs add a
- * lat/lng range check against their bounding box. Returns null when a non-root
- * hub has no box yet (not geocoded, or geocoding failed) - the caller shows an
- * empty state rather than silently listing an entire country under a district.
+ * Country hubs match on the indexed `country` column alone. A direct child of
+ * a country hub (state-level, depth 1) matches on the exact `state` column
+ * instead of a bounding box wherever a listing has one - a plain equality
+ * check can't overlap the way two neighbouring states' boxes can (Malaysia's
+ * 16 states summed to ~9,000 mosques against the country's own 4,545 before
+ * this; see the `state` column work in geohash-crawl.php and
+ * [[project_places_hub]] for the full story). Rows still missing a `state`
+ * value (not yet crawled/backfilled, or a country the parser/reverse-geocode
+ * fallback hasn't reached) fall back to the bounding box, so a hub doesn't
+ * silently lose coverage mid-migration. Deeper hubs (district/city, depth 2+)
+ * have no per-listing column at that granularity and still use the bounding
+ * box only. Returns null when a non-root hub has no box yet (not geocoded, or
+ * geocoding failed) - the caller shows an empty state rather than silently
+ * listing an entire country under a district.
  */
 function mfa_place_listing_where( $place_id, $table_alias = '' ) {
 	$geo = mfa_place_geo( $place_id );
@@ -353,13 +363,21 @@ function mfa_place_listing_where( $place_id, $table_alias = '' ) {
 	$sql  = "( {$p}listing_status IS NULL OR {$p}listing_status NOT IN ({$in}) ) AND {$p}country = %s";
 	$args = array_merge( $statuses, array( $geo['country'] ) );
 
-	if ( ! $geo['is_root'] ) {
-		$sql   .= " AND {$p}latitude BETWEEN %f AND %f AND {$p}longitude BETWEEN %f AND %f";
-		$args[] = $geo['south'];
-		$args[] = $geo['north'];
-		$args[] = $geo['west'];
-		$args[] = $geo['east'];
+	if ( $geo['is_root'] ) {
+		return array( 'sql' => $sql, 'args' => $args );
 	}
+
+	if ( 1 === count( get_post_ancestors( $place_id ) ) ) {
+		$sql   .= " AND ( {$p}state = %s OR ( ( {$p}state IS NULL OR {$p}state = '' ) AND {$p}latitude BETWEEN %f AND %f AND {$p}longitude BETWEEN %f AND %f ) )";
+		$args[] = get_the_title( $place_id );
+	} else {
+		$sql .= " AND {$p}latitude BETWEEN %f AND %f AND {$p}longitude BETWEEN %f AND %f";
+	}
+
+	$args[] = $geo['south'];
+	$args[] = $geo['north'];
+	$args[] = $geo['west'];
+	$args[] = $geo['east'];
 
 	return array( 'sql' => $sql, 'args' => $args );
 }

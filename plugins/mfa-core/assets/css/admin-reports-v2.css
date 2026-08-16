@@ -1,6 +1,16 @@
 /* admin-reports.css - [mfa_admin_reports] on /admin/reports/. Self-contained
-   CSS bar chart (no chart library) for member-growth reporting. Uses global-v2
-   tokens; loads after admin-shell-v1.css. */
+   CSS bar chart (no chart library) for the 4 growth-report tabs. Uses global-v2
+   tokens; loads after admin-shell-v1.css.
+   v2 (2026-08-17): rebuilt from a single Member report into 4 tabs with
+   date-range filters + CSV export - added .mfa-report-filters/-export-*/
+   the scoped .mfa-form-group rules (member-account-modals-v1.css, where
+   that class is normally styled, isn't loaded on /admin/ pages) and
+   .mfa-report-chart--scroll for variable-length date ranges. Renamed from
+   v1 rather than edited in place, this file is on the LiteSpeed
+   CSS-exclude list so an in-place edit wouldn't reach browsers (see
+   mfa_core_litespeed_css_excludes() in widgets-enqueue.php). */
+
+.mfa-report-page { max-width: 1000px; margin: 0 auto; }
 
 .mfa-report {
   max-width: 1000px;
@@ -13,6 +23,42 @@
 .mfa-report-head h1 {
   margin: 0 0 4px;
 }
+
+/* ---------- Date range filter + export form (scoped .mfa-form-group,
+   since the sitewide version of this class lives in a stylesheet that
+   isn't loaded on /admin/ pages) ---------- */
+.mfa-report-filters,
+.mfa-report-export-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--mfa-space-3, 12px);
+  margin-bottom: var(--mfa-space-6, 24px);
+}
+.mfa-report-filters .mfa-form-group,
+.mfa-report-export-form .mfa-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.mfa-report-filters label,
+.mfa-report-export-form label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--mfa-muted, #5b6b66);
+}
+.mfa-report-filters input[type="date"],
+.mfa-report-export-form select {
+  border: 1px solid var(--mfa-border, #e2eae8);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--mfa-ink, #12181f);
+}
+.mfa-report-export-card { margin-bottom: var(--mfa-space-5, 20px); }
+.mfa-report-export-form { margin-bottom: var(--mfa-space-2, 8px); }
+.mfa-report-export-hint { margin: 0; font-size: 13px; }
 
 /* ---------- Summary stat cards ---------- */
 .mfa-report-stats {
@@ -62,7 +108,7 @@
 }
 
 /* Chart = value row + plot (bars + cumulative line) + month axis, all sharing
-   12 equal columns so the SVG line aligns with the bar centres. */
+   equal columns so the SVG line aligns with the bar centres. */
 .mfa-report-chart {
   min-width: 520px;
 }
@@ -118,6 +164,20 @@
   height: 100%;
   overflow: visible;
   pointer-events: none;
+}
+
+/* Variable-length date ranges (replaces the old fixed-12-column
+   assumption): give every column a real minimum width instead of
+   min-width:0, so a wide range naturally grows past the card's width and
+   scrolls (.mfa-report-chart-card already has overflow-x:auto) instead of
+   squashing bars/labels unreadably thin. */
+.mfa-report-chart--scroll { min-width: 0; width: max-content; }
+.mfa-report-chart--scroll .mfa-report-bar-val,
+.mfa-report-chart--scroll .mfa-report-bar-lbl {
+  min-width: 44px;
+}
+.mfa-report-chart--scroll .mfa-report-bar-col {
+  min-width: 44px;
 }
 
 /* ---------- Members by country (horizontal bars) ---------- */

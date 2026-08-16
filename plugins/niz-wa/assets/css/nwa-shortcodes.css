@@ -105,12 +105,28 @@
   padding: 16px;
 }
 
+.nwa-inbox-profile {
+  width: 280px;
+  flex-shrink: 0;
+  border: 1px solid #dcdcdc;
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px;
+}
+.nwa-inbox-profile-link {
+  display: inline-block;
+  margin-bottom: 14px;
+}
+.nwa-inbox-profile h3 {
+  margin: 0 0 12px;
+  font-size: 15px;
+}
+
 .nwa-profile-summary {
   background: #f0f6fc;
   border: 1px solid #c5d9ed;
   border-radius: 6px;
   padding: 10px 14px;
-  margin: 0 0 12px;
   font-size: 14px;
 }
 .nwa-profile-summary form {
@@ -159,9 +175,19 @@
   .nwa-inbox {
     flex-direction: column;
   }
-  .nwa-inbox-list {
+  .nwa-inbox-list,
+  .nwa-inbox-profile {
     width: 100%;
     max-height: 240px;
+  }
+}
+
+@media (max-width: 1000px) and (min-width: 701px) {
+  .nwa-inbox {
+    flex-wrap: wrap;
+  }
+  .nwa-inbox-profile {
+    width: 100%;
   }
 }
 

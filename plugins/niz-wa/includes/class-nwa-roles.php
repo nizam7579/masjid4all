@@ -29,9 +29,16 @@ class NWA_Roles {
 			self::CAPABILITY  => true,
 		) );
 
-		$admin = get_role( 'administrator' );
-		if ( $admin && ! $admin->has_cap( self::CAPABILITY ) ) {
-			$admin->add_cap( self::CAPABILITY );
+		// Administrator/Editor get the same capability so the [nwa_inbox]/
+		// [nwa_knowledge_base] front-end pages work for them too, matching
+		// mfa-core's "Administrator/Editor get every /admin/ section"
+		// role model (2026-08-17) - Author deliberately does NOT get this,
+		// same reasoning as every other section Author isn't allowed.
+		foreach ( array( 'administrator', 'editor' ) as $role_slug ) {
+			$role = get_role( $role_slug );
+			if ( $role && ! $role->has_cap( self::CAPABILITY ) ) {
+				$role->add_cap( self::CAPABILITY );
+			}
 		}
 	}
 

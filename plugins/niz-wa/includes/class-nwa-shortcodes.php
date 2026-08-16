@@ -82,24 +82,6 @@ class NWA_Shortcodes {
 				<?php else : ?>
 					<h2><?php echo esc_html( $active->contact_name ?: $active->wa_number ); ?></h2>
 
-					<?php if ( ! empty( $profile['summary'] ) ) : ?>
-						<div class="nwa-profile-summary">
-							<p><strong>Profile:</strong>
-							<?php
-							$parts = array();
-							foreach ( $profile['summary'] as $k => $v ) {
-								$parts[] = esc_html( ucfirst( $k ) . ': ' . ( is_array( $v ) ? implode( ', ', $v ) : $v ) );
-							}
-							echo implode( ' &middot; ', $parts );
-							?>
-							</p>
-							<form method="post">
-								<input type="hidden" name="nwa_active_user_id" value="<?php echo esc_attr( $selected_id ); ?>">
-								<button type="submit" name="nwa_clear_profile" value="1" class="nwa-btn nwa-btn-small" onclick="return confirm('Clear this user\'s stored profile?');">Clear profile</button>
-							</form>
-						</div>
-					<?php endif; ?>
-
 					<div class="nwa-inbox-messages">
 						<?php foreach ( $messages as $m ) : ?>
 							<div class="nwa-message-bubble is-<?php echo esc_attr( $m->direction ); ?>">
@@ -121,6 +103,38 @@ class NWA_Shortcodes {
 					<?php endif; ?>
 				<?php endif; ?>
 			</div>
+
+			<?php if ( $active ) : ?>
+				<div class="nwa-inbox-profile">
+					<?php
+					// Links into mfa-core's /admin/member/info/?id={user_id} - same
+					// hardcoded-to-this-site caveat as site-integration.php's action
+					// replies (see the "Not yet portable" note in CLAUDE.md); $selected_id
+					// is always the WP user_id niz-wa already resolved this contact to.
+					?>
+					<a href="<?php echo esc_url( add_query_arg( 'id', $selected_id, home_url( '/admin/member/info/' ) ) ); ?>" target="_blank" rel="noopener" class="nwa-btn nwa-btn-small nwa-inbox-profile-link">View Member Info</a>
+					<h3>Profile</h3>
+					<?php if ( ! empty( $profile['summary'] ) ) : ?>
+						<div class="nwa-profile-summary">
+							<p>
+							<?php
+							$parts = array();
+							foreach ( $profile['summary'] as $k => $v ) {
+								$parts[] = esc_html( ucfirst( $k ) . ': ' . ( is_array( $v ) ? implode( ', ', $v ) : $v ) );
+							}
+							echo implode( ' &middot; ', $parts );
+							?>
+							</p>
+							<form method="post">
+								<input type="hidden" name="nwa_active_user_id" value="<?php echo esc_attr( $selected_id ); ?>">
+								<button type="submit" name="nwa_clear_profile" value="1" class="nwa-btn nwa-btn-small" onclick="return confirm('Clear this user\'s stored profile?');">Clear profile</button>
+							</form>
+						</div>
+					<?php else : ?>
+						<p class="nwa-inbox-empty">No profile info stored for this contact yet.</p>
+					<?php endif; ?>
+				</div>
+			<?php endif; ?>
 		</div>
 		<?php
 		return ob_get_clean();

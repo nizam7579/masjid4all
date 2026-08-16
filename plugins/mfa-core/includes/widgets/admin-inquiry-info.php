@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Deliberately basic, same precedent as admin-member-info.php's first
  * version: read-only, no status-editing UI yet - just the full message
  * (the whole point of this page, since the list table only shows a
- * preview-free summary) plus a plain mailto: link to reply.
+ * preview-free summary) plus a reply box.
  *
  * WhatsApp reply (added 2026-08-15): whenever an inquiry came in via
  * niz-wa (both the native Flow and the older text-conversation path set a
@@ -26,6 +26,16 @@ if ( ! defined( 'ABSPATH' ) ) {
  * eligibility check runs again, server-side, at send time in the AJAX
  * handler below (not just at page-render time), since the window can
  * lapse between opening the page and clicking Send.
+ *
+ * Unified reply box (2026-08-17): one "Reply Message" textarea with two
+ * submit buttons underneath, "Reply via Email" and "Send via WhatsApp"
+ * (the latter only rendered when eligible, same rule as before) - replaces
+ * the earlier split UI (a plain `mailto:` link plus a separate WhatsApp-
+ * only form). Email now sends server-side via wp_mail()
+ * (mfa_ajax_admin_inquiry_reply_email() below), not a `mailto:` link that
+ * hands off to the staff member's own local mail client - matches the
+ * WhatsApp path's shape (AJAX, marks the inquiry Replied on success) so
+ * both channels behave the same way from the admin's point of view.
  */
 
 /**
@@ -49,6 +59,13 @@ function mfa_admin_inquiry_whatsapp_eligibility( $cct_author_id ) {
 
 add_shortcode( 'mfa_admin_inquiry_info', 'mfa_admin_inquiry_info_shortcode' );
 function mfa_admin_inquiry_info_shortcode() {
+	if ( function_exists( 'mfa_admin_require_section_access' ) ) {
+		$no_access = mfa_admin_require_section_access( 'inquiry' );
+		if ( $no_access ) {
+			return $no_access;
+		}
+	}
+
 	global $wpdb;
 	$cct_table = $wpdb->prefix . 'jet_cct_contact_us';
 
@@ -79,7 +96,7 @@ function mfa_admin_inquiry_info_shortcode() {
 					$row['cct_status'] = 'Read';
 				}
 
-				$reply_url   = ! empty( $row['email'] ) ? 'mailto:' . rawurlencode( $row['email'] ) . '?subject=' . rawurlencode( 'Re: ' . $row['subject'] ) : '';
+				$can_email   = ! empty( $row['email'] ) && is_email( $row['email'] );
 				$wa_eligible = mfa_admin_inquiry_whatsapp_eligibility( $row['cct_author_id'] ?? 0 );
 				?>
 				<h1 class="mfa-h2"><?php echo esc_html( $row['subject'] ? $row['subject'] : '—' ); ?></h1>
@@ -117,23 +134,27 @@ function mfa_admin_inquiry_info_shortcode() {
 					</div>
 				</div>
 
-				<?php if ( $reply_url ) : ?>
-					<a href="<?php echo esc_url( $reply_url ); ?>" class="mfa-btn mfa-btn-primary mfa-admin-inquiry-info-reply-btn">Reply via Email</a>
-				<?php endif; ?>
-
-				<?php if ( $wa_eligible ) : ?>
-					<form class="mfa-admin-inquiry-whatsapp-form" data-ajaxurl="<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>">
+				<?php if ( $can_email || $wa_eligible ) : ?>
+					<form class="mfa-admin-inquiry-reply-form" data-ajaxurl="<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>">
 						<input type="hidden" name="id" value="<?php echo esc_attr( $id ); ?>">
 						<input type="hidden" name="nonce" value="<?php echo esc_attr( wp_create_nonce( 'mfa_admin_inquiry_reply_' . $id ) ); ?>">
 						<div class="mfa-form-group">
-							<label for="mfa-admin-inquiry-wa-message">Reply via WhatsApp</label>
-							<textarea id="mfa-admin-inquiry-wa-message" name="message" rows="4" placeholder="Type your reply…" required></textarea>
+							<label for="mfa-admin-inquiry-reply-message">Reply Message</label>
+							<textarea id="mfa-admin-inquiry-reply-message" name="message" rows="4" placeholder="Type your reply…" required></textarea>
 						</div>
-						<button type="submit" class="mfa-btn mfa-btn-primary">Send via WhatsApp</button>
+						<div class="mfa-admin-inquiry-reply-actions">
+							<?php if ( $can_email ) : ?>
+								<button type="submit" name="mfa_reply_channel" value="email" class="mfa-btn mfa-btn-primary">Reply via Email</button>
+							<?php endif; ?>
+							<?php if ( $wa_eligible ) : ?>
+								<button type="submit" name="mfa_reply_channel" value="whatsapp" class="mfa-btn mfa-btn-solid-dark">Send via WhatsApp</button>
+							<?php endif; ?>
+						</div>
 						<p class="mfa-modal-message" data-mfa-form-message></p>
 					</form>
-				<?php else : ?>
-					<p class="mfa-body-muted mfa-admin-inquiry-whatsapp-note">Outside the 24-hour WhatsApp messaging window (or this inquiry has no linked WhatsApp conversation) — please reply via email instead.</p>
+				<?php endif; ?>
+				<?php if ( ! $wa_eligible ) : ?>
+					<p class="mfa-body-muted mfa-admin-inquiry-whatsapp-note">Outside the 24-hour WhatsApp messaging window (or this inquiry has no linked WhatsApp conversation) — WhatsApp reply isn't available for this inquiry.</p>
 				<?php endif; ?>
 				<?php
 			}
@@ -151,7 +172,7 @@ function mfa_admin_inquiry_info_shortcode() {
  */
 add_action( 'wp_ajax_mfa_admin_inquiry_reply_whatsapp', 'mfa_ajax_admin_inquiry_reply_whatsapp' );
 function mfa_ajax_admin_inquiry_reply_whatsapp() {
-	if ( ! current_user_can( 'manage_options' ) ) {
+	if ( function_exists( 'mfa_user_can_access_admin_section' ) ? ! mfa_user_can_access_admin_section( 'inquiry' ) : ! current_user_can( 'manage_options' ) ) {
 		wp_send_json_error( array( 'message' => 'You are not authorized to do this.' ) );
 	}
 
@@ -201,4 +222,64 @@ function mfa_ajax_admin_inquiry_reply_whatsapp() {
 	);
 
 	wp_send_json_success( array( 'message' => 'Sent via WhatsApp.' ) );
+}
+
+/**
+ * AJAX handler for the "Reply via Email" button in the same unified reply
+ * form above. Sends server-side via wp_mail() - deliberately not a
+ * `mailto:` link, so the reply is logged/attributable and doesn't depend
+ * on the staff member having a local mail client configured.
+ */
+add_action( 'wp_ajax_mfa_admin_inquiry_reply_email', 'mfa_ajax_admin_inquiry_reply_email' );
+function mfa_ajax_admin_inquiry_reply_email() {
+	if ( function_exists( 'mfa_user_can_access_admin_section' ) ? ! mfa_user_can_access_admin_section( 'inquiry' ) : ! current_user_can( 'manage_options' ) ) {
+		wp_send_json_error( array( 'message' => 'You are not authorized to do this.' ) );
+	}
+
+	$id = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
+	if ( ! $id ) {
+		wp_send_json_error( array( 'message' => 'Invalid inquiry.' ) );
+	}
+
+	check_ajax_referer( 'mfa_admin_inquiry_reply_' . $id, 'nonce' );
+
+	$message = isset( $_POST['message'] ) ? sanitize_textarea_field( wp_unslash( $_POST['message'] ) ) : '';
+	if ( '' === $message ) {
+		wp_send_json_error( array( 'message' => 'Please type a reply first.' ) );
+	}
+
+	global $wpdb;
+	$row = $wpdb->get_row( $wpdb->prepare(
+		"SELECT email, subject FROM {$wpdb->prefix}jet_cct_contact_us WHERE _ID = %d", $id
+	), ARRAY_A );
+
+	if ( ! $row ) {
+		wp_send_json_error( array( 'message' => 'Inquiry not found.' ) );
+	}
+
+	if ( empty( $row['email'] ) || ! is_email( $row['email'] ) ) {
+		wp_send_json_error( array( 'message' => 'This inquiry has no valid email address on file.' ) );
+	}
+
+	$subject = 'Re: ' . ( $row['subject'] ? $row['subject'] : 'Your inquiry to Masjid4All' );
+	$headers = array( 'From: Masjid4All <' . get_option( 'admin_email' ) . '>' );
+
+	$sent = wp_mail( $row['email'], $subject, $message, $headers );
+
+	if ( ! $sent ) {
+		wp_send_json_error( array( 'message' => 'Failed to send email. Please try again.' ) );
+	}
+
+	// Best-effort, same reasoning as the WhatsApp handler above - the email
+	// already sent successfully, so a status-update hiccup here shouldn't
+	// turn a real send into a reported failure.
+	$wpdb->update(
+		$wpdb->prefix . 'jet_cct_contact_us',
+		array( 'cct_status' => 'Replied', 'cct_modified' => current_time( 'mysql' ) ),
+		array( '_ID' => $id ),
+		array( '%s', '%s' ),
+		array( '%d' )
+	);
+
+	wp_send_json_success( array( 'message' => 'Sent via email.' ) );
 }

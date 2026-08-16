@@ -2,7 +2,12 @@
    /admin/inquiry/info/. Builds on global-v2.css tokens; reuses the
    .mfa-admin-status-* badge classes from admin-inquiry-list-v1.css
    (loaded as a dependency of this file), same relationship as
-   admin-member-info-v1.css to admin-member-list-v1.css. */
+   admin-member-info-v1.css to admin-member-list-v1.css.
+   v2 (2026-08-17): unified Email/WhatsApp reply form (was a separate
+   mailto: link + a WhatsApp-only form) - renamed from v1 rather than
+   edited in place, this file is on the LiteSpeed CSS-exclude list so an
+   in-place edit wouldn't reach browsers (see
+   mfa_core_litespeed_css_excludes() in widgets-enqueue.php). */
 
 .mfa-admin-inquiry-info-grid {
   margin-top: var(--mfa-space-5);
@@ -26,29 +31,24 @@
   white-space: pre-line;
 }
 
-.mfa-admin-inquiry-info-reply-btn {
-  margin-top: var(--mfa-space-5);
-  display: inline-flex;
-}
-
-.mfa-admin-inquiry-whatsapp-form {
+.mfa-admin-inquiry-reply-form {
   margin-top: var(--mfa-space-5);
   max-width: 640px;
 }
 
-.mfa-admin-inquiry-whatsapp-form .mfa-form-group {
+.mfa-admin-inquiry-reply-form .mfa-form-group {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.mfa-admin-inquiry-whatsapp-form label {
+.mfa-admin-inquiry-reply-form label {
   font-size: 13px;
   font-weight: 700;
   color: var(--mfa-muted, #56655f);
 }
 
-.mfa-admin-inquiry-whatsapp-form textarea {
+.mfa-admin-inquiry-reply-form textarea {
   border: 1px solid var(--mfa-border, #d7e4e1);
   border-radius: var(--mfa-radius-sm, 8px);
   padding: 10px 12px;
@@ -58,23 +58,26 @@
   resize: vertical;
 }
 
-.mfa-admin-inquiry-whatsapp-form textarea:focus {
+.mfa-admin-inquiry-reply-form textarea:focus {
   outline: 2px solid var(--mfa-teal, #0d8f83);
   outline-offset: 1px;
 }
 
-.mfa-admin-inquiry-whatsapp-form button {
+.mfa-admin-inquiry-reply-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mfa-space-3);
   margin-top: var(--mfa-space-3);
 }
 
-.mfa-admin-inquiry-whatsapp-form .mfa-modal-message {
+.mfa-admin-inquiry-reply-form .mfa-modal-message {
   margin: var(--mfa-space-2) 0 0;
   font-size: 13px;
   min-height: 18px;
   color: #b3261e;
 }
 
-.mfa-admin-inquiry-whatsapp-form .mfa-modal-message.is-success {
+.mfa-admin-inquiry-reply-form .mfa-modal-message.is-success {
   color: var(--mfa-teal-dark, #0d4d47);
 }
 

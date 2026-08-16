@@ -63,6 +63,7 @@ $mfa_core_includes = array(
 	'includes/widgets/business-single.php',
 	'includes/widgets/business-update-form.php',
 	'includes/widgets/mosque-single.php',
+	'includes/widgets/mosque-update-form.php',
 	'includes/widgets/website-single.php',
 	'includes/widgets/website-update-form.php',
 	'includes/widgets/member-logged-out.php',

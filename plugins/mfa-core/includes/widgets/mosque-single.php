@@ -16,6 +16,21 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Upload Image is [mfa_modal]-based - no Kadence dependency of any kind
  * on this page. "Share" was dropped per request - the site already has a
  * sitewide floating share button (share-button-v12.js).
+ *
+ * Edit Mosque (added 2026-08-17, same Administrator/Editor gate as Upload
+ * Image): opens [mfa_mosque_update_form] (mosque-update-form.php) in the
+ * same [mfa_modal] pattern.
+ *
+ * Update Content (added 2026-08-17, same gate): a second, always-visible
+ * entry point to the same AI-regeneration engine
+ * mfa_mosque_info_display()'s inline "Click to Update" prompt already uses
+ * for New/Pending mosques - that prompt stays exactly as-is (own DOM id/
+ * class, own inline script scoped via getElementById), this is a
+ * deliberately separate [mfa_mosque_ai_updater] button/class so both can
+ * coexist on one page with zero collision. Same AJAX action
+ * (mfa_mosque_ai_update) either way, which was already status-agnostic -
+ * this just gives staff a way to trigger it regardless of the mosque's
+ * current listing_status, e.g. after editing info via Edit Mosque above.
  */
 add_shortcode( 'mfa_mosque_home_tab', 'mfa_mosque_home_tab_shortcode' );
 function mfa_mosque_home_tab_shortcode() {
@@ -33,6 +48,11 @@ function mfa_mosque_home_tab_shortcode() {
 				<?php
 				$upload_icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>';
 				echo do_shortcode( '[mfa_modal id="mosque-image-' . esc_attr( $post_id ) . '" title="Upload Image" label="Upload Image" button_class="mfa-mosque-action-btn" icon=\'' . $upload_icon . '\'][cpt_image_manager][/mfa_modal]' );
+
+				$edit_icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>';
+				echo do_shortcode( '[mfa_modal id="mosque-edit-' . esc_attr( $post_id ) . '" title="Edit Mosque" label="Edit Mosque" button_class="mfa-mosque-action-btn" icon=\'' . $edit_icon . '\'][mfa_mosque_update_form][/mfa_modal]' );
+
+				echo do_shortcode( '[mfa_mosque_ai_updater]' );
 				?>
 			</div>
 		<?php endif; ?>
@@ -178,6 +198,46 @@ function mfa_mosque_ai_update() {
 	}
 
 	niz_mfa_mosques_callback(); // emits wp_send_json_* itself.
+}
+
+/**
+ * [mfa_mosque_ai_updater] - the always-visible "Update Content" action-row
+ * button (Administrator/Editor only, gated by the caller in
+ * mfa_mosque_home_tab_shortcode() above, not here - this shortcode itself
+ * has no permission check, same division of responsibility
+ * [mfa_modal]-wrapped buttons on this page already use). Own
+ * querySelectorAll-based JS (mosque-ai-updater-v1.js) so any number of
+ * instances can coexist on one page - mirrors business's
+ * [niz_business_ai_updater] / website's [mfa_website_update] in shape.
+ * Posts to the same mfa_mosque_ai_update AJAX action as the inline
+ * "Click to Update" prompt above.
+ */
+add_shortcode( 'mfa_mosque_ai_updater', 'mfa_mosque_ai_updater_shortcode' );
+function mfa_mosque_ai_updater_shortcode() {
+	$post_id = get_the_ID();
+	if ( 'masjid' !== get_post_type( $post_id ) ) {
+		return '';
+	}
+
+	$nonce = wp_create_nonce( 'mfa_mosque_update_' . $post_id );
+	ob_start();
+	?>
+	<div class="mfa-mosque-ai-update-wrapper">
+		<button
+			type="button"
+			class="mfa-mosque-ai-update-btn mfa-mosque-action-btn"
+			data-post-id="<?php echo esc_attr( $post_id ); ?>"
+			data-nonce="<?php echo esc_attr( $nonce ); ?>"
+			data-name="<?php echo esc_attr( get_the_title( $post_id ) ); ?>"
+			data-ajaxurl="<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>"
+		>
+			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"></path><path d="M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+			Update Content
+		</button>
+		<div class="mfa-mosque-ai-update-msg"></div>
+	</div>
+	<?php
+	return ob_get_clean();
 }
 
 /**

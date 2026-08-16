@@ -1,0 +1,43 @@
+/* mfa-core run-update-v1.css — [run-update], the standing admin page for
+   running pending DB/process migrations. Uses global-v2 tokens. */
+
+.mfa-run-update {
+  max-width: 640px;
+}
+
+.mfa-run-update-list {
+  list-style: none;
+  margin: 0 0 var(--mfa-space-5, 20px);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--mfa-space-3, 12px);
+}
+
+.mfa-run-update-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--mfa-space-4, 16px);
+  padding: var(--mfa-space-4, 16px);
+  background: var(--mfa-white, #fff);
+  border: 1px solid var(--mfa-border, #e7efed);
+  border-radius: var(--mfa-radius-md, 16px);
+}
+
+.mfa-run-update-label {
+  color: var(--mfa-ink, #12181f);
+}
+
+.mfa-run-update-progress {
+  color: var(--mfa-muted, #5b6b66);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.mfa-run-update-status {
+  margin: var(--mfa-space-4, 16px) 0 0;
+  color: var(--mfa-teal-dark, #0d4d47);
+  font-weight: 600;
+}

@@ -51,6 +51,17 @@ function mfa_core_enqueue_widget_assets() {
 		wp_enqueue_script( 'mfa-core-quran', MFA_CORE_URL . 'assets/js/quran.js', array(), $get_version( $js ), true );
 	}
 
+	// /update/ - [run-update], the standing admin "run pending DB/process
+	// migrations" page. Content-based gate (has_shortcode), not a slug
+	// match, since the page is created by the site admin at any URL.
+	if ( has_shortcode( $content, 'run-update' ) ) {
+		$run_update_css = MFA_CORE_PATH . 'assets/css/run-update-v1.css';
+		wp_enqueue_style( 'mfa-core-run-update', MFA_CORE_URL . 'assets/css/run-update-v1.css', array( 'mfa-core-global' ), $get_version( $run_update_css ) );
+
+		$run_update_js = MFA_CORE_PATH . 'assets/js/run-update-v1.js';
+		wp_enqueue_script( 'mfa-core-run-update', MFA_CORE_URL . 'assets/js/run-update-v1.js', array(), $get_version( $run_update_js ), true );
+	}
+
 	// Global design tokens (colors, spacing, buttons, etc) — sitewide,
 	// loaded first so every other mfa-core stylesheet can build on it.
 	// See global-v1.css's own header comment for what's in it and why.

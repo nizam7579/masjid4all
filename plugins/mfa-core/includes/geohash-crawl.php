@@ -402,6 +402,24 @@ function mfa_geohash_guess_state( $address, $country ) {
 	// from state - strip a leading postcode before matching.
 	$candidate = preg_replace( '/^\d{4,6}\s+/', '', trim( $candidate ) );
 
+	return mfa_malaysia_normalize_state_name( $candidate );
+}
+
+/**
+ * Maps a raw state-ish string (from either the address-text parser above or
+ * Nominatim reverse geocoding below) to one of the 16 canonical /places/ hub
+ * titles, or '' if it doesn't match any of them. Split out from
+ * mfa_geohash_guess_state() so both sources normalise identically - a hub
+ * match must be exact (mfa_place_listing_where() will do `state = 'Selangor'`,
+ * not a fuzzy comparison), so "Selangor Darul Ehsan" from a parsed address
+ * and "Selangor" from Nominatim need to land on the same stored value.
+ */
+function mfa_malaysia_normalize_state_name( $candidate ) {
+	$candidate = trim( (string) $candidate );
+	if ( '' === $candidate ) {
+		return '';
+	}
+
 	foreach ( mfa_malaysia_state_aliases() as $canonical => $aliases ) {
 		foreach ( $aliases as $alias ) {
 			if ( 0 === stripos( $candidate, $alias ) ) {
@@ -411,6 +429,74 @@ function mfa_geohash_guess_state( $address, $country ) {
 	}
 
 	return '';
+}
+
+/**
+ * Reverse-geocodes a lat/lng into a state name via Nominatim, for listings
+ * mfa_geohash_guess_state() can't resolve from address text alone (a short/
+ * missing address, or a country whose format isn't covered there yet - only
+ * Malaysia is right now). Same endpoint family, User-Agent and "occasional
+ * admin-time call, not the live crawl path" reasoning as
+ * mfa_place_geocode() in places.php - deliberately NOT called from
+ * mfa_geohash_upsert_place() for that reason (a crawl batch can process
+ * several unmatched places in one run, which would blow past Nominatim's
+ * ~1 req/sec usage policy with no rate limiting in place). Called instead
+ * from the rate-limited wp mfa geohash-backfill-state-api background job
+ * below, which re-scans for empty `state` on every run - so it picks up
+ * both the historical backfill gap and any newly crawled rows Phase 2
+ * couldn't parse, without the crawler itself needing to know this exists.
+ *
+ * @return array|WP_Error 'state' (raw Nominatim value; normalised to the
+ *                         canonical form when country is Malaysia) + 'country'.
+ */
+function mfa_geohash_reverse_geocode_state( $lat, $lng ) {
+	$lat = (float) $lat;
+	$lng = (float) $lng;
+	if ( ! $lat || ! $lng ) {
+		return new WP_Error( 'no_coords', 'Missing coordinates.' );
+	}
+
+	$url = 'https://nominatim.openstreetmap.org/reverse?' . http_build_query( array(
+		'lat'             => $lat,
+		'lon'             => $lng,
+		'format'          => 'json',
+		'zoom'            => 8, // State/region level of detail, not street-level.
+		'addressdetails'  => 1,
+	) );
+
+	$resp = wp_remote_get( $url, array(
+		'timeout' => 15,
+		'headers' => array( 'User-Agent' => 'Masjid4AllPlaces/1.0 (admin tool; ' . home_url() . ')' ),
+	) );
+	if ( is_wp_error( $resp ) ) {
+		return $resp;
+	}
+
+	$data = json_decode( wp_remote_retrieve_body( $resp ), true );
+	$addr = isset( $data['address'] ) && is_array( $data['address'] ) ? $data['address'] : array();
+
+	// OSM tags federal-territory-style regions inconsistently across
+	// providers/countries - 'state' first, 'state_district'/'region' as
+	// fallbacks for places (like Malaysia's federal territories) that don't
+	// carry a plain 'state' tag.
+	$raw_state = '';
+	foreach ( array( 'state', 'state_district', 'region' ) as $key ) {
+		if ( ! empty( $addr[ $key ] ) ) {
+			$raw_state = (string) $addr[ $key ];
+			break;
+		}
+	}
+
+	if ( '' === $raw_state ) {
+		return new WP_Error( 'not_found', 'Nominatim returned no state-level field for these coordinates.' );
+	}
+
+	$country = isset( $addr['country'] ) ? sanitize_text_field( $addr['country'] ) : '';
+	$state   = 'Malaysia' === $country
+		? ( mfa_malaysia_normalize_state_name( $raw_state ) ?: sanitize_text_field( $raw_state ) )
+		: sanitize_text_field( $raw_state );
+
+	return array( 'state' => $state, 'country' => $country );
 }
 
 /**
@@ -505,6 +591,14 @@ function mfa_geohash_upsert_place( $type, $p, $country_fallback = '' ) {
 		$country = $country_fallback;
 	}
 
+	// Unlike $city below (computed for SEO text only, never stored - see
+	// mfa_geohash_guess_city()'s docblock), $state IS persisted: it's the
+	// exact-match column /places/ hub pages use to avoid the bounding-box
+	// double-counting bug (see mfa_geohash_guess_state()'s docblock). Falls
+	// back to '' (parseable later via reverse geocoding - not built yet)
+	// when the address doesn't carry a recognisable state.
+	$state = mfa_geohash_guess_state( $f['address'], $country );
+
 	$is_mosque = ( 'mosque' === $type );
 	$table     = $wpdb->prefix . ( $is_mosque ? 'jet_cct_mosque' : 'jet_cct_business' );
 	$post_type = $is_mosque ? 'masjid' : 'business';
@@ -541,6 +635,7 @@ function mfa_geohash_upsert_place( $type, $p, $country_fallback = '' ) {
 			'longitude'      => $f['longitude'],
 			'address'        => $f['address'],
 			'country'        => $country,
+			'state'          => $state,
 			'phone'          => $f['phone'],
 			'website'        => $f['website'],
 			'rating'         => $f['rating'],
@@ -1503,6 +1598,86 @@ function mfa_geohash_backfill_state( $apply = false, $limit = 0 ) {
 }
 
 /**
+ * Reverse-geocode fallback backfill for rows mfa_geohash_backfill_state()
+ * couldn't resolve from address text - any row in ANY country (not just
+ * Malaysia) still missing a `state` value but with real coordinates.
+ * Rate-limited to Nominatim's ~1 req/sec usage policy (sleep(1) between
+ * every call, same convention mfa_place_geocode()'s callers already use)
+ * and defaults to a small --limit so an unqualified run can't blow past a
+ * WP-CLI execution time limit or hammer Nominatim - meant to be re-run
+ * repeatedly (by hand, or a slow cron tick) to work through the backlog in
+ * safe batches; the WHERE clause naturally excludes already-filled rows
+ * from the next run, no separate progress tracking needed. Also backfills
+ * `country` on the same call when a row somehow has none, since the
+ * reverse-geocode response already includes it at no extra API cost.
+ *
+ * $country optionally scopes the scan to one country (e.g. 'Malaysia') -
+ * the full unscoped backlog is ~136K rows (~37h+ at this pace) and is
+ * mostly countries with no /places/ hub pages yet, so a targeted run is
+ * the normal way to use this until that changes.
+ */
+function mfa_geohash_backfill_state_api( $apply = false, $limit = 50, $country = '' ) {
+	global $wpdb;
+	$report    = array( 'scanned' => 0, 'matched' => 0, 'unmatched' => 0, 'applied' => 0, 'samples' => array() );
+	$remaining = max( 1, $limit );
+
+	foreach ( array( 'mosque' => 'jet_cct_mosque', 'business' => 'jet_cct_business' ) as $type => $tbl ) {
+		if ( $remaining <= 0 ) {
+			break;
+		}
+
+		$table = $wpdb->prefix . $tbl;
+		$where = "( state IS NULL OR state = '' ) AND latitude != 0 AND longitude != 0";
+		$args  = array();
+		if ( '' !== $country ) {
+			$where .= ' AND country = %s';
+			$args[] = $country;
+		}
+		$args[] = $remaining;
+
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT _ID, name, address, country, latitude, longitude FROM {$table} WHERE {$where} LIMIT %d",
+				$args
+			),
+			ARRAY_A
+		);
+
+		foreach ( $rows as $row ) {
+			$report['scanned']++;
+			$remaining--;
+
+			$result = mfa_geohash_reverse_geocode_state( $row['latitude'], $row['longitude'] );
+
+			if ( is_wp_error( $result ) ) {
+				$report['unmatched']++;
+				if ( count( $report['samples'] ) < 30 ) {
+					$report['samples'][] = array( 'type' => $type, 'name' => $row['name'], 'address' => $row['address'], 'state' => null, 'error' => $result->get_error_message() );
+				}
+			} else {
+				$report['matched']++;
+				if ( count( $report['samples'] ) < 30 ) {
+					$report['samples'][] = array( 'type' => $type, 'name' => $row['name'], 'address' => $row['address'], 'state' => $result['state'] );
+				}
+
+				if ( $apply ) {
+					$update = array( 'state' => $result['state'] );
+					if ( '' === (string) $row['country'] && '' !== $result['country'] ) {
+						$update['country'] = $result['country'];
+					}
+					$wpdb->update( $table, $update, array( '_ID' => $row['_ID'] ) );
+					$report['applied']++;
+				}
+			}
+
+			sleep( 1 );
+		}
+	}
+
+	return $report;
+}
+
+/**
  * WP-CLI:
  *   wp mfa geohash-crawl --country=ID --limit=20
  *   wp mfa geohash-queue --country=ID [--limit=500]
@@ -1510,7 +1685,14 @@ function mfa_geohash_backfill_state( $apply = false, $limit = 0 ) {
  *   wp mfa geohash-fix-country --from="Israel" [--limit=N] [--apply]
  *       Dry-run by default (reports what would change); pass --apply to write.
  *   wp mfa geohash-backfill-state [--limit=N] [--apply]
- *       Dry-run by default. Backfills the `state` column for Malaysia rows.
+ *       Dry-run by default. Backfills the `state` column for Malaysia rows,
+ *       parsed from the address text - no external API calls.
+ *   wp mfa geohash-backfill-state-api [--limit=N (default 50)] [--country=Malaysia] [--apply]
+ *       Dry-run by default. Fallback for rows the above can't resolve -
+ *       reverse-geocodes via Nominatim, rate-limited to ~1/sec, so re-run
+ *       repeatedly rather than raising --limit to cover a backlog in one
+ *       call. --country scopes the scan (the full unscoped backlog is
+ *       ~136K rows, mostly countries with no /places/ hub pages yet).
  */
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
 	WP_CLI::add_command( 'mfa geohash-crawl', function ( $args, $assoc ) {
@@ -1583,6 +1765,26 @@ if ( defined( 'WP_CLI' ) && WP_CLI ) {
 		WP_CLI::log( sprintf( 'Scanned %d, matched %d, unmatched %d.', $r['scanned'], $r['matched'], $r['unmatched'] ) );
 		if ( $apply ) {
 			WP_CLI::success( sprintf( 'Applied %d.', $r['applied'] ) );
+		} else {
+			WP_CLI::success( 'DRY RUN - re-run with --apply to write.' );
+		}
+	} );
+
+	WP_CLI::add_command( 'mfa geohash-backfill-state-api', function ( $args, $assoc ) {
+		$apply   = isset( $assoc['apply'] );
+		$limit   = isset( $assoc['limit'] ) ? max( 1, (int) $assoc['limit'] ) : 50;
+		$country = isset( $assoc['country'] ) ? $assoc['country'] : '';
+
+		$r = mfa_geohash_backfill_state_api( $apply, $limit, $country );
+
+		foreach ( $r['samples'] as $s ) {
+			$result = $s['state'] ?? ( '(no match: ' . ( $s['error'] ?? 'unknown' ) . ')' );
+			WP_CLI::log( sprintf( '[%s] %s -> %s :: %s', $s['type'], $s['name'], $result, $s['address'] ) );
+		}
+
+		WP_CLI::log( sprintf( 'Scanned %d, matched %d, unmatched %d.', $r['scanned'], $r['matched'], $r['unmatched'] ) );
+		if ( $apply ) {
+			WP_CLI::success( sprintf( 'Applied %d. Re-run to continue the backlog (default --limit=50 to respect Nominatim\'s rate limit).', $r['applied'] ) );
 		} else {
 			WP_CLI::success( 'DRY RUN - re-run with --apply to write.' );
 		}

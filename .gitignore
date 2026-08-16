@@ -52,3 +52,8 @@ build/
 
 # Vendored Stripe SDK (already tracked; rule kept for reference)
 plugins/enaizi-mfa/includes/stripe-php/
+
+# Runtime logs inside plugin folders - these hold real WhatsApp webhook
+# payloads (phone numbers, message bodies), not code.
+wa-log.txt
+wa-error.txt

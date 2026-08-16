@@ -1,7 +1,17 @@
 /* mfa-core admin-member-info.css — [mfa_admin_member_info] on
    /admin/member/info/. Builds on global-v2.css tokens; reuses the
    .mfa-admin-status-* badge classes and .mfa-admin-member-table component
-   from admin-member-list-v1.css (loaded as a dependency of this file). */
+   from admin-member-list-v1.css (loaded as a dependency of this file).
+   v3 (2026-08-17): the generic .mfa-admin-tabs/-tab/-tabpanel rules that
+   used to live at the bottom of this file moved to admin-shell-v3.css -
+   they're a shared cross-page component (admin-tabs-v1.js), not specific
+   to this page, and having them only here was exactly why Reports'
+   tabs silently failed to hide inactive panels when it started using the
+   same component (this file never loads on /admin/reports/). This file
+   keeps only what's genuinely specific to the member-info layout.
+   Renamed v2 -> v3 rather than edited in place, this file is on the
+   LiteSpeed CSS-exclude list so an in-place edit wouldn't reach browsers
+   (see mfa_core_litespeed_css_excludes() in widgets-enqueue.php). */
 
 .mfa-admin-member-info-layout {
   display: grid;
@@ -48,7 +58,7 @@
   gap: var(--mfa-space-1);
 }
 
-/* ---------- Activity / WhatsApp table cells ---------- */
+/* ---------- Activity / Inquiry / WhatsApp table cells ---------- */
 
 .mfa-admin-member-info-wrap-cell {
   white-space: normal;

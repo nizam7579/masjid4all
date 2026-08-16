@@ -32,7 +32,7 @@ function mfa_privacy_page_shortcode() {
 			<p class="mfa-legal-meta">Effective Date: 1st March 2025</p>
 
 			<article class="mfa-legal-article">
-				<p>Masjid4ALL (hereinafter referred to as "we," "our," or "us") is committed to protecting and respecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your personal information when you visit our website, staging.masjid4all.com (the "Site"). By accessing or using the Site, you agree to the terms of this Privacy Policy.</p>
+				<p>Masjid4ALL (hereinafter referred to as "we," "our," or "us") is committed to protecting and respecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your personal information when you visit our website, masjid4all.com (the "Site"). By accessing or using the Site, you agree to the terms of this Privacy Policy.</p>
 
 				<h2>1. Information We Collect</h2>
 				<p>We collect various types of information to provide you with a better experience while using our Site. The information we collect may include:</p>
@@ -85,7 +85,7 @@ function mfa_privacy_page_shortcode() {
 				<p>We may update this Privacy Policy from time to time. When we do, we will post the revised version on this page with a new effective date. We encourage you to periodically review this Privacy Policy to stay informed about how we are protecting your information.</p>
 
 				<h2>8. Contact Us</h2>
-				<p>If you have any questions or concerns about this Privacy Policy or our data practices, please visit our <a href="https://staging.masjid4all.com/contact-us">Contact Us page</a>.</p>
+				<p>If you have any questions or concerns about this Privacy Policy or our data practices, please visit our <a href="https://masjid4all.com/contact-us">Contact Us page</a>.</p>
 
 				<p><strong>Masjid4ALL.com<br>Pewarisan Sdn Bhd</strong><br>22-2, Jalan Prima Setapak 3<br>Taman Setapak, 50300 Kuala Lumpur, Malaysia</p>
 			</article>
@@ -109,7 +109,7 @@ function mfa_terms_page_shortcode() {
 			<p class="mfa-legal-meta">Effective Date: 1st March 2025</p>
 
 			<article class="mfa-legal-article">
-				<p>Welcome to <strong>Masjid4ALL</strong>, a service developed by Pewarisan Sdn Bhd (hereinafter referred to as "Masjid4ALL", "we," "our," or "us"). These Terms of Service ("Terms") govern your access to and use of our website and services, including any content, functionality, and services offered on or through the website staging.masjid4all.com (the "Site"). By accessing or using the Site, you agree to comply with and be bound by these Terms. If you do not agree to these Terms, do not use the Site.</p>
+				<p>Welcome to <strong>Masjid4ALL</strong>, a service developed by Pewarisan Sdn Bhd (hereinafter referred to as "Masjid4ALL", "we," "our," or "us"). These Terms of Service ("Terms") govern your access to and use of our website and services, including any content, functionality, and services offered on or through the website masjid4all.com (the "Site"). By accessing or using the Site, you agree to comply with and be bound by these Terms. If you do not agree to these Terms, do not use the Site.</p>
 
 				<h2>1. Acceptance of Terms</h2>
 				<p>By accessing or using the Site, you agree to comply with and be legally bound by these Terms. You must be at least 18 years old or the age of majority in your jurisdiction to use the Site. If you are under the age of majority, you must have the consent of a parent or legal guardian to use the Site.</p>
@@ -138,7 +138,7 @@ function mfa_terms_page_shortcode() {
 				</ul>
 
 				<h2>6. Privacy and Data Collection</h2>
-				<p>Your use of the Site is also governed by our <a href="https://staging.masjid4all.com/privacy-policy/">Privacy Policy</a>. By using the Site, you consent to our collection and use of your information as outlined in our Privacy Policy.</p>
+				<p>Your use of the Site is also governed by our <a href="https://masjid4all.com/privacy-policy/">Privacy Policy</a>. By using the Site, you consent to our collection and use of your information as outlined in our Privacy Policy.</p>
 
 				<h2>7. Intellectual Property</h2>
 				<ul>

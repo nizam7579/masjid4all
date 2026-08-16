@@ -49,12 +49,30 @@ define( 'MFA_PLACES_REWRITE_VERSION', '1' );
 
 const MFA_PLACE_POST_TYPE = 'place';
 
-/** Listing statuses a hub will show and count. Deliberately identical to
- * mfa_homepage_live_counts()'s set so a hub's numbers can never disagree with
- * the homepage's - this project has already been bitten once by three
- * different "how many mosques" figures across three screens. */
-function mfa_place_listed_statuses() {
-	return array( 'New', 'Pending', 'Approved', 'Verified', 'Premium' );
+/**
+ * Statuses a hub will NOT show or count. Everything else counts.
+ *
+ * Deliberately an exclude-list, not an include-list. The first version of this
+ * copied mfa_homepage_live_counts()'s include-list and undercounted badly:
+ * Malaysia's hub showed 4,545 mosques and 909 businesses against 8,491 and
+ * 6,207 in the crawler panel. Two causes, both structural:
+ *
+ * 1. The codebase has three disagreeing definitions of "listed" -
+ *    mfa_geohash_crawl_status() counts mosques as New/Pending/Approved/Active,
+ *    mfa_homepage_live_counts() as New/Pending/Approved/Verified/Premium
+ *    (no Active, so it drops every Active mosque), and
+ *    mfa_geohash_country_summary() applies no status filter at all. Copying any
+ *    one of them just inherits its particular blind spot.
+ * 2. An include-list silently drops any status nobody thought of - an empty
+ *    string, or a value added later - which is how 85% of Malaysia's
+ *    businesses disappeared from their own hub.
+ *
+ * An exclude-list matches the actual product decision (2026-08-16: "index all
+ * that already listed except rejected, error etc") and fails safe: an unknown
+ * status shows up and gets noticed, rather than vanishing silently.
+ */
+function mfa_place_excluded_statuses() {
+	return array( 'Rejected', 'Error', 'Deleted' );
 }
 
 /* -------------------------------------------------------------------------
@@ -326,10 +344,13 @@ function mfa_place_listing_where( $place_id, $table_alias = '' ) {
 	}
 
 	$p        = $table_alias ? $table_alias . '.' : '';
-	$statuses = mfa_place_listed_statuses();
+	$statuses = mfa_place_excluded_statuses();
 	$in       = implode( ',', array_fill( 0, count( $statuses ), '%s' ) );
 
-	$sql  = "{$p}listing_status IN ({$in}) AND {$p}country = %s";
+	// NOT IN (...) is NULL-unsafe in SQL - a NULL listing_status makes the whole
+	// predicate NULL, i.e. false - so spell out the NULL case rather than losing
+	// those rows the same way the include-list lost them.
+	$sql  = "( {$p}listing_status IS NULL OR {$p}listing_status NOT IN ({$in}) ) AND {$p}country = %s";
 	$args = array_merge( $statuses, array( $geo['country'] ) );
 
 	if ( ! $geo['is_root'] ) {

@@ -25,6 +25,35 @@ if ( ! defined( 'ABSPATH' ) ) {
  * throttled cron, never an unbounded loop.
  */
 
+/* -------------------------------------------------------------------------
+ * Schema: `state` column on the listing tables (added 2026-08-16, see
+ * mfa_geohash_guess_state() below). Self-healing on load rather than a
+ * one-off manual ALTER TABLE, same version-gated-option pattern
+ * MFA_PLACES_REWRITE_VERSION uses in places.php - this is a real data
+ * column (unlike a pure performance index), so losing it silently on a
+ * staging rebuild-from-backup would be worse than losing an index.
+ * ---------------------------------------------------------------------- */
+
+define( 'MFA_LISTING_STATE_COLUMN_VERSION', '1' );
+
+add_action( 'plugins_loaded', 'mfa_geohash_maybe_add_state_column' );
+function mfa_geohash_maybe_add_state_column() {
+	if ( get_option( 'mfa_listing_state_column_version' ) === MFA_LISTING_STATE_COLUMN_VERSION ) {
+		return;
+	}
+
+	global $wpdb;
+	foreach ( array( 'jet_cct_mosque', 'jet_cct_business' ) as $table ) {
+		$full   = $wpdb->prefix . $table;
+		$exists = $wpdb->get_var( $wpdb->prepare( 'SHOW COLUMNS FROM ' . $full . ' LIKE %s', 'state' ) );
+		if ( ! $exists ) {
+			$wpdb->query( "ALTER TABLE {$full} ADD COLUMN state VARCHAR(191) NULL AFTER city, ADD INDEX idx_state (state(50))" );
+		}
+	}
+
+	update_option( 'mfa_listing_state_column_version', MFA_LISTING_STATE_COLUMN_VERSION );
+}
+
 /**
  * Serper API key - constant (wp-config) wins, DB option is the fallback so it
  * can be set without a wp-config edit. Empty string if unconfigured.
@@ -288,6 +317,96 @@ function mfa_geohash_guess_country( $address ) {
 	foreach ( mfa_get_country_list() as $c ) {
 		if ( 0 === strcasecmp( $last, $c ) ) {
 			return $c;
+		}
+	}
+
+	return '';
+}
+
+/**
+ * Malaysia's 16 states/federal territories, canonical form (matching the
+ * /places/ hub titles exactly - see includes/places.php) mapped to how they
+ * show up in a Serper address's state-position comma segment. Matching is a
+ * case-insensitive prefix check against the plain name, not an exhaustive
+ * enumeration of every ceremonial honorific ("Johor Darul Ta'zim", "Kedah
+ * Darul Aman", "Selangor Darul Ehsan", etc.) - every honorific is the plain
+ * name plus a trailing suffix, so a prefix check on the plain name catches
+ * all of them at once. Only Melaka/Malacca and Pulau Pinang/Penang need an
+ * explicit second alias, since those are genuinely different words rather
+ * than a suffix variant.
+ */
+function mfa_malaysia_state_aliases() {
+	return array(
+		'Johor'           => array( 'johor' ),
+		'Kedah'           => array( 'kedah' ),
+		'Kelantan'        => array( 'kelantan' ),
+		'Malacca'         => array( 'melaka', 'malacca' ),
+		'Negeri Sembilan' => array( 'negeri sembilan' ),
+		'Pahang'          => array( 'pahang' ),
+		'Perak'           => array( 'perak' ),
+		'Perlis'          => array( 'perlis' ),
+		'Penang'          => array( 'pulau pinang', 'penang' ),
+		'Sabah'           => array( 'sabah' ),
+		'Sarawak'         => array( 'sarawak' ),
+		'Selangor'        => array( 'selangor' ),
+		'Terengganu'      => array( 'terengganu' ),
+		'Kuala Lumpur'    => array( 'kuala lumpur' ),
+		'Putrajaya'       => array( 'putrajaya' ),
+		'Labuan'          => array( 'labuan' ),
+	);
+}
+
+/**
+ * Best-effort state guess from a Serper place's address, Malaysia only for
+ * now - Malaysian addresses reliably carry the state as the comma segment
+ * right before the trailing country name (e.g. "...Sungai Buloh, Selangor,
+ * Malaysia"), which isn't a pattern confirmed for every country's address
+ * format, so this deliberately returns '' rather than guessing elsewhere.
+ * mfa_geohash_reverse_geocode_state() is the fallback for addresses this
+ * can't resolve (empty/short address, or a country not covered here yet).
+ *
+ * Returns '' rather than throwing on no match, same contract as
+ * mfa_geohash_guess_city()/mfa_geohash_guess_country() - callers already
+ * expect an empty string to mean "couldn't tell."
+ */
+function mfa_geohash_guess_state( $address, $country ) {
+	if ( 'Malaysia' !== $country || '' === $address ) {
+		return '';
+	}
+
+	$parts = array_values( array_filter( array_map( 'trim', explode( ',', $address ) ) ) );
+	if ( empty( $parts ) ) {
+		return '';
+	}
+
+	$last = end( $parts );
+	if ( false !== stripos( $last, 'malaysia' ) ) {
+		array_pop( $parts );
+	}
+
+	$candidate = end( $parts );
+	if ( ! $candidate ) {
+		return '';
+	}
+
+	// "Wilayah Persekutuan Kuala Lumpur" / "Federal Territory of Kuala
+	// Lumpur" / "W.P. Putrajaya" -> strip the federal-territory prefix
+	// before matching against the plain name. The suffix form ("Labuan
+	// Federal Territory") doesn't need stripping - it already starts with
+	// the plain name, so the alias match below catches it as-is.
+	$candidate = preg_replace( '/^(wilayah\s+persekutuan|federal\s+territory\s+of|w\.?\s*p\.?)\s+/i', '', trim( $candidate ) );
+
+	// Small single-segment territories (Labuan, Putrajaya) sometimes arrive
+	// as "<postcode> <name>" in one comma segment rather than getting their
+	// own separate segment the way "<postcode> <city>, <state>" splits city
+	// from state - strip a leading postcode before matching.
+	$candidate = preg_replace( '/^\d{4,6}\s+/', '', trim( $candidate ) );
+
+	foreach ( mfa_malaysia_state_aliases() as $canonical => $aliases ) {
+		foreach ( $aliases as $alias ) {
+			if ( 0 === stripos( $candidate, $alias ) ) {
+				return $canonical;
+			}
 		}
 	}
 
@@ -1327,12 +1446,71 @@ function mfa_geohash_fix_existing_countries( $from_country, $apply = false, $lim
 }
 
 /**
+ * One-time backfill of the `state` column (see
+ * mfa_geohash_maybe_add_state_column() above) for existing Malaysia rows,
+ * via the address-parsing mfa_geohash_guess_state() - Phase 1 of the
+ * /places/ hub overlap fix (bounding-box hub matching double-counts
+ * listings near a state border; exact state matching won't). Only scans
+ * rows that don't already have a state, so re-running after a partial
+ * --apply pass picks up where it left off. Non-Malaysia rows are left for
+ * the reverse-geocoding fallback (a later phase, not built yet).
+ */
+function mfa_geohash_backfill_state( $apply = false, $limit = 0 ) {
+	global $wpdb;
+	$report = array(
+		'scanned'   => 0,
+		'matched'   => 0,
+		'unmatched' => 0,
+		'applied'   => 0,
+		'samples'   => array(),
+	);
+
+	foreach ( array( 'mosque' => 'jet_cct_mosque', 'business' => 'jet_cct_business' ) as $type => $tbl ) {
+		$table = $wpdb->prefix . $tbl;
+
+		$sql = "SELECT _ID, name, address, country FROM {$table} WHERE country = 'Malaysia' AND (state IS NULL OR state = '')";
+		if ( $limit > 0 ) {
+			$sql .= $wpdb->prepare( ' LIMIT %d', $limit );
+		}
+		$rows = $wpdb->get_results( $sql, ARRAY_A );
+
+		foreach ( $rows as $row ) {
+			$report['scanned']++;
+
+			$state = mfa_geohash_guess_state( (string) $row['address'], (string) $row['country'] );
+
+			if ( '' === $state ) {
+				$report['unmatched']++;
+				if ( count( $report['samples'] ) < 30 ) {
+					$report['samples'][] = array( 'type' => $type, 'name' => $row['name'], 'address' => $row['address'], 'state' => null );
+				}
+				continue;
+			}
+
+			$report['matched']++;
+			if ( count( $report['samples'] ) < 30 ) {
+				$report['samples'][] = array( 'type' => $type, 'name' => $row['name'], 'address' => $row['address'], 'state' => $state );
+			}
+
+			if ( $apply ) {
+				$wpdb->update( $table, array( 'state' => $state ), array( '_ID' => $row['_ID'] ), array( '%s' ), array( '%d' ) );
+				$report['applied']++;
+			}
+		}
+	}
+
+	return $report;
+}
+
+/**
  * WP-CLI:
  *   wp mfa geohash-crawl --country=ID --limit=20
  *   wp mfa geohash-queue --country=ID [--limit=500]
  *   wp mfa geohash-cron           (respects the admin on/off toggle + batch size)
  *   wp mfa geohash-fix-country --from="Israel" [--limit=N] [--apply]
  *       Dry-run by default (reports what would change); pass --apply to write.
+ *   wp mfa geohash-backfill-state [--limit=N] [--apply]
+ *       Dry-run by default. Backfills the `state` column for Malaysia rows.
  */
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
 	WP_CLI::add_command( 'mfa geohash-crawl', function ( $args, $assoc ) {
@@ -1385,6 +1563,28 @@ if ( defined( 'WP_CLI' ) && WP_CLI ) {
 			WP_CLI::success( sprintf( 'Scanned %d, fixed %d.', $r['scanned'], $r['applied'] ) );
 		} else {
 			WP_CLI::success( sprintf( 'DRY RUN - scanned %d, would fix %d. Re-run with --apply to write.', $r['scanned'], $r['mismatched'] ) );
+		}
+	} );
+
+	WP_CLI::add_command( 'mfa geohash-backfill-state', function ( $args, $assoc ) {
+		$apply = isset( $assoc['apply'] );
+		$limit = isset( $assoc['limit'] ) ? (int) $assoc['limit'] : 0;
+
+		$r = mfa_geohash_backfill_state( $apply, $limit );
+
+		foreach ( $r['samples'] as $s ) {
+			WP_CLI::log( sprintf( '[%s] %s -> %s :: %s', $s['type'], $s['name'], $s['state'] ?? '(no match)', $s['address'] ) );
+		}
+		$shown = count( $r['samples'] );
+		if ( $r['scanned'] > $shown ) {
+			WP_CLI::log( sprintf( '... and %d more not shown.', $r['scanned'] - $shown ) );
+		}
+
+		WP_CLI::log( sprintf( 'Scanned %d, matched %d, unmatched %d.', $r['scanned'], $r['matched'], $r['unmatched'] ) );
+		if ( $apply ) {
+			WP_CLI::success( sprintf( 'Applied %d.', $r['applied'] ) );
+		} else {
+			WP_CLI::success( 'DRY RUN - re-run with --apply to write.' );
 		}
 	} );
 

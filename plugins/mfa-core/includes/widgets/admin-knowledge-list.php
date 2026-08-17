@@ -97,7 +97,7 @@ function mfa_admin_knowledge_list_shortcode() {
 	$paged       = min( $paged, $total_pages );
 	$offset      = ( $paged - 1 ) * $per_page;
 
-	$data_sql    = "SELECT p.ID, p.post_title, p.post_status, p.post_date FROM {$wpdb->posts} p WHERE {$where_sql} ORDER BY p.post_date DESC LIMIT %d OFFSET %d";
+	$data_sql    = "SELECT p.ID, p.post_title, p.post_excerpt, p.post_content, p.post_status, p.post_date FROM {$wpdb->posts} p WHERE {$where_sql} ORDER BY p.post_date DESC LIMIT %d OFFSET %d";
 	$data_params = array_merge( $params, array( $per_page, $offset ) );
 	$rows        = $wpdb->get_results( $wpdb->prepare( $data_sql, $data_params ), ARRAY_A );
 
@@ -145,6 +145,7 @@ function mfa_admin_knowledge_list_shortcode() {
 				<thead>
 					<tr>
 						<th>Title</th>
+						<th>Excerpt</th>
 						<th>Category</th>
 						<th>Date</th>
 						<th>Status</th>
@@ -153,16 +154,19 @@ function mfa_admin_knowledge_list_shortcode() {
 				</thead>
 				<tbody>
 					<?php if ( empty( $rows ) ) : ?>
-						<tr><td colspan="5" class="mfa-admin-knowledge-empty">No articles found.</td></tr>
+						<tr><td colspan="6" class="mfa-admin-knowledge-empty">No articles found.</td></tr>
 					<?php else : ?>
 						<?php foreach ( $rows as $row ) :
-							$terms      = get_the_terms( (int) $row['ID'], 'knowledge-category' );
-							$cat_label  = ( $terms && ! is_wp_error( $terms ) ) ? wp_list_pluck( $terms, 'name' ) : array();
-							$view_url   = 'publish' === $row['post_status'] ? get_permalink( (int) $row['ID'] ) : '';
-							$status_key = sanitize_html_class( strtolower( $row['post_status'] ) );
+							$terms        = get_the_terms( (int) $row['ID'], 'knowledge-category' );
+							$cat_label    = ( $terms && ! is_wp_error( $terms ) ) ? wp_list_pluck( $terms, 'name' ) : array();
+							$view_url     = 'publish' === $row['post_status'] ? get_permalink( (int) $row['ID'] ) : '';
+							$status_key   = sanitize_html_class( strtolower( $row['post_status'] ) );
+							$is_empty_draft = 'draft' === $row['post_status'] && '' === trim( wp_strip_all_tags( $row['post_content'] ) );
+							$ai_url       = home_url( '/admin/knowledge/ai/generate/?id=' . (int) $row['ID'] );
 							?>
 							<tr>
 								<td data-label="Title"><?php echo esc_html( $row['post_title'] ? $row['post_title'] : '—' ); ?></td>
+								<td data-label="Excerpt" class="mfa-admin-knowledge-excerpt"><?php echo esc_html( $row['post_excerpt'] ? $row['post_excerpt'] : '—' ); ?></td>
 								<td data-label="Category"><?php echo esc_html( $cat_label ? implode( ', ', $cat_label ) : '—' ); ?></td>
 								<td data-label="Date"><?php echo esc_html( mysql2date( 'j M Y', $row['post_date'] ) ); ?></td>
 								<td data-label="Status">
@@ -173,6 +177,9 @@ function mfa_admin_knowledge_list_shortcode() {
 										<a href="<?php echo esc_url( $view_url ); ?>" target="_blank" rel="noopener" class="mfa-btn mfa-btn-solid-dark mfa-admin-knowledge-view-btn">View</a>
 									<?php endif; ?>
 									<a href="<?php echo esc_url( admin_url( 'post.php?post=' . (int) $row['ID'] . '&action=edit' ) ); ?>" target="_blank" rel="noopener" class="mfa-btn mfa-btn-solid-dark mfa-admin-knowledge-view-btn">Edit</a>
+									<?php if ( $is_empty_draft ) : ?>
+										<a href="<?php echo esc_url( $ai_url ); ?>" target="_blank" rel="noopener" class="mfa-btn mfa-btn-solid-dark mfa-admin-knowledge-view-btn">AI Content</a>
+									<?php endif; ?>
 								</td>
 							</tr>
 						<?php endforeach; ?>

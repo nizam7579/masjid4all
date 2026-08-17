@@ -126,6 +126,13 @@
   color: var(--mfa-ink);
 }
 
+.mfa-admin-knowledge-excerpt {
+  white-space: normal;
+  max-width: 320px;
+  color: var(--mfa-muted);
+  font-size: 13px;
+}
+
 .mfa-admin-knowledge-empty {
   text-align: center;
   color: var(--mfa-muted);

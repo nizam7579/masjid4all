@@ -5,17 +5,24 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * [mfa_admin_knowledge_ai_generate] - /admin/knowledge/ai/generate/, a
- * child of /admin/knowledge/ai/. Same self-redirecting, one-record-per-
- * page-load pattern as /admin/website/generate/ (see
- * admin-website-generate-start.php): each load claims the oldest pending
- * AI-suggested `knowledge` draft (_mfa_ai_status = 'pending'), writes its
- * full content via mfa_knowledge_ai_generate_content(), then redirects
- * itself back to this same URL after a short pause. Opened in a new tab
- * from /admin/knowledge/ai/'s "Generate Content for Pending" link so the
- * admin can watch progress live and stop at any point just by closing the
- * tab. Content stays a draft either way - publishing is a separate, human
- * step, unlike the website/mosque "Generate Content" flows which do
- * auto-approve.
+ * child of /admin/knowledge/ai/. Two modes, both sharing
+ * mfa_knowledge_ai_generate_content():
+ *
+ * - Bulk mode (no `id` query arg): same self-redirecting, one-record-per-
+ *   page-load pattern as /admin/website/generate/ (see
+ *   admin-website-generate-start.php) - each load claims the oldest
+ *   pending AI-suggested draft (_mfa_ai_status = 'pending'), generates it,
+ *   then redirects back to this same URL. Opened from /admin/knowledge/ai/'s
+ *   "Generate Content for Pending" link.
+ * - Single-post mode (`?id=123`): generates content for exactly that one
+ *   `knowledge` post - any Draft post with empty content, not just ones
+ *   that went through the "Suggest Topics" flow - then redirects to
+ *   /admin/knowledge/ (the list) once done, success or error, rather than
+ *   looping to a next record. Opened from the "AI Content" button
+ *   admin-knowledge-list.php shows per-row on Draft/empty-content posts.
+ *
+ * Content stays a draft either way - publishing is a separate, human step,
+ * unlike the website/mosque "Generate Content" flows which auto-approve.
  */
 
 add_shortcode( 'mfa_admin_knowledge_ai_generate', 'mfa_admin_knowledge_ai_generate_shortcode' );
@@ -50,7 +57,8 @@ function mfa_admin_knowledge_ai_generate_shortcode() {
  */
 function mfa_admin_knowledge_ai_generate_render() {
 	try {
-		return mfa_admin_knowledge_ai_generate_attempt();
+		$id = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
+		return $id ? mfa_admin_knowledge_ai_generate_single( $id ) : mfa_admin_knowledge_ai_generate_attempt();
 	} catch ( Throwable $e ) {
 		$next_url = home_url( '/admin/knowledge/ai/generate/' );
 		ob_start();
@@ -61,6 +69,59 @@ function mfa_admin_knowledge_ai_generate_render() {
 		<?php
 		return ob_get_clean();
 	}
+}
+
+/**
+ * Single-post mode: generate content for exactly one `knowledge` post
+ * (`?id=`), then redirect to the Knowledge Hub list either way - no
+ * "next record" to move to here, unlike bulk mode.
+ */
+function mfa_admin_knowledge_ai_generate_single( $id ) {
+	$list_url = home_url( '/admin/knowledge/' );
+	$post     = get_post( $id );
+
+	if ( ! $post || 'knowledge' !== $post->post_type ) {
+		return '<div class="mfa-crawler-banner is-paused">&#9208; Not a valid Knowledge Hub post.</div><p class="mfa-crawler-hint"><a href="' . esc_url( $list_url ) . '">&larr; Back to Knowledge Hub</a></p>';
+	}
+
+	if ( 'draft' !== $post->post_status || '' !== trim( wp_strip_all_tags( $post->post_content ) ) ) {
+		ob_start();
+		?>
+		<div class="mfa-crawler-banner is-paused">&#9208; "<?php echo esc_html( $post->post_title ); ?>" is no longer a Draft with empty content - nothing to do.</div>
+		<script>setTimeout( function () { location.href = <?php echo wp_json_encode( $list_url ); ?>; }, 2000 );</script>
+		<?php
+		return ob_get_clean();
+	}
+
+	if ( ! function_exists( 'mfa_knowledge_ai_generate_content' ) ) {
+		return '<div class="mfa-crawler-banner is-paused">&#9208; Content generation is unavailable (mfa_knowledge_ai_generate_content() missing).</div>';
+	}
+
+	$result = mfa_knowledge_ai_generate_content( $id );
+
+	if ( is_wp_error( $result ) ) {
+		update_post_meta( $id, '_mfa_ai_status', 'error' );
+		update_post_meta( $id, '_mfa_ai_error', $result->get_error_message() );
+
+		ob_start();
+		?>
+		<div class="mfa-crawler-banner is-paused">
+			&#9208; "<?php echo esc_html( $post->post_title ); ?>" failed: <?php echo esc_html( $result->get_error_message() ); ?>
+		</div>
+		<p class="mfa-crawler-hint">Going back to the Knowledge Hub&hellip;</p>
+		<script>setTimeout( function () { location.href = <?php echo wp_json_encode( $list_url ); ?>; }, <?php echo (int) wp_rand( 2500, 4000 ); ?> );</script>
+		<?php
+		return ob_get_clean();
+	}
+
+	ob_start();
+	?>
+	<p class="mfa-crawler-hint">
+		&#9989; "<?php echo esc_html( $post->post_title ); ?>" &mdash; content generated, saved as draft. Going back to the Knowledge Hub&hellip;
+	</p>
+	<script>setTimeout( function () { location.href = <?php echo wp_json_encode( $list_url ); ?>; }, <?php echo (int) wp_rand( 1500, 2500 ); ?> );</script>
+	<?php
+	return ob_get_clean();
 }
 
 function mfa_admin_knowledge_ai_generate_attempt() {

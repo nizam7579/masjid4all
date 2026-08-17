@@ -147,14 +147,13 @@ function mfa_admin_knowledge_list_shortcode() {
 						<th>Title</th>
 						<th>Excerpt</th>
 						<th>Category</th>
-						<th>Date</th>
 						<th>Status</th>
 						<th></th>
 					</tr>
 				</thead>
 				<tbody>
 					<?php if ( empty( $rows ) ) : ?>
-						<tr><td colspan="6" class="mfa-admin-knowledge-empty">No articles found.</td></tr>
+						<tr><td colspan="5" class="mfa-admin-knowledge-empty">No articles found.</td></tr>
 					<?php else : ?>
 						<?php foreach ( $rows as $row ) :
 							$terms        = get_the_terms( (int) $row['ID'], 'knowledge-category' );
@@ -168,7 +167,6 @@ function mfa_admin_knowledge_list_shortcode() {
 								<td data-label="Title"><?php echo esc_html( $row['post_title'] ? $row['post_title'] : '—' ); ?></td>
 								<td data-label="Excerpt" class="mfa-admin-knowledge-excerpt"><?php echo esc_html( $row['post_excerpt'] ? $row['post_excerpt'] : '—' ); ?></td>
 								<td data-label="Category"><?php echo esc_html( $cat_label ? implode( ', ', $cat_label ) : '—' ); ?></td>
-								<td data-label="Date"><?php echo esc_html( mysql2date( 'j M Y', $row['post_date'] ) ); ?></td>
 								<td data-label="Status">
 									<span class="mfa-admin-status-badge mfa-admin-status-<?php echo esc_attr( $status_key ); ?>"><?php echo esc_html( $status_options[ $row['post_status'] ] ?? ucfirst( $row['post_status'] ) ); ?></span>
 								</td>

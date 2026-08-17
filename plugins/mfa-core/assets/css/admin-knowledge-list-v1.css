@@ -126,7 +126,7 @@
   color: var(--mfa-ink);
 }
 
-.mfa-admin-knowledge-excerpt {
+.mfa-admin-knowledge-table td.mfa-admin-knowledge-excerpt {
   white-space: normal;
   max-width: 320px;
   color: var(--mfa-muted);

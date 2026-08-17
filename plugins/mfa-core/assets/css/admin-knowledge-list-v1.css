@@ -25,6 +25,12 @@
   margin-top: var(--mfa-space-1);
 }
 
+.mfa-admin-knowledge-list-heading-actions {
+  display: flex;
+  gap: var(--mfa-space-3);
+  flex-wrap: wrap;
+}
+
 /* ---------- Filters ---------- */
 
 .mfa-admin-knowledge-filters {

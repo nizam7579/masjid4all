@@ -108,10 +108,13 @@ function mfa_admin_knowledge_list_shortcode() {
 	<div class="mfa-admin-knowledge-list">
 		<div class="mfa-admin-knowledge-list-heading">
 			<div>
-				<h1 class="mfa-h2">Knowledge Base</h1>
+				<h1 class="mfa-h2">Knowledge Hub</h1>
 				<p class="mfa-body-muted"><?php echo esc_html( number_format_i18n( $total ) ); ?> article<?php echo 1 === $total ? '' : 's'; ?></p>
 			</div>
-			<a href="<?php echo esc_url( $add_new_url ); ?>" target="_blank" rel="noopener" class="mfa-btn mfa-btn-primary">Add New</a>
+			<div class="mfa-admin-knowledge-list-heading-actions">
+				<a href="<?php echo esc_url( home_url( '/admin/knowledge/ai/' ) ); ?>" class="mfa-btn mfa-btn-solid-dark">AI Content</a>
+				<a href="<?php echo esc_url( $add_new_url ); ?>" target="_blank" rel="noopener" class="mfa-btn mfa-btn-primary">Add New</a>
+			</div>
 		</div>
 
 		<form method="get" class="mfa-admin-knowledge-filters">
@@ -179,7 +182,7 @@ function mfa_admin_knowledge_list_shortcode() {
 		</div>
 
 		<?php if ( $total_pages > 1 ) : ?>
-			<nav class="mfa-admin-knowledge-pagination" aria-label="Knowledge Base pagination">
+			<nav class="mfa-admin-knowledge-pagination" aria-label="Knowledge Hub pagination">
 				<?php if ( $paged > 1 ) : ?>
 					<a href="<?php echo esc_url( add_query_arg( 'paged', $paged - 1 ) ); ?>" class="mfa-admin-knowledge-page-link">&larr; Prev</a>
 				<?php endif; ?>

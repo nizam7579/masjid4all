@@ -118,6 +118,28 @@ function mfa_core_enqueue_widget_assets() {
 			wp_enqueue_style( 'mfa-core-admin-knowledge-list', MFA_CORE_URL . 'assets/css/admin-knowledge-list-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell' ), $get_version( $admin_knowledge_list_css ) );
 		}
 
+		// /admin/knowledge/ai/ - the AI Content review page, matched by slug
+		// (not a fixed ID) same reasoning as the other admin sub-page matches
+		// in this file. Its own card-based stylesheet.
+		$is_knowledge_ai = $post && 'ai' === $post->post_name && $post->post_parent
+			&& 'knowledge' === get_post_field( 'post_name', $post->post_parent );
+		if ( $is_knowledge_ai ) {
+			$admin_knowledge_ai_css = MFA_CORE_PATH . 'assets/css/admin-knowledge-ai-v1.css';
+			wp_enqueue_style( 'mfa-core-admin-knowledge-ai', MFA_CORE_URL . 'assets/css/admin-knowledge-ai-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell' ), $get_version( $admin_knowledge_ai_css ) );
+		}
+
+		// /admin/knowledge/ai/generate/ - reuses the crawler's own
+		// self-redirecting one-record-per-load stylesheet/classes
+		// (.mfa-crawler, .mfa-crawler-hint, .mfa-crawler-banner.is-paused),
+		// same shared-component reasoning as the website/generate match
+		// above - don't fork a second copy of this CSS for a third consumer.
+		$is_knowledge_ai_generate = $post && 'generate' === $post->post_name && $post->post_parent
+			&& 'ai' === get_post_field( 'post_name', $post->post_parent );
+		if ( $is_knowledge_ai_generate ) {
+			$crawler_css = MFA_CORE_PATH . 'assets/css/admin-crawler-v1.css';
+			wp_enqueue_style( 'mfa-core-admin-crawler', MFA_CORE_URL . 'assets/css/admin-crawler-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell' ), $get_version( $crawler_css ) );
+		}
+
 		if ( $post && 'blog' === $post->post_name && 9343 === (int) $post->post_parent ) {
 			$admin_blog_list_css = MFA_CORE_PATH . 'assets/css/admin-blog-list-v1.css';
 			wp_enqueue_style( 'mfa-core-admin-blog-list', MFA_CORE_URL . 'assets/css/admin-blog-list-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell' ), $get_version( $admin_blog_list_css ) );
@@ -460,6 +482,7 @@ function mfa_core_litespeed_css_excludes( $excludes ) {
 	$excludes[] = 'mfa-core/assets/css/admin-business-list-v1.css';
 	$excludes[] = 'mfa-core/assets/css/admin-website-list-v1.css';
 	$excludes[] = 'mfa-core/assets/css/admin-knowledge-list-v1.css';
+	$excludes[] = 'mfa-core/assets/css/admin-knowledge-ai-v1.css';
 	$excludes[] = 'mfa-core/assets/css/admin-blog-list-v1.css';
 	$excludes[] = 'mfa-core/assets/css/admin-inquiry-list-v1.css';
 	$excludes[] = 'mfa-core/assets/css/admin-inquiry-info-v2.css';

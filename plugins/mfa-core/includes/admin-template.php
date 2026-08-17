@@ -69,6 +69,9 @@ function mfa_admin_page_hides_chrome( $post_id = 0 ) {
 		if ( 'generate' === $post->post_name && 'website' === $parent_slug ) {
 			return true;
 		}
+		if ( 'generate' === $post->post_name && 'ai' === $parent_slug ) {
+			return true;
+		}
 		if ( 'info' === $post->post_name && 'inquiry' === $parent_slug ) {
 			return true;
 		}

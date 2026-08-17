@@ -23,7 +23,7 @@ function mfa_admin_nav_items() {
 		array( 'label' => 'Mosque',    'url' => home_url( '/admin/mosque/' ),   'icon' => 'mosque',    'section' => 'mosque' ),
 		array( 'label' => 'Business',  'url' => home_url( '/admin/business/' ), 'icon' => 'briefcase', 'section' => 'business' ),
 		array( 'label' => 'Website',        'url' => home_url( '/admin/website/' ),   'icon' => 'globe', 'section' => 'website' ),
-		array( 'label' => 'Knowledge Base', 'url' => home_url( '/admin/knowledge/' ), 'icon' => 'book',   'section' => 'knowledge' ),
+		array( 'label' => 'Knowledge Hub',  'url' => home_url( '/admin/knowledge/' ), 'icon' => 'book',   'section' => 'knowledge' ),
 		array( 'label' => 'Blogs',          'url' => home_url( '/admin/blog/' ),      'icon' => 'edit',   'section' => 'blog' ),
 		array( 'label' => 'Reports',        'url' => home_url( '/admin/reports/' ),   'icon' => 'chart',  'section' => 'reports' ),
 		array( 'label' => 'Crawler',        'url' => home_url( '/admin/crawler/' ),   'icon' => 'radar',  'section' => 'crawler' ),

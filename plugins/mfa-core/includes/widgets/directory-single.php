@@ -252,25 +252,26 @@ function mfa_directory_single_shortcode() {
 						<?php echo do_shortcode( '[' . $c['tabs'][0][1] . ']' ); ?>
 					</div>
 				<?php endif; ?>
+
+				<?php
+				// Sits in the left content column under the listing body, so the
+				// ad column keeps running alongside it. empty() rather than isset()
+				// so a type config without a 'below' key is simply skipped.
+				if ( ! empty( $c['below'] ) ) {
+					$below_html = do_shortcode( $c['below'] );
+					// Only wrap when there is something to wrap - the block renders
+					// '' for a country with no hub, and an empty div still has margin.
+					if ( '' !== trim( $below_html ) ) {
+						echo '<div class="mfa-dir-below">' . $below_html . '</div>';
+					}
+				}
+				?>
 			</div>
 
 			<?php if ( ! empty( $c['sidebar'] ) ) : ?>
 				<aside class="mfa-dir-sidebar"><?php echo do_shortcode( $c['sidebar'] ); ?></aside>
 			<?php endif; ?>
 		</div>
-
-		<?php
-		// Full width, outside the main/sidebar row. empty() rather than isset()
-		// so a type config without a 'below' key is simply skipped.
-		if ( ! empty( $c['below'] ) ) {
-			$below_html = do_shortcode( $c['below'] );
-			// Only wrap when there is something to wrap - the block renders ''
-			// for a country with no hub, and an empty div still carries margin.
-			if ( '' !== trim( $below_html ) ) {
-				echo '<div class="mfa-dir-below">' . $below_html . '</div>';
-			}
-		}
-		?>
 	</div>
 	<?php
 	return ob_get_clean();

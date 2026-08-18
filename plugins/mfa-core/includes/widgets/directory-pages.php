@@ -91,6 +91,8 @@ function mfa_masjid_page_shortcode() {
 		<div class="mfa-page-row">
 			<div class="mfa-page-col-content">
 				<?php echo do_shortcode( '[niz_mfa_nearest_mosque]' ); ?>
+				<?php // Under the directory listing, in the same column; nothing outside a hub country. ?>
+				<?php echo do_shortcode( '[mfa_place_links]' ); ?>
 			</div>
 
 			<div class="mfa-page-col-ad">
@@ -98,9 +100,6 @@ function mfa_masjid_page_shortcode() {
 				<?php echo do_shortcode( '[enaizi_ads count="4" layout="vertical"]' ); ?>
 			</div>
 		</div>
-
-		<?php // Full-width band under the row; renders nothing outside a hub country. ?>
-		<?php echo do_shortcode( '[mfa_place_links]' ); ?>
 	</div>
 	<?php
 	return ob_get_clean();

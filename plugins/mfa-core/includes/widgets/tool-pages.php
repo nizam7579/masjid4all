@@ -36,11 +36,7 @@ function mfa_prayer_times_page_shortcode() {
 				// inside this shortcode rather than being added to the page
 				// content, so the page still resolves to exactly one shortcode.
 				?>
-				<div class="mfa-tool-cta">
-					<h2 class="mfa-tool-cta-title">Which way is the qiblah?</h2>
-					<p class="mfa-tool-cta-text">Point your phone and face the Kaaba from wherever you are — no account, no setup.</p>
-					<a class="mfa-btn mfa-btn-primary mfa-tool-cta-btn" href="<?php echo esc_url( home_url( '/qibla-finder/' ) ); ?>">Open the Qibla Finder</a>
-				</div>
+				<?php echo do_shortcode( '[mfa_tool_cta tool="qibla"]' ); ?>
 
 				<?php echo do_shortcode( '[mfa_travel_cta source="prayer-times"]' ); ?>
 
@@ -98,6 +94,8 @@ function mfa_qibla_page_shortcode() {
 					<?php echo do_shortcode( '[niz_mfa_qibla]' ); ?>
 				</div>
 
+				<?php echo do_shortcode( '[mfa_tool_cta tool="prayer-times"]' ); ?>
+
 				<div class="mfa-faq-list">
 					<details open>
 						<summary>How does the Qibla finder work?</summary>
@@ -119,6 +117,57 @@ function mfa_qibla_page_shortcode() {
 				<?php echo do_shortcode( '[enaizi_ads count="4" layout="vertical"]' ); ?>
 			</div>
 		</div>
+	</div>
+	<?php
+	return ob_get_clean();
+}
+
+/**
+ * [mfa_tool_cta tool="prayer-times|qibla"] - a cross-link between the tools.
+ *
+ * One definition rather than the same markup written out on each page: these
+ * appear on /prayer-times/, /qibla-finder/ and every mosque listing, and copy
+ * that has to be edited in three places drifts apart in two of them.
+ *
+ * Renders nothing when it would point at the page you are already reading.
+ */
+add_shortcode( 'mfa_tool_cta', 'mfa_tool_cta_shortcode' );
+function mfa_tool_cta_shortcode( $atts ) {
+	$atts = shortcode_atts( array( 'tool' => 'prayer-times' ), $atts, 'mfa_tool_cta' );
+
+	$tools = array(
+		'prayer-times' => array(
+			'slug'   => 'prayer-times',
+			'title'  => 'Prayer times where you are',
+			'text'   => 'Fajr to Isha for your own location, with a live countdown to the next prayer.',
+			'button' => 'Open Prayer Times',
+		),
+		'qibla'        => array(
+			'slug'   => 'qibla-finder',
+			'title'  => 'Which way is the qiblah?',
+			'text'   => 'Point your phone and face the Kaaba from wherever you are — no account, no setup.',
+			'button' => 'Open the Qibla Finder',
+		),
+	);
+
+	$key = isset( $tools[ $atts['tool'] ] ) ? $atts['tool'] : 'prayer-times';
+	$cta = $tools[ $key ];
+
+	// A link back to the page you are on is noise.
+	$post = get_post();
+
+	if ( $post && $cta['slug'] === $post->post_name ) {
+		return '';
+	}
+
+	ob_start();
+	?>
+	<div class="mfa-tool-cta">
+		<h2 class="mfa-tool-cta-title"><?php echo esc_html( $cta['title'] ); ?></h2>
+		<p class="mfa-tool-cta-text"><?php echo esc_html( $cta['text'] ); ?></p>
+		<a class="mfa-btn mfa-btn-primary mfa-tool-cta-btn" href="<?php echo esc_url( home_url( '/' . $cta['slug'] . '/' ) ); ?>">
+			<?php echo esc_html( $cta['button'] ); ?>
+		</a>
 	</div>
 	<?php
 	return ob_get_clean();

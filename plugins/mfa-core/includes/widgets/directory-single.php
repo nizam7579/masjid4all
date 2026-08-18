@@ -36,9 +36,11 @@ function mfa_directory_single_config() {
 				array( 'Review', 'niz_review' ),
 			),
 			'sidebar'       => '[enaizi_ads count="4" layout="vertical"]',
-			// Full-width band under the listing body. Renders nothing unless this
-			// mosque's country has a /places/ hub. Only masjid has one so far.
-			'below'         => '[mfa_place_links]',
+			// Full-width band under the listing body. Prayer times first - it is
+			// what most people looking up a mosque actually came for - then the
+			// /places/ links, which render nothing unless this mosque's country
+			// has a hub. Only masjid has one so far.
+			'below'         => '[mfa_tool_cta tool="prayer-times"][mfa_place_links]',
 			'owner_col'     => 'cct_author_id',
 			'action'        => null,
 			// Matches mfa_mosque_info_display()'s own "actual content" gate.

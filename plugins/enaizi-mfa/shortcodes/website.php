@@ -852,7 +852,14 @@ PROMPT;
             ['role' => 'system', 'content' => 'You are a precise data extraction agent. You output raw JSON only. Never include conversational introductory text or markdown fences.'],
             ['role' => 'user', 'content' => $prompt]
         ],
-        'temperature' => 0.2
+        'temperature' => 0.2,
+        // Bounds the worst case rather than trimming the average. Measured
+        // output is ~1,793 tokens, so 2,500 leaves roughly 40% headroom: a cap
+        // set near the average would truncate the longer responses mid-JSON,
+        // and a truncated response fails json_decode and marks the record
+        // Error - a far worse outcome than the fraction of a cent it saves.
+        // Matches the cap mfa_business_perplexity() already uses.
+        'max_tokens'  => 2500
     ];
 
     $response = wp_remote_post($api_url, [

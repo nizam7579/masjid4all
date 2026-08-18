@@ -38,20 +38,30 @@ define( 'MFA_LISTING_STATE_COLUMN_VERSION', '1' );
 
 add_action( 'plugins_loaded', 'mfa_geohash_maybe_add_state_column' );
 function mfa_geohash_maybe_add_state_column() {
-	if ( get_option( 'mfa_listing_state_column_version' ) === MFA_LISTING_STATE_COLUMN_VERSION ) {
-		return;
-	}
-
 	global $wpdb;
+
+	// The version option alone is NOT proof the column exists. It lives in
+	// wp_options, so an environment rebuilt from an older DB backup keeps the
+	// option while losing the column, and an option-first early return would
+	// then never heal it - exactly the silent loss this block was written to
+	// prevent (found on staging 2026-08-18: option said '1', jet_cct_mosque
+	// had no state column, and the crawl had been writing without it since).
+	// Two SHOW COLUMNS per request is cheap enough to always verify.
+	$missing = array();
 	foreach ( array( 'jet_cct_mosque', 'jet_cct_business' ) as $table ) {
-		$full   = $wpdb->prefix . $table;
-		$exists = $wpdb->get_var( $wpdb->prepare( 'SHOW COLUMNS FROM ' . $full . ' LIKE %s', 'state' ) );
-		if ( ! $exists ) {
-			$wpdb->query( "ALTER TABLE {$full} ADD COLUMN state VARCHAR(191) NULL AFTER city, ADD INDEX idx_state (state(50))" );
+		$full = $wpdb->prefix . $table;
+		if ( ! $wpdb->get_var( $wpdb->prepare( 'SHOW COLUMNS FROM ' . $full . ' LIKE %s', 'state' ) ) ) {
+			$missing[] = $full;
 		}
 	}
 
-	update_option( 'mfa_listing_state_column_version', MFA_LISTING_STATE_COLUMN_VERSION );
+	foreach ( $missing as $full ) {
+		$wpdb->query( "ALTER TABLE {$full} ADD COLUMN state VARCHAR(191) NULL AFTER city, ADD INDEX idx_state (state(50))" );
+	}
+
+	if ( get_option( 'mfa_listing_state_column_version' ) !== MFA_LISTING_STATE_COLUMN_VERSION ) {
+		update_option( 'mfa_listing_state_column_version', MFA_LISTING_STATE_COLUMN_VERSION );
+	}
 }
 
 /**

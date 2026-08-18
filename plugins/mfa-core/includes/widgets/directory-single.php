@@ -35,7 +35,10 @@ function mfa_directory_single_config() {
 				array( 'Local Business', 'mfa_mosque_local_business_tab' ),
 				array( 'Review', 'niz_review' ),
 			),
-			'sidebar'       => '[enaizi_ads count="4" layout="vertical"]',
+			// Hub links into /places/ for this mosque's country, falling back to
+			// the same ad unit when that country has no hub yet. Only masjid uses
+			// this so far - business and web keep plain ads.
+			'sidebar'       => '[mfa_place_links ad_count="4" ad_layout="vertical"]',
 			'owner_col'     => 'cct_author_id',
 			'action'        => null,
 			// Matches mfa_mosque_info_display()'s own "actual content" gate.

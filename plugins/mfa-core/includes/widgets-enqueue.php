@@ -68,6 +68,12 @@ function mfa_core_enqueue_widget_assets() {
 	$global_css_path = MFA_CORE_PATH . 'assets/css/global-v2.css';
 	wp_enqueue_style( 'mfa-core-global', MFA_CORE_URL . 'assets/css/global-v2.css', array(), $get_version( $global_css_path ) );
 
+	// Hub links / ad fallback - the mosque directory and every single mosque.
+	if ( is_singular( 'masjid' ) || is_page( 'masjid' ) ) {
+		$place_links_css = MFA_CORE_PATH . 'assets/css/place-links-v1.css';
+		wp_enqueue_style( 'mfa-core-place-links', MFA_CORE_URL . 'assets/css/place-links-v1.css', array( 'mfa-core-global' ), $get_version( $place_links_css ) );
+	}
+
 	// /member/* and /admin/* both have their own custom header/footer shell
 	// (see includes/member-template.php, includes/admin-template.php) that
 	// bypasses the public site's chrome entirely - the sitewide header and

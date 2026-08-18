@@ -1,0 +1,87 @@
+/* Internal links into the /places/ hubs. Used in the directory sidebar and on
+   single mosque pages; falls back to the ad unit when a country has no hub.
+   Scoped to .mfa-place-links throughout - see the project's note on broad
+   descendant selectors leaking into unrelated elements. */
+
+.mfa-place-links {
+	margin: 0 0 24px;
+}
+
+.mfa-place-links-heading {
+	margin: 0 0 12px;
+	font-size: 1rem;
+	font-weight: 600;
+	color: var(--mfa-color-heading, #1f3b4d);
+}
+
+.mfa-place-links-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	border: 1px solid var(--mfa-color-border, #e2e8ee);
+	border-radius: 8px;
+	overflow: hidden;
+}
+
+.mfa-place-links-item + .mfa-place-links-item {
+	border-top: 1px solid var(--mfa-color-border, #e2e8ee);
+}
+
+.mfa-place-links-item > a {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 10px 14px;
+	min-height: 44px;
+	box-sizing: border-box;
+	text-decoration: none;
+	color: inherit;
+	line-height: 1.3;
+}
+
+.mfa-place-links-item > a:hover,
+.mfa-place-links-item > a:focus-visible {
+	background: var(--mfa-color-surface-alt, #f4f7f9);
+}
+
+.mfa-place-links-name {
+	font-weight: 500;
+}
+
+.mfa-place-links-count {
+	flex: 0 0 auto;
+	font-size: 0.8125rem;
+	font-variant-numeric: tabular-nums;
+	color: var(--mfa-color-muted, #64748b);
+}
+
+/* The state the mosque you are viewing actually sits in. */
+.mfa-place-links-item.is-here > a {
+	background: var(--mfa-color-surface-alt, #f4f7f9);
+	box-shadow: inset 3px 0 0 var(--mfa-color-accent, #0e7c61);
+}
+
+.mfa-place-links-item.is-here .mfa-place-links-name {
+	font-weight: 600;
+}
+
+.mfa-place-links-all {
+	display: inline-block;
+	margin-top: 12px;
+	font-size: 0.875rem;
+	font-weight: 500;
+	text-decoration: none;
+	color: var(--mfa-color-accent, #0e7c61);
+}
+
+.mfa-place-links-all:hover,
+.mfa-place-links-all:focus-visible {
+	text-decoration: underline;
+}
+
+@media (max-width: 767px) {
+	.mfa-place-links {
+		margin-bottom: 16px;
+	}
+}

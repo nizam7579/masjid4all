@@ -94,8 +94,7 @@ function mfa_masjid_page_shortcode() {
 			</div>
 
 			<div class="mfa-page-col-ad">
-				<h3 class="mfa-tool-page-ad-heading">Recommended Products/Services</h3>
-				<?php echo do_shortcode( '[enaizi_ads count="4" layout="vertical"]' ); ?>
+				<?php echo mfa_place_links_or_ads(); // phpcs:ignore WordPress.Security.EscapeOutput ?>
 			</div>
 		</div>
 	</div>

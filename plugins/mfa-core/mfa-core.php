@@ -60,6 +60,7 @@ $mfa_core_includes = array(
 	'includes/widgets/legal-pages.php',
 	'includes/widgets/directory-pages.php',
 	'includes/widgets/place-hub.php',
+	'includes/widgets/place-links.php',
 	'includes/widgets/run-update.php',
 	'includes/widgets/business-single.php',
 	'includes/widgets/business-update-form.php',

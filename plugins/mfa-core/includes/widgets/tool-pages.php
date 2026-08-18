@@ -27,7 +27,7 @@ function mfa_prayer_times_page_shortcode() {
 
 		<div class="mfa-row">
 			<div class="mfa-row-main mfa-stack">
-				<div class="mfa-card mfa-measure">
+				<div class="mfa-card mfa-card--tool">
 					<?php echo do_shortcode( '[niz_mfa_prayer_times]' ); ?>
 				</div>
 
@@ -90,21 +90,25 @@ add_shortcode( 'mfa_qibla_page', 'mfa_qibla_page_shortcode' );
 function mfa_qibla_page_shortcode() {
 	ob_start();
 	?>
-	<div class="mfa-tool-page">
-		<header class="mfa-tool-page-header">
-			<h1>Qibla Direction</h1>
-			<p class="mfa-tool-page-tagline">Instant and reliable Qibla finder — point your phone toward the Kaaba, wherever you are.</p>
+	<div class="mfa-shell mfa-stack">
+		<header class="mfa-hero mfa-hero--brand mfa-hero--bleed">
+			<div class="mfa-hero-inner">
+				<h1 class="mfa-hero-title">Qibla Direction</h1>
+				<p class="mfa-hero-tagline">Instant and reliable Qibla finder — point your phone toward the Kaaba, wherever you are.</p>
+			</div>
 		</header>
 
-		<div class="mfa-page-row">
-			<div class="mfa-page-col-content">
-				<div class="mfa-tool-page-card mfa-tool-page-card--qibla">
+		<div class="mfa-row">
+			<div class="mfa-row-main mfa-stack">
+				<div class="mfa-card mfa-card--tool mfa-card--tool-sm">
 					<?php echo do_shortcode( '[niz_mfa_qibla]' ); ?>
 				</div>
 
-				<?php echo do_shortcode( '[mfa_tool_cta tool="prayer-times"]' ); ?>
+				<div class="mfa-measure">
+					<?php echo do_shortcode( '[mfa_tool_cta tool="prayer-times"]' ); ?>
+				</div>
 
-				<div class="mfa-faq-list">
+				<div class="mfa-faq-list mfa-measure">
 					<details open>
 						<summary>How does the Qibla finder work?</summary>
 						<p>It combines your device's compass sensor with your GPS coordinates to calculate the bearing to the Kaaba in Makkah, then rotates the arrow to point you in that direction.</p>
@@ -120,8 +124,8 @@ function mfa_qibla_page_shortcode() {
 				</div>
 			</div>
 
-			<div class="mfa-page-col-ad">
-				<h3 class="mfa-tool-page-ad-heading">Recommended Products/Services</h3>
+			<div class="mfa-row-side">
+				<h3 class="mfa-section-label">Recommended Products/Services</h3>
 				<?php echo do_shortcode( '[enaizi_ads count="4" layout="vertical"]' ); ?>
 			</div>
 		</div>

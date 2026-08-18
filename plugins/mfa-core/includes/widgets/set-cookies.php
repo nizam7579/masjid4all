@@ -33,8 +33,10 @@ function niz_mfa_set_cookies_shortcode() {
         // this is nearest-mosque: someone who travels must see mosques near
         // where they are now, not where they were. Precision 5 is about a 5km
         // cell - move within it and only the coordinates change; cross into a
-        // new one and the city/country are looked up again.
-        var MFA_GEO_CELL = 5;
+        // new one and the city/country are looked up again. Precision 6 is about
+        // 1.2km, chosen so the displayed place keeps up with someone travelling
+        // rather than only updating every few kilometres.
+        var MFA_GEO_CELL = 6;
 
         function getContainer() {
             return document.getElementById(containerId);

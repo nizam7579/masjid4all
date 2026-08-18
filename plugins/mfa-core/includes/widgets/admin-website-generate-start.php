@@ -78,12 +78,79 @@ function mfa_admin_website_generate_start_render() {
 	}
 }
 
+
+/**
+ * Does this site answer at all?
+ *
+ * Reuses mfa_web_linkcheck_classify() so there is one definition of what a
+ * response means, rather than a second opinion drifting away from the first.
+ * Retries once on a soft failure: a single timeout is not evidence a site is
+ * dead, and parking a working listing at Error is worse than spending another
+ * second checking. A hard 404 or DNS failure is not retried - it will not
+ * change.
+ *
+ * @return array ok (bool), status (string) - the code or ERR:n to record.
+ */
+function mfa_admin_website_generate_precheck( $url ) {
+	$url = trim( (string) $url );
+	if ( '' === $url ) {
+		return array( 'ok' => false, 'status' => 'no-url' );
+	}
+	if ( ! preg_match( '#^https?://#i', $url ) ) {
+		$url = 'https://' . $url;
+	}
+
+	// Without the checker loaded we cannot classify, so let the record through
+	// rather than marking it Error on the strength of a missing dependency.
+	if ( ! function_exists( 'mfa_web_linkcheck_classify' ) ) {
+		return array( 'ok' => true, 'status' => 'unchecked' );
+	}
+
+	for ( $attempt = 1; $attempt <= 2; $attempt++ ) {
+		$ch = curl_init( $url );
+		curl_setopt_array( $ch, array(
+			CURLOPT_NOBODY         => true,
+			CURLOPT_FOLLOWLOCATION => true,
+			CURLOPT_MAXREDIRS      => 4,
+			CURLOPT_TIMEOUT        => 12,
+			CURLOPT_CONNECTTIMEOUT => 6,
+			CURLOPT_SSL_VERIFYPEER => false,
+			CURLOPT_SSL_VERIFYHOST => 0,
+			CURLOPT_RETURNTRANSFER => true,
+			CURLOPT_USERAGENT      => 'Mozilla/5.0 (compatible; Masjid4AllLinkCheck/1.0; +' . home_url() . ')',
+		) );
+		curl_exec( $ch );
+		$code  = (int) curl_getinfo( $ch, CURLINFO_RESPONSE_CODE );
+		$errno = (int) curl_errno( $ch );
+		curl_close( $ch );
+
+		if ( ! $errno && ! $code ) {
+			$errno = 7;
+		}
+
+		$verdict = mfa_web_linkcheck_classify( $code, $errno );
+		$status  = $errno ? 'ERR:' . $errno : (string) $code;
+
+		// Blocked counts as reachable - see the note at the call site.
+		if ( 'alive' === $verdict || 'blocked' === $verdict ) {
+			return array( 'ok' => true, 'status' => $status );
+		}
+
+		// A 404 or 410 is settled; only soft failures earn a second look.
+		if ( 'dead' === $verdict ) {
+			return array( 'ok' => false, 'status' => $status );
+		}
+	}
+
+	return array( 'ok' => false, 'status' => isset( $status ) ? $status : 'unreachable' );
+}
+
 function mfa_admin_website_generate_start_attempt() {
 	global $wpdb;
 	$table    = $wpdb->prefix . 'jet_cct_web';
 	$next_url = home_url( '/admin/website/generate/' );
 
-	$row = $wpdb->get_row( "SELECT _ID, name, cct_single_post_id FROM {$table} WHERE listing_status IN ('New','Pending') AND cct_single_post_id IS NOT NULL ORDER BY _ID ASC LIMIT 1", ARRAY_A );
+	$row = $wpdb->get_row( "SELECT _ID, name, url, cct_single_post_id FROM {$table} WHERE listing_status IN ('New','Pending') AND cct_single_post_id IS NOT NULL ORDER BY _ID ASC LIMIT 1", ARRAY_A );
 
 	if ( ! $row ) {
 		$stuck = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table} WHERE listing_status IN ('New','Pending')" );
@@ -97,6 +164,39 @@ function mfa_admin_website_generate_start_attempt() {
 
 	if ( ! function_exists( 'website_update_content' ) ) {
 		return '<div class="mfa-crawler-banner is-paused">&#9208; Content generation is unavailable (website_update_content() missing).</div>';
+	}
+
+	// Check the site answers before paying to have it read. A generation call
+	// costs about $0.0083, two thirds of which is a flat per-request fee that
+	// applies whether the site responds or not, and takes 12-26 seconds. A HEAD
+	// request costs nothing and takes under a second, so the roughly one site in
+	// ten that is dead is now skipped rather than billed for.
+	//
+	// A 403 deliberately does NOT skip: around one site in eight refuses our
+	// HEAD while being perfectly alive, and Perplexity fetches with its own
+	// infrastructure, so it may well read a page we are refused.
+	$precheck = mfa_admin_website_generate_precheck( $row['url'] );
+
+	if ( ! $precheck['ok'] ) {
+		$wpdb->update(
+			$table,
+			array(
+				'listing_status' => 'Error',
+				'status_detail'  => 'Unreachable before generation: ' . $precheck['status'],
+				'http_status'    => $precheck['status'],
+				'http_checked'   => current_time( 'mysql' ),
+			),
+			array( '_ID' => (int) $row['_ID'] )
+		);
+
+		ob_start();
+		?>
+		<div class="mfa-crawler-banner is-paused">
+			&#9208; "<?php echo esc_html( $row['name'] ); ?>" is unreachable (<?php echo esc_html( $precheck['status'] ); ?>) &mdash; marked Error without calling the generator.
+		</div>
+		<script>setTimeout( function () { location.href = <?php echo wp_json_encode( $next_url ); ?>; }, <?php echo (int) wp_rand( 800, 1600 ); ?> );</script>
+		<?php
+		return ob_get_clean();
 	}
 
 	$result = website_update_content( (int) $row['cct_single_post_id'] );

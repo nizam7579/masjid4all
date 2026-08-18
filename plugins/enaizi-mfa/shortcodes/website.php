@@ -870,6 +870,26 @@ PROMPT;
 
     $body = wp_remote_retrieve_body($response);
     $data = json_decode($body, true);
+
+    // TEMPORARY instrumentation (2026-08-18): Perplexity returns exact token
+    // counts in `usage` and this function was discarding them, leaving the cost
+    // of the remaining ~24K queue as arithmetic over character counts. Accumulate
+    // them so a small sample yields a measured figure instead. Remove once the
+    // sample is taken. It sits in a legacy plugin deliberately - it instruments
+    // an existing call rather than adding a feature.
+    if ( isset( $data['usage'] ) && is_array( $data['usage'] ) ) {
+        $acc = get_option( 'mfa_pplx_usage', array( 'calls' => 0, 'prompt' => 0, 'completion' => 0, 'total' => 0, 'first_usage' => null ) );
+        $acc['calls']++;
+        $acc['prompt']     += (int) ( $data['usage']['prompt_tokens'] ?? 0 );
+        $acc['completion'] += (int) ( $data['usage']['completion_tokens'] ?? 0 );
+        $acc['total']      += (int) ( $data['usage']['total_tokens'] ?? 0 );
+        if ( empty( $acc['first_usage'] ) ) {
+            // Kept verbatim: the response may carry search or tier fields that
+            // matter more to the bill than the token counts do.
+            $acc['first_usage'] = $data['usage'];
+        }
+        update_option( 'mfa_pplx_usage', $acc, false );
+    }
     
     $raw_content = $data['choices'][0]['message']['content'] ?? '';
 

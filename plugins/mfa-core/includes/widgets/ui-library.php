@@ -46,6 +46,7 @@ function mfa_ui_library_shortcode() {
 		echo mfa_ui_section_colour();  // phpcs:ignore WordPress.Security.EscapeOutput
 		echo mfa_ui_section_scale();   // phpcs:ignore WordPress.Security.EscapeOutput
 		echo mfa_ui_section_type();    // phpcs:ignore WordPress.Security.EscapeOutput
+		echo mfa_ui_section_layout();  // phpcs:ignore WordPress.Security.EscapeOutput
 		echo mfa_ui_section_buttons(); // phpcs:ignore WordPress.Security.EscapeOutput
 		echo mfa_ui_section_cards();   // phpcs:ignore WordPress.Security.EscapeOutput
 		echo mfa_ui_section_bands();   // phpcs:ignore WordPress.Security.EscapeOutput
@@ -294,6 +295,64 @@ function mfa_ui_section_bands() {
 		'bands',
 		'Sections and CTAs',
 		'The page-level building blocks. <code>cta1</code> is live already - included so it can be judged against the rest rather than in isolation.',
+		$out
+	);
+}
+
+/**
+ * The page skeleton: container, hero, the two-column row, and the two inner
+ * blocks. These already exist in tool-page-v9.css, which is the problem -
+ * they are page styles, so a template that is not a tool page gets none of
+ * them and improvises instead.
+ *
+ * Several carry no padding or margin by design, so each is drawn inside a
+ * labelled dashed frame; otherwise there would be nothing on screen to judge.
+ */
+function mfa_ui_section_layout() {
+	$filler = '<div class="mfa-ui-fill">content</div>';
+
+	$out = mfa_ui_specimen(
+		'container1',
+		'Outermost wrapper - centres to the max width, nothing else',
+		'<div class="mfa-ui-frame mfa-ui-container" data-label="container1">'
+		. '<div class="mfa-ui-fill">No margin, no padding. Bottom clearance for the floating buttons is already applied sitewide to <code>body</code> in share-button-v15.css, so it must not be repeated here or it doubles.</div>'
+		. '</div>'
+	);
+
+	$out .= mfa_ui_specimen(
+		'hero1',
+		'Full-bleed band, no padding or margin of its own',
+		'<div class="mfa-ui-frame mfa-ui-hero" data-label="hero1">'
+		. '<div class="mfa-ui-hero-inner"><h3 class="mfa-h3">Prayer Times</h3>'
+		. '<p>The inner block owns the spacing, so the hero can hold edge-to-edge artwork or padded text without either fighting the shell.</p></div>'
+		. '</div>'
+	);
+
+	$out .= mfa_ui_specimen(
+		'row1',
+		'Two columns, narrower right - the mosque and tool page shape',
+		'<div class="mfa-ui-row">'
+		. '<div class="mfa-ui-frame mfa-ui-row-main" data-label="main 70%"><div class="mfa-ui-fill">Content column</div></div>'
+		. '<div class="mfa-ui-frame mfa-ui-row-side" data-label="side 30%"><div class="mfa-ui-fill">Ads / related</div></div>'
+		. '</div>'
+	);
+
+	$out .= mfa_ui_specimen(
+		'inner1',
+		'Inner block with padding - for reading',
+		'<div class="mfa-ui-frame mfa-ui-inner" data-label="inner1">' . $filler . '</div>'
+	);
+
+	$out .= mfa_ui_specimen(
+		'inner2',
+		'Inner block with no padding - fills the full width',
+		'<div class="mfa-ui-frame mfa-ui-inner-flush" data-label="inner2">' . $filler . '</div>'
+	);
+
+	return mfa_ui_block(
+		'layout',
+		'Layout',
+		'The skeleton every page is assembled from. <code>row1</code> stacks at 900px, the documented tablet breakpoint. Pick <code>inner1</code> or <code>inner2</code> per section rather than site-wide - a table or map wants the flush one, body copy wants the padded one.',
 		$out
 	);
 }

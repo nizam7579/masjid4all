@@ -88,10 +88,10 @@ function mfa_member_logged_out_shortcode() {
 	<?php echo do_shortcode( '[mfa_auth_tabs]' ); ?>
 
 	<div class="mfa-member-out">
-		<h2 class="mfa-member-out-title">One Ummah. One Platform. Endless Possibilities.</h2>
+		<h1 class="mfa-member-out-title">One Ummah. One Platform. Endless Possibilities.</h1>
 		<p class="mfa-member-out-lead">Masjid4All is powered by the community. Every mosque you add, every business you list, every website you recommend, and every friend you invite helps create a trusted platform that benefits Muslims around the world.</p>
 
-		<h3 class="mfa-member-out-subhead">How You Can Make an Impact</h3>
+		<h2 class="mfa-member-out-subhead">How You Can Make an Impact</h2>
 
 		<div class="mfa-member-out-cards">
 			<div class="mfa-member-out-card">

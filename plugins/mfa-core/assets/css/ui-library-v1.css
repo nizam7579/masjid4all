@@ -1,0 +1,276 @@
+/* /ui/ pattern library — candidates only.
+   Deliberately NOT in global-v3.css: only the agreed set graduates there, so
+   the rejected candidates never become something a page can depend on. Every
+   value here uses a token, since a candidate that needs a new hardcoded hex
+   has already failed the test this page exists to apply. */
+
+.mfa-ui {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: var(--mfa-space-6) var(--mfa-space-4) var(--mfa-space-10);
+}
+
+.mfa-ui-header {
+  padding-bottom: var(--mfa-space-6);
+  border-bottom: 1px solid var(--mfa-border);
+}
+
+.mfa-ui-header .mfa-body-muted {
+  margin-top: var(--mfa-space-3);
+  max-width: 68ch;
+}
+
+.mfa-ui-block {
+  padding: var(--mfa-space-8) 0;
+  border-bottom: 1px solid var(--mfa-border);
+}
+
+.mfa-ui-block-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--mfa-green-dark);
+}
+
+.mfa-ui-block-note {
+  margin: var(--mfa-space-2) 0 var(--mfa-space-6);
+  max-width: 68ch;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--mfa-muted);
+}
+
+.mfa-ui code {
+  padding: 2px 6px;
+  border-radius: var(--mfa-radius-sm);
+  background: var(--mfa-mint-bg);
+  font-size: 13px;
+  color: var(--mfa-green-dark);
+}
+
+/* ---------- Specimens ---------- */
+
+.mfa-ui-specimen {
+  margin-bottom: var(--mfa-space-5);
+  border: 1px solid var(--mfa-border);
+  border-radius: var(--mfa-radius-md);
+  overflow: hidden;
+}
+
+.mfa-ui-specimen-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mfa-space-3);
+  align-items: baseline;
+  padding: var(--mfa-space-3) var(--mfa-space-4);
+  background: var(--mfa-mint-bg);
+  border-bottom: 1px solid var(--mfa-border);
+}
+
+.mfa-ui-specimen-head span {
+  font-size: 13px;
+  color: var(--mfa-muted);
+}
+
+.mfa-ui-specimen-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mfa-space-3);
+  align-items: center;
+  padding: var(--mfa-space-6) var(--mfa-space-4);
+  background: var(--mfa-white);
+}
+
+/* A specimen holding a block-level sample should stack, not sit in a row. */
+.mfa-ui-specimen-body > .mfa-card,
+.mfa-ui-specimen-body > .mfa-ui-card2,
+.mfa-ui-specimen-body > .mfa-ui-card3,
+.mfa-ui-specimen-body > .mfa-ui-band,
+.mfa-ui-specimen-body > .mfa-tool-cta {
+  flex: 1 1 100%;
+  margin: 0;
+}
+
+/* ---------- Audit ---------- */
+
+.mfa-ui-stats {
+  margin: 0 0 var(--mfa-space-4);
+  padding-left: var(--mfa-space-5);
+  font-size: 15px;
+  line-height: 1.9;
+  color: var(--mfa-ink);
+}
+
+.mfa-ui-stats-colour {
+  list-style: none;
+  padding-left: 0;
+}
+
+.mfa-ui-chip,
+.mfa-ui-swatch-chip {
+  display: inline-block;
+  border: 1px solid var(--mfa-border);
+}
+
+.mfa-ui-chip {
+  width: 14px;
+  height: 14px;
+  margin-right: var(--mfa-space-2);
+  border-radius: 3px;
+  vertical-align: middle;
+}
+
+/* ---------- Colour ---------- */
+
+.mfa-ui-swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: var(--mfa-space-4);
+}
+
+.mfa-ui-swatch-chip {
+  width: 100%;
+  height: 56px;
+  margin-bottom: var(--mfa-space-2);
+  border-radius: var(--mfa-radius-sm);
+}
+
+.mfa-ui-swatch span {
+  display: block;
+  margin-top: var(--mfa-space-1);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--mfa-muted);
+}
+
+/* ---------- Scale ---------- */
+
+.mfa-ui-scale-row {
+  display: flex;
+  gap: var(--mfa-space-4);
+  align-items: center;
+  margin-bottom: var(--mfa-space-2);
+}
+
+.mfa-ui-scale-row code {
+  flex: 0 0 130px;
+}
+
+.mfa-ui-scale-bar {
+  height: 14px;
+  border-radius: 3px;
+  background: var(--mfa-teal);
+}
+
+.mfa-ui-radii {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mfa-space-4);
+  margin-top: var(--mfa-space-6);
+}
+
+.mfa-ui-radius {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 150px;
+  min-height: 72px;
+  padding: var(--mfa-space-4);
+  border: 1px solid var(--mfa-border);
+  background: var(--mfa-white);
+}
+
+/* ---------- Typography ---------- */
+
+.mfa-ui-type > * {
+  margin-bottom: var(--mfa-space-4);
+}
+
+/* ---------- Button candidates ---------- */
+
+.mfa-ui-btn2 {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 24px;
+  border: 1px solid transparent;
+  border-radius: var(--mfa-radius-sm);
+  background: var(--mfa-teal);
+  color: var(--mfa-white);
+  font-weight: 700;
+  font-size: 15px;
+  text-decoration: none;
+}
+
+.mfa-ui-btn2:hover { background: var(--mfa-teal-dark); color: var(--mfa-white); }
+
+.mfa-ui-btn2.is-secondary {
+  background: var(--mfa-white);
+  border-color: var(--mfa-border);
+  color: var(--mfa-green-dark);
+}
+
+.mfa-ui-btn2.is-secondary:hover { background: var(--mfa-mint-bg); color: var(--mfa-green-dark); }
+
+.mfa-ui-btn3 {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 26px;
+  border: 2px solid var(--mfa-teal);
+  border-radius: var(--mfa-radius-pill);
+  background: transparent;
+  color: var(--mfa-teal);
+  font-weight: 700;
+  font-size: 15px;
+  text-decoration: none;
+}
+
+.mfa-ui-btn3:hover { background: var(--mfa-teal); color: var(--mfa-white); }
+
+.mfa-ui-btn3.is-quiet { border-color: var(--mfa-border); color: var(--mfa-muted); }
+.mfa-ui-btn3.is-quiet:hover { background: var(--mfa-mint-bg); color: var(--mfa-green-dark); }
+
+/* Shown so the states can be judged without hovering each one. */
+.mfa-ui .is-hover { filter: brightness(1.08); transform: translateY(-1px); }
+
+.mfa-ui .is-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.mfa-ui-btn-block { width: 100%; }
+
+/* ---------- Card candidates ---------- */
+
+.mfa-ui-card2 {
+  padding: var(--mfa-space-5);
+  border-radius: var(--mfa-radius-md);
+  background: var(--mfa-mint-bg);
+}
+
+.mfa-ui-card3 {
+  padding: var(--mfa-space-5);
+  border-radius: var(--mfa-radius-md);
+  background: var(--mfa-white);
+  box-shadow: var(--mfa-shadow-card);
+}
+
+/* ---------- Section bands ---------- */
+
+.mfa-ui-band {
+  padding: var(--mfa-space-6);
+  border-radius: var(--mfa-radius-md);
+  background: var(--mfa-white);
+}
+
+.mfa-ui-band.is-tinted { background: var(--mfa-mint-bg); }
+
+.mfa-ui-band p { max-width: 62ch; }
+
+@media (max-width: 600px) {
+  .mfa-ui { padding: var(--mfa-space-5) var(--mfa-space-3) var(--mfa-space-8); }
+  .mfa-ui-block { padding: var(--mfa-space-6) 0; }
+  .mfa-ui-scale-row code { flex: 0 0 110px; }
+}

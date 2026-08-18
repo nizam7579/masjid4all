@@ -65,6 +65,13 @@ function mfa_core_enqueue_widget_assets() {
 	// Global design tokens (colors, spacing, buttons, etc) — sitewide,
 	// loaded first so every other mfa-core stylesheet can build on it.
 	// See global-v1.css's own header comment for what's in it and why.
+	// /ui/ - the pattern library. Its candidate styles stay out of the global
+	// sheet on purpose, so only the agreed set ever graduates.
+	if ( $post && 'ui' === $post->post_name ) {
+		$ui_css = MFA_CORE_PATH . 'assets/css/ui-library-v1.css';
+		wp_enqueue_style( 'mfa-core-ui-library', MFA_CORE_URL . 'assets/css/ui-library-v1.css', array( 'mfa-core-global' ), $get_version( $ui_css ) );
+	}
+
 	$global_css_path = MFA_CORE_PATH . 'assets/css/global-v3.css';
 	wp_enqueue_style( 'mfa-core-global', MFA_CORE_URL . 'assets/css/global-v3.css', array(), $get_version( $global_css_path ) );
 

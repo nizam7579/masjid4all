@@ -156,11 +156,11 @@
   /* Gutter: the card above spans the column edge to edge, so these need
      their own inset or they read as part of it. The larger bottom margin
      is the breathing space before the FAQ list. */
-  margin: var(--mfa-space-5, 24px) var(--mfa-space-2, 8px) var(--mfa-space-7, 40px);
-  padding: var(--mfa-space-5, 24px);
-  border: 1px solid var(--mfa-color-border, #e2e8ee);
-  border-radius: 12px;
-  background: var(--mfa-color-surface-alt, #f4f7f9);
+  margin: var(--mfa-space-6) var(--mfa-space-2) var(--mfa-space-8);
+  padding: var(--mfa-space-6);
+  border: 1px solid var(--mfa-border);
+  border-radius: var(--mfa-radius-md);
+  background: var(--mfa-mint-bg);
 }
 
 .mfa-travel-cta-title,
@@ -176,7 +176,7 @@
   max-width: 62ch;
   font-size: 0.9375rem;
   line-height: 1.6;
-  color: var(--mfa-color-muted, #64748b);
+  color: var(--mfa-muted);
 }
 
 /* Scoped to the CTA's own button rather than any link inside the box — a
@@ -188,15 +188,15 @@ a.mfa-tool-cta-btn {
   text-decoration: none;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 600px) {
   .mfa-travel-cta,
   .mfa-tool-cta {
     /* Keep an inset on phones rather than dropping it. The content column has
        no gutter of its own, so zeroing this ran a bordered, rounded box flush
        into the viewport edge and clipped its own corners. */
-    margin-left: 12px;
-    margin-right: 12px;
-    padding: var(--mfa-space-4, 16px);
+    margin-left: var(--mfa-space-3);
+    margin-right: var(--mfa-space-3);
+    padding: var(--mfa-space-4);
   }
 
   a.mfa-travel-cta-btn,

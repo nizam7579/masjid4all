@@ -162,10 +162,10 @@ function mfa_tool_cta_shortcode( $atts ) {
 
 	ob_start();
 	?>
-	<div class="mfa-tool-cta">
-		<h2 class="mfa-tool-cta-title"><?php echo esc_html( $cta['title'] ); ?></h2>
-		<p class="mfa-tool-cta-text"><?php echo esc_html( $cta['text'] ); ?></p>
-		<a class="mfa-btn mfa-btn-primary mfa-tool-cta-btn" href="<?php echo esc_url( home_url( '/' . $cta['slug'] . '/' ) ); ?>">
+	<div class="mfa-band">
+		<h2 class="mfa-band-title"><?php echo esc_html( $cta['title'] ); ?></h2>
+		<p class="mfa-band-text"><?php echo esc_html( $cta['text'] ); ?></p>
+		<a class="mfa-btn mfa-btn-primary" href="<?php echo esc_url( home_url( '/' . $cta['slug'] . '/' ) ); ?>">
 			<?php echo esc_html( $cta['button'] ); ?>
 		</a>
 	</div>

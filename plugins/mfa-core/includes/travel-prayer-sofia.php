@@ -74,10 +74,10 @@ function mfa_travel_cta_shortcode( $atts ) {
 
 	ob_start();
 	?>
-	<div class="mfa-travel-cta">
-		<h2 class="mfa-travel-cta-title"><?php echo esc_html( $atts['title'] ); ?></h2>
-		<p class="mfa-travel-cta-text"><?php echo esc_html( $atts['text'] ); ?></p>
-		<a class="mfa-btn mfa-btn-primary mfa-travel-cta-btn" href="<?php echo esc_url( $link ); ?>" target="_blank" rel="noopener">
+	<div class="mfa-band mfa-band--tinted">
+		<h2 class="mfa-band-title"><?php echo esc_html( $atts['title'] ); ?></h2>
+		<p class="mfa-band-text"><?php echo esc_html( $atts['text'] ); ?></p>
+		<a class="mfa-btn mfa-btn-primary" href="<?php echo esc_url( $link ); ?>" target="_blank" rel="noopener">
 			<?php echo esc_html( $atts['button'] ); ?>
 		</a>
 	</div>

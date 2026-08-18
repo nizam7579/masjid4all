@@ -35,9 +35,10 @@ function mfa_ui_library_shortcode() {
 		<header class="mfa-ui-header">
 			<h1 class="mfa-h1">UI Library</h1>
 			<p class="mfa-body-muted">
-				Candidates for the shared design system. Pick one of each and it becomes the
-				canonical class in <code>global-v3.css</code>; everything else here is discarded.
-				Nothing on this page is used by the live site yet.
+				The set chosen on 19 Aug 2026, now canonical in <code>global-v3.css</code>. Specimens
+				marked <strong>chosen</strong> are what pages should use; the rest are kept only so the
+				decision can be re-read, and are defined in this page&rsquo;s own stylesheet so nothing
+				else can depend on them.
 			</p>
 		</header>
 
@@ -216,9 +217,9 @@ function mfa_ui_section_type() {
 function mfa_ui_section_buttons() {
 	$out = mfa_ui_specimen(
 		'btn1',
-		'Current .mfa-btn-primary - pill, teal, shadow',
+		'CHOSEN - .mfa-btn .mfa-btn-primary, plus the new .mfa-btn-secondary',
 		'<a class="mfa-btn mfa-btn-primary" href="#buttons">Primary action</a> '
-		. '<a class="mfa-btn mfa-btn-solid-dark" href="#buttons">Dark</a>'
+		. '<a class="mfa-btn mfa-btn-secondary" href="#buttons">Secondary</a> <a class="mfa-btn mfa-btn-solid-dark" href="#buttons">Dark</a>'
 	);
 
 	$out .= mfa_ui_specimen(
@@ -247,7 +248,7 @@ function mfa_ui_section_buttons() {
 	return mfa_ui_block(
 		'buttons',
 		'Buttons',
-		'Pick one. Whichever wins becomes <code>.mfa-btn</code> and its modifiers, and the 22 sheets defining their own button get pointed at it.',
+		'<strong>btn1 chosen</strong>, unchanged. It is already the standard in eighteen places and matches the pill radius used elsewhere in the chrome, so restyling it would mean repainting the site to fix a problem nobody reported. What was genuinely missing is a secondary for light backgrounds - <code>--ghost</code> is white-on-dark and vanishes on a card, <code>--solid-dark</code> is too heavy beside a primary. That gap is why pages kept inventing a quiet button, so btn2&rsquo;s secondary was taken as <code>.mfa-btn-secondary</code>.',
 		$out
 	);
 }
@@ -257,14 +258,14 @@ function mfa_ui_section_cards() {
 	$sample = '<h3 class="mfa-h3">Masjid Al-Hidayah</h3>'
 		. '<p class="mfa-body-muted">Kuala Lumpur, Malaysia &middot; 2.4 km away</p>';
 
-	$out = mfa_ui_specimen( 'card1', 'Current .mfa-card - white, 16px radius, hairline border', '<div class="mfa-card">' . $sample . '</div>' );
-	$out .= mfa_ui_specimen( 'card2', 'Mint background, no border', '<div class="mfa-ui-card2">' . $sample . '</div>' );
-	$out .= mfa_ui_specimen( 'card3', 'White with shadow instead of border', '<div class="mfa-ui-card3">' . $sample . '</div>' );
+	$out = mfa_ui_specimen( 'card1', 'CHOSEN - .mfa-card', '<div class="mfa-card">' . $sample . '</div>' );
+	$out .= mfa_ui_specimen( 'card2', 'CHOSEN as a modifier - .mfa-card--tinted', '<div class="mfa-ui-card2">' . $sample . '</div>' );
+	$out .= mfa_ui_specimen( 'card3', 'Not chosen', '<div class="mfa-ui-card3">' . $sample . '</div>' );
 
 	return mfa_ui_block(
 		'cards',
 		'Cards',
-		'There are 35 card class names in the plugin today. This should end as one, plus a modifier or two.',
+		'<strong>card1 chosen</strong> as <code>.mfa-card</code>. A hairline border reads cleaner than a shadow at this density, and the ad column stacks several in a row where shadows would pile into mush. card2 survives as <code>.mfa-card--tinted</code> for nested or secondary blocks, which is the job it was actually good at. card3 dropped.',
 		$out
 	);
 }
@@ -273,28 +274,28 @@ function mfa_ui_section_cards() {
 function mfa_ui_section_bands() {
 	$out = mfa_ui_specimen(
 		'section1',
-		'Plain band on page background',
+		'CHOSEN - .mfa-band',
 		'<div class="mfa-ui-band"><h3 class="mfa-h3">Section heading</h3><p class="mfa-body-muted">Body copy sits at a readable measure rather than the full page width.</p></div>'
 	);
 
 	$out .= mfa_ui_specimen(
 		'section2',
-		'Tinted band, used to separate a section from the one above',
+		'CHOSEN - .mfa-band--tinted',
 		'<div class="mfa-ui-band is-tinted"><h3 class="mfa-h3">Section heading</h3><p class="mfa-body-muted">Same structure, mint background.</p></div>'
 	);
 
 	$out .= mfa_ui_specimen(
 		'cta1',
-		'The CTA box now on /prayer-times/, mosque pages and /qibla-finder/',
-		'<div class="mfa-tool-cta"><h2 class="mfa-tool-cta-title">Which way is the qiblah?</h2>'
-		. '<p class="mfa-tool-cta-text">Point your phone and face the Kaaba from wherever you are.</p>'
-		. '<a class="mfa-btn mfa-btn-primary mfa-tool-cta-btn" href="#bands">Open the Qibla Finder</a></div>'
+		'The live CTA, now built from .mfa-band rather than its own component',
+		'<div class="mfa-band"><h2 class="mfa-band-title">Which way is the qiblah?</h2>'
+		. '<p class="mfa-band-text">Point your phone and face the Kaaba from wherever you are.</p>'
+		. '<a class="mfa-btn mfa-btn-primary" href="#bands">Open the Qibla Finder</a></div>'
 	);
 
 	return mfa_ui_block(
 		'bands',
 		'Sections and CTAs',
-		'The page-level building blocks. <code>cta1</code> is live already - included so it can be judged against the rest rather than in isolation.',
+		'<strong>Both chosen</strong>, as <code>.mfa-band</code> and <code>.mfa-band--tinted</code>. The CTA boxes turned out to be a band plus a heading, a line of text and a button rather than their own component, so they now use these - which also fixed a real problem: two mint boxes stacked on /prayer-times/ read as one repeated block, so the tool cross-link is plain and the travel CTA tinted.',
 		$out
 	);
 }

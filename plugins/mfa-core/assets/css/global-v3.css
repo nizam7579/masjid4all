@@ -145,63 +145,144 @@
 .mfa-btn-solid-dark { background: var(--mfa-ink); color: var(--mfa-white); }
 .mfa-btn-solid-dark:hover { background: #1b242d; color: var(--mfa-white); }
 
-/* ---------------------------------------------------------------------------
-   Travel prayer CTA — the WhatsApp entry point into Sofia's solat planner.
-   Lives here rather than in a page stylesheet because it appears on several
-   page types (prayer times, mosque listings) that each load their own CSS.
-   --------------------------------------------------------------------------- */
+/* ===========================================================================
+   AGREED DESIGN SYSTEM — chosen from /ui/ on 2026-08-19.
+   These are the canonical classes. A page should reach for one of these
+   before writing its own; if none fits, the right move is to add a variant
+   here rather than a private rule in a page stylesheet.
+   =========================================================================== */
 
-.mfa-travel-cta,
-.mfa-tool-cta {
-  /* Gutter: the card above spans the column edge to edge, so these need
-     their own inset or they read as part of it. The larger bottom margin
-     is the breathing space before the FAQ list. */
+/* ---------- Layout ----------
+   Promoted from tool-page-v9.css, where they were page styles and so
+   unavailable to every other template. Deliberately bare: no margin, no
+   padding except where a block exists to provide it.
+
+   Bottom clearance for the fixed button stack is NOT here - it is applied
+   sitewide to body in share-button-v15.css, and repeating it doubles the gap. */
+
+.mfa-shell {
+  max-width: var(--mfa-container-max);
+  margin: 0 auto;
+  padding: 0;
+}
+
+/* Full-bleed band. Carries background only; the inner block owns spacing, so
+   a hero can hold edge-to-edge artwork or padded text without either
+   fighting the shell. */
+.mfa-hero {
+  margin: 0;
+  padding: 0;
+}
+
+.mfa-hero-inner {
+  padding: var(--mfa-space-9) var(--mfa-space-6);
+}
+
+/* Content + narrower side column: the mosque and tool page shape. Stacks at
+   the documented 900px tablet breakpoint. */
+.mfa-row {
+  display: flex;
+  gap: var(--mfa-space-2);
+  align-items: flex-start;
+}
+
+.mfa-row-main { flex: 1 1 70%; min-width: 0; }
+.mfa-row-side { flex: 1 1 30%; min-width: 0; }
+
+@media (max-width: 900px) {
+  .mfa-row { flex-direction: column; }
+  .mfa-row-main,
+  .mfa-row-side { flex: 1 1 auto; width: 100%; }
+}
+
+/* Padded for reading, or flush so a table, map or image runs the full width
+   of its column. Chosen per section, not per site. */
+.mfa-inner { padding: var(--mfa-space-6); }
+.mfa-inner--flush { padding: 0; }
+
+@media (max-width: 600px) {
+  .mfa-inner { padding: var(--mfa-space-4); }
+  .mfa-hero-inner { padding: var(--mfa-space-7) var(--mfa-space-4); }
+}
+
+/* ---------- Buttons ----------
+   btn1 (the pill above) wins, and is left exactly as it was. It is already
+   the de facto standard in eighteen places and sits with the pill radius
+   used elsewhere in the chrome; restyling it would mean repainting the whole
+   site to fix a problem nobody reported.
+
+   What was actually missing is a secondary for light backgrounds. The only
+   companions were --ghost, which is white-on-dark and invisible on a white
+   card, and --solid-dark, which is too heavy to sit beside a primary. That
+   gap is why pages kept inventing their own quiet button. */
+.mfa-btn-secondary {
+  background: var(--mfa-white);
+  color: var(--mfa-green-dark);
+  border-color: var(--mfa-border);
+}
+
+.mfa-btn-secondary:hover {
+  background: var(--mfa-mint-bg);
+  color: var(--mfa-green-dark);
+}
+
+/* A button that fills its container - the mobile treatment for a primary
+   action, previously re-declared per page. */
+.mfa-btn--block { width: 100%; }
+
+.mfa-btn[aria-disabled="true"],
+.mfa-btn.is-disabled {
+  opacity: 0.5;
+  box-shadow: none;
+  pointer-events: none;
+}
+
+/* ---------- Cards ----------
+   card1 wins: the hairline border reads cleaner than a shadow at this
+   density, and the ad column stacks several in a row where shadows would
+   pile into mush. card2 survives as a modifier for nested or secondary
+   blocks, which is the job it was actually good at. */
+.mfa-card--tinted {
+  background: var(--mfa-mint-bg);
+  border-color: transparent;
+}
+
+.mfa-card--flush { padding: 0; }
+
+/* ---------- Bands ----------
+   One component for the full-width blocks a page is assembled from, with a
+   tinted variant. The CTA boxes are a band plus a heading, a line of text
+   and a button - not a separate component - so they use these. */
+.mfa-band {
   margin: var(--mfa-space-6) var(--mfa-space-2) var(--mfa-space-8);
   padding: var(--mfa-space-6);
   border: 1px solid var(--mfa-border);
   border-radius: var(--mfa-radius-md);
-  background: var(--mfa-mint-bg);
+  background: var(--mfa-white);
 }
 
-.mfa-travel-cta-title,
-.mfa-tool-cta-title {
-  margin: 0 0 8px;
-  font-size: 1.125rem;
+.mfa-band--tinted { background: var(--mfa-mint-bg); }
+
+.mfa-band-title {
+  margin: 0 0 var(--mfa-space-2);
+  font-size: 18px;
+  font-weight: 700;
   line-height: 1.3;
+  color: var(--mfa-ink);
 }
 
-.mfa-travel-cta-text,
-.mfa-tool-cta-text {
-  margin: 0 0 16px;
+.mfa-band-text {
+  margin: 0 0 var(--mfa-space-4);
   max-width: 62ch;
-  font-size: 0.9375rem;
+  font-size: 15px;
   line-height: 1.6;
   color: var(--mfa-muted);
 }
 
-/* Scoped to the CTA's own button rather than any link inside the box — a
-   broad `.mfa-travel-cta a` rule is exactly the pattern that has produced
-   invisible buttons on this project before. */
-a.mfa-travel-cta-btn,
-a.mfa-tool-cta-btn {
-  display: inline-block;
-  text-decoration: none;
-}
-
 @media (max-width: 600px) {
-  .mfa-travel-cta,
-  .mfa-tool-cta {
-    /* Keep an inset on phones rather than dropping it. The content column has
-       no gutter of its own, so zeroing this ran a bordered, rounded box flush
-       into the viewport edge and clipped its own corners. */
+  .mfa-band {
     margin-left: var(--mfa-space-3);
     margin-right: var(--mfa-space-3);
     padding: var(--mfa-space-4);
-  }
-
-  a.mfa-travel-cta-btn,
-  a.mfa-tool-cta-btn {
-    display: block;
-    text-align: center;
   }
 }

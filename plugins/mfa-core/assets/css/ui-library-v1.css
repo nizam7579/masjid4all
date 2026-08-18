@@ -88,7 +88,7 @@
 .mfa-ui-specimen-body > .mfa-ui-band,
 .mfa-ui-specimen-body > .mfa-ui-frame,
 .mfa-ui-specimen-body > .mfa-ui-row,
-.mfa-ui-specimen-body > .mfa-tool-cta {
+.mfa-ui-specimen-body > .mfa-band {
   flex: 1 1 100%;
   margin: 0;
 }

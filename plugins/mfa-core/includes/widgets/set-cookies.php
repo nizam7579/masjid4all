@@ -29,10 +29,12 @@ function niz_mfa_set_cookies_shortcode() {
         var watchId = null;
         var isUpdating = false;
         var MFA_GEO_AJAX = '<?php echo esc_url_raw( admin_url( 'admin-ajax.php' ) ); ?>';
-        // A stored location used to be trusted forever, so a wrong country sat
-        // there for the life of the cookie with only the manual button as a way
-        // out. Re-check on a schedule instead.
-        var MFA_GEO_MAX_AGE = 7 * 24 * 60 * 60;
+        // Position is checked on every page load, because the whole point of
+        // this is nearest-mosque: someone who travels must see mosques near
+        // where they are now, not where they were. Precision 5 is about a 5km
+        // cell - move within it and only the coordinates change; cross into a
+        // new one and the city/country are looked up again.
+        var MFA_GEO_CELL = 5;
 
         function getContainer() {
             return document.getElementById(containerId);
@@ -71,7 +73,10 @@ function niz_mfa_set_cookies_shortcode() {
         // One coordinate, one country, one city - written together or not at
         // all. Writing them independently is what let the city and country
         // cookies drift apart and describe two different places.
-        function applyLocation(lat, lon, country, city, hash) {
+        //
+        // 'cell' records which ~5km geohash cell the country/city belong to, so
+        // a later position can be compared against it without another lookup.
+        function applyLocation(lat, lon, country, city, hash, cell) {
             window.setCookie('latitude', lat);
             window.setCookie('longitude', lon);
             window.setCookie('geohash', hash || encodeGeohash(lat, lon, 9));
@@ -79,14 +84,18 @@ function niz_mfa_set_cookies_shortcode() {
             // Cleared rather than left behind when the geocoder has no name for
             // the place, so it can never describe a different location.
             window.setCookie('city', city || '');
+            window.setCookie('cell', cell || encodeGeohash(lat, lon, MFA_GEO_CELL));
             window.setCookie('loc_updated', String(Math.floor(Date.now() / 1000)));
         }
 
-        function locationIsStale() {
-            if (!window.getCookie('latitude') || !window.getCookie('country')) { return true; }
-            var updated = parseInt(window.getCookie('loc_updated') || '0', 10);
-            if (!updated) { return true; } // stored before this field existed
-            return (Math.floor(Date.now() / 1000) - updated) > MFA_GEO_MAX_AGE;
+        // Moving inside the same cell cannot change the city or country, so only
+        // the coordinates need refreshing - no lookup, no reload, but the next
+        // page still gets accurate nearest-mosque distances.
+        function updateCoordsOnly(lat, lon) {
+            window.setCookie('latitude', lat);
+            window.setCookie('longitude', lon);
+            window.setCookie('geohash', encodeGeohash(lat, lon, 9));
+            window.setCookie('loc_updated', String(Math.floor(Date.now() / 1000)));
         }
 
         window.getCookie = function(name) {
@@ -209,28 +218,7 @@ function niz_mfa_set_cookies_shortcode() {
 
             navigator.geolocation.getCurrentPosition(
                 function(position) {
-                    var lat = position.coords.latitude;
-                    var lon = position.coords.longitude;
-                    reverseGeocode(lat, lon, function(err, data) {
-                        if (err) {
-                            // Leave every cookie exactly as it was. A partial
-                            // write is what produced mismatched pairs - a city
-                            // from one place shown against another's country.
-                            updateStatusIndicator('⚠️ ' + err);
-                            if (btn) { btn.textContent = '🔄 Try Again'; btn.disabled = false; }
-                            isUpdating = false;
-                            return;
-                        }
-
-                        applyLocation(lat, lon, data.country, data.city, data.geohash);
-
-                        updateStatusIndicator('✅ Precise GPS Location Saved');
-                        if (btn) { btn.textContent = '🔄 Update Location'; btn.disabled = false; }
-                        isUpdating = false;
-
-                        // Force a hard reload so the directories fetch the new precise locations instantly
-                        setTimeout(function() { window.location.reload(); }, 600);
-                    });
+                    handlePosition(position.coords.latitude, position.coords.longitude, true);
                 },
                 function(error) {
                     var errorMsg = '❌ GPS Error';
@@ -259,6 +247,83 @@ function niz_mfa_set_cookies_shortcode() {
             );
         }
 
+        // Decides what a new fix means. Same cell as the stored location -> the
+        // city and country still hold, so only the coordinates move. Different
+        // cell -> look the place up again and write everything as one unit; if
+        // that lookup fails, nothing is written, so a failed refresh can never
+        // leave a location describing somewhere the visitor is not.
+        function handlePosition(lat, lon, isManual) {
+            var newCell = encodeGeohash(lat, lon, MFA_GEO_CELL);
+            var oldCell = window.getCookie('cell');
+
+            if (!isManual && oldCell && oldCell === newCell) {
+                updateCoordsOnly(lat, lon);
+                updateStatusIndicator('✅ Location current');
+                finishUpdate();
+                return;
+            }
+
+            reverseGeocode(lat, lon, function(err, data) {
+                if (err) {
+                    updateStatusIndicator('⚠️ ' + err);
+                    finishUpdate(true);
+                    return;
+                }
+
+                var movedPlace = (data.country !== window.getCookie('country')) || (data.city !== window.getCookie('city'));
+                applyLocation(lat, lon, data.country, data.city, data.geohash, newCell);
+                updateStatusIndicator('✅ ' + (data.city ? data.city + ', ' : '') + data.country);
+                finishUpdate();
+
+                // Reload only when the place actually changed, so the listings on
+                // screen match the new location. A silent in-cell refresh must not
+                // reload - that would bounce the page on every single visit.
+                if (movedPlace || isManual) {
+                    if (!isManual && sessionStorage.getItem('mfaGeoReloaded')) { return; }
+                    try { sessionStorage.setItem('mfaGeoReloaded', '1'); } catch (e) {}
+                    setTimeout(function() { window.location.reload(); }, 600);
+                }
+            });
+        }
+
+        function finishUpdate(failed) {
+            var wrapper = getContainer();
+            var btn = wrapper ? wrapper.querySelector('.niz-geo-refresh-btn') : null;
+            if (btn) { btn.textContent = failed ? '🔄 Try Again' : '🔄 Update Location'; btn.disabled = false; }
+            isUpdating = false;
+        }
+
+        // Runs on every page load. Once permission has been granted the browser
+        // does not prompt again, so this is silent for returning visitors; if it
+        // was denied we do not ask again unasked.
+        function autoRefresh() {
+            if (!navigator.geolocation || isUpdating) { return; }
+
+            var go = function() {
+                isUpdating = true;
+                navigator.geolocation.getCurrentPosition(
+                    function(pos) { handlePosition(pos.coords.latitude, pos.coords.longitude, false); },
+                    function() { finishUpdate(); },
+                    // Cheaper than the manual path on purpose: a cached fix up to
+                    // 5 minutes old is fine for deciding which city you are in.
+                    { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+                );
+            };
+
+            if (navigator.permissions && navigator.permissions.query) {
+                navigator.permissions.query({ name: 'geolocation' }).then(function(status) {
+                    if (status.state === 'denied') {
+                        updateStatusIndicator('📍 Location off');
+                        return;
+                    }
+                    // 'prompt' still asks, which is what a first-time visitor needs.
+                    go();
+                }).catch(go);
+            } else {
+                go();
+            }
+        }
+
         function buildUIControls() {
             var wrapper = getContainer();
             if (!wrapper) return;
@@ -277,12 +342,10 @@ function niz_mfa_set_cookies_shortcode() {
             initializeExistingCookies();
             buildUIControls();
 
-            if (locationIsStale()) {
-                // Wait 1 second before prompting on first load so it isn't too jarring
-                setTimeout(manualUpdate, 1000);
-            } else {
-                updateStatusIndicator('✅ Location Loaded');
-            }
+            // Always check where the visitor is now. The old code only ever
+            // detected once, so someone who travelled kept seeing mosques near
+            // wherever they first opened the site.
+            setTimeout(autoRefresh, 800);
         }
 
         if (document.readyState === 'loading') {

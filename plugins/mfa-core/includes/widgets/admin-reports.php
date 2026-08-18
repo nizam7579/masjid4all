@@ -190,7 +190,18 @@ function mfa_admin_report_compute_member( $wpdb, $range ) {
 		'buckets'      => $buckets,
 		'counts'       => $counts,
 		'country_rows' => $country_rows,
-		'total_all'    => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->users}" ),
+		// Bounded by "now" for the same reason the range query above is, and the
+		// homepage counter too: bulk-imported prospects carry a deliberately
+		// future user_registered date so they stay out of the running total
+		// until it arrives. An unbounded COUNT(*) contradicted both - it read
+		// 74,852 while the homepage said 39,488, the gap being 35,364
+		// future-dated prospects from the directory and Indonesian imports.
+		'total_all'    => (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM {$wpdb->users} WHERE user_registered <= %s",
+				gmdate( 'Y-m-d H:i:s' )
+			)
+		),
 	);
 }
 

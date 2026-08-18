@@ -40,7 +40,11 @@ function mfa_member_promote_prospect( $user_id ) {
 	global $wpdb;
 	$table  = $wpdb->prefix . 'jet_cct_member';
 	$status = $wpdb->get_var( $wpdb->prepare( "SELECT status FROM `{$table}` WHERE user_id = %d LIMIT 1", $user_id ) );
-	if ( 'Prospect' === $status ) {
+	// '' is treated as promotable alongside 'Prospect': rows created through
+	// niz_user_member_cct() before the fix in identity-registration.php carry
+	// no status at all, and without this they would stay invisible to every
+	// status filter forever. Still never touches a row with a real status.
+	if ( 'Prospect' === $status || '' === (string) $status ) {
 		$wpdb->update(
 			$table,
 			array( 'status' => 'Member', 'cct_modified' => current_time( 'mysql' ) ),

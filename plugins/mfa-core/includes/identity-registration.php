@@ -61,6 +61,18 @@ function niz_user_complete_registration( $user_id, $args = array() ) {
 		if ( $email ) {
 			niz_user_update_field( $user_id, 'email', $email );
 		}
+
+		// Mark them a Member on the CCT row too. niz_user_member_cct()
+		// inserts without a status, so anyone arriving through this shared
+		// step - WhatsApp, email/password or Google - previously landed with
+		// an empty status, while the older niz_sync_cct_member_record() path
+		// set 'Member'. Empty is worse than wrong here: /admin/member/'s
+		// status filter matches exact values, so those rows dropped out of
+		// every filtered view, and mfa_member_promote_prospect() only ever
+		// promoted 'Prospect', never '' - so they could not self-correct.
+		// This also promotes an existing Prospect row when a WhatsApp contact
+		// finally registers, which is exactly the transition being tracked.
+		niz_user_update_field( $user_id, 'status', 'Member' );
 	}
 
 	update_user_meta( $user_id, 'user_status', 'member' );

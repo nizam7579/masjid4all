@@ -17,15 +17,17 @@ add_shortcode( 'mfa_prayer_times_page', 'mfa_prayer_times_page_shortcode' );
 function mfa_prayer_times_page_shortcode() {
 	ob_start();
 	?>
-	<div class="mfa-tool-page">
-		<header class="mfa-tool-page-header">
-			<h1>Prayer Times</h1>
-			<p class="mfa-tool-page-tagline">Accurate, location-based prayer schedules to help you stay consistent throughout the day.</p>
+	<div class="mfa-shell mfa-stack">
+		<header class="mfa-hero mfa-hero--brand mfa-hero--bleed">
+			<div class="mfa-hero-inner">
+				<h1 class="mfa-hero-title">Prayer Times</h1>
+				<p class="mfa-hero-tagline">Accurate, location-based prayer schedules to help you stay consistent throughout the day.</p>
+			</div>
 		</header>
 
-		<div class="mfa-page-row">
-			<div class="mfa-page-col-content">
-				<div class="mfa-tool-page-card mfa-tool-page-card--prayer">
+		<div class="mfa-row">
+			<div class="mfa-row-main mfa-stack">
+				<div class="mfa-card mfa-measure">
 					<?php echo do_shortcode( '[niz_mfa_prayer_times]' ); ?>
 				</div>
 
@@ -40,7 +42,7 @@ function mfa_prayer_times_page_shortcode() {
 
 				<?php echo do_shortcode( '[mfa_travel_cta source="prayer-times"]' ); ?>
 
-				<div class="mfa-faq-list">
+				<div class="mfa-faq-list mfa-measure">
 					<details open>
 						<summary>How are these prayer times calculated?</summary>
 						<p>We use your device's location together with the Aladhan API, applying the calculation method most commonly used in your country (for example, JAKIM's method for Malaysia) to work out Fajr, Dhuhr, Asr, Maghrib and Isha.</p>
@@ -68,8 +70,8 @@ function mfa_prayer_times_page_shortcode() {
 				</div>
 			</div>
 
-			<div class="mfa-page-col-ad">
-				<h3 class="mfa-tool-page-ad-heading">Recommended Products/Services</h3>
+			<div class="mfa-row-side">
+				<h3 class="mfa-section-label">Recommended Products/Services</h3>
 				<?php echo do_shortcode( '[enaizi_ads count="4" layout="vertical"]' ); ?>
 			</div>
 		</div>

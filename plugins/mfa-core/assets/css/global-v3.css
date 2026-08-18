@@ -286,3 +286,69 @@
     padding: var(--mfa-space-4);
   }
 }
+
+/* ---------- Hero variants and spacing utilities ----------
+   Added while converting /prayer-times/ to the system. Each of these existed
+   already in tool-page-v9.css; they are here now because they are page
+   furniture, not tool-page furniture. */
+
+.mfa-hero--brand {
+  background: linear-gradient(150deg, var(--mfa-ink) 0%, var(--mfa-green-dark) 100%);
+  color: var(--mfa-mint-bg);
+  text-align: center;
+}
+
+@media (min-width: 901px) {
+  .mfa-hero--brand { border-radius: var(--mfa-radius-md); }
+}
+
+/* Break out of the theme's content padding so a hero runs edge to edge on
+   phones, without depending on a Kadence alignfull block. */
+@media (max-width: 900px) {
+  .mfa-hero--bleed {
+    width: 100vw;
+    margin-left: calc(-50vw + 50%);
+    margin-right: calc(-50vw + 50%);
+  }
+}
+
+.mfa-hero-title {
+  margin: 0 0 var(--mfa-space-3);
+  font-size: clamp(28px, 4vw, 40px);
+  font-weight: 800;
+  color: var(--mfa-white);
+}
+
+/* Tinted from the palette rather than a one-off hex - opacity does the work
+   a slightly-different green used to. */
+.mfa-hero-tagline {
+  max-width: 560px;
+  margin: 0 auto;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--mfa-mint-bg);
+  opacity: 0.82;
+}
+
+/* Vertical rhythm between the blocks of a page. The hero and shell carry no
+   margin of their own by design, so the gaps live here instead of being
+   baked into each component - which is what made spacing unpredictable when
+   blocks were reordered. */
+.mfa-stack > * + * { margin-top: var(--mfa-space-7); }
+
+/* Comfortable reading width for a centred block inside a wide column. */
+.mfa-measure {
+  max-width: 720px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Small uppercase heading above a sidebar block. */
+.mfa-section-label {
+  margin: 0 0 var(--mfa-space-3);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--mfa-label);
+}

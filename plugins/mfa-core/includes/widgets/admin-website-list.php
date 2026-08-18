@@ -210,7 +210,9 @@ function mfa_admin_website_list_shortcode() {
  * @return array|null Report to render, or null when nothing was submitted.
  */
 function mfa_admin_website_maybe_run_import() {
-	if ( empty( $_POST['mfa_web_import'] ) ) {
+	// Either button submits only its own name, so both must be accepted here -
+	// checking only the first meant Full rescan silently did nothing.
+	if ( empty( $_POST['mfa_web_import'] ) && empty( $_POST['mfa_web_import_full'] ) ) {
 		return null;
 	}
 
@@ -229,7 +231,19 @@ function mfa_admin_website_maybe_run_import() {
 		return array( 'error' => 'Website extract is unavailable.' );
 	}
 
-	@set_time_limit( 120 );
+	@set_time_limit( 300 );
+
+	// Full rescan ignores the watermark and reads every business with a
+	// website. Wanted after the exclusion lists change, since the incremental
+	// run would never revisit rows it has already passed over.
+	if ( ! empty( $_POST['mfa_web_import_full'] ) ) {
+		$checkpoint = current_time( 'mysql' );
+		$r          = mfa_web_extract_from_business( true, 0, 0, '' );
+		update_option( 'mfa_web_extract_last_run', $checkpoint );
+		$r['full']  = true;
+		$r['since'] = '';
+		return $r;
+	}
 
 	return mfa_web_extract_daily_run();
 }
@@ -258,6 +272,7 @@ function mfa_admin_website_import_panel( $report ) {
 			<form method="post" class="mfa-admin-web-import-form">
 				<?php wp_nonce_field( 'mfa_web_import', 'mfa_web_import_nonce' ); ?>
 				<button type="submit" name="mfa_web_import" value="1" class="mfa-btn mfa-btn-primary">Run import</button>
+				<button type="submit" name="mfa_web_import_full" value="1" class="mfa-btn mfa-admin-web-import-full" onclick="return confirm('Re-check every business with a website, ignoring the last-run marker? This takes longer and is only needed after the exclusion lists change.');">Full rescan</button>
 			</form>
 		</div>
 
@@ -271,6 +286,11 @@ function mfa_admin_website_import_panel( $report ) {
 
 		<?php if ( is_array( $report ) && isset( $report['error'] ) ) : ?>
 			<p class="mfa-admin-web-import-error"><?php echo esc_html( $report['error'] ); ?></p>
+		<?php elseif ( is_array( $report ) && 0 === (int) $report['scanned'] ) : ?>
+			<p class="mfa-admin-web-import-empty">
+				Nothing new to import. Every business added or edited since the last run has already been checked.
+				Use <strong>Full rescan</strong> to re-read every business regardless.
+			</p>
 		<?php elseif ( is_array( $report ) ) : ?>
 			<ul class="mfa-admin-web-import-report">
 				<li><strong><?php echo esc_html( number_format_i18n( (int) $report['applied'] ) ); ?></strong> websites added</li>

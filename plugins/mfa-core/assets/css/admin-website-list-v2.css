@@ -236,3 +236,61 @@
     content: none;
   }
 }
+
+
+/* Import panel - business -> website extract, run from this page. */
+.mfa-admin-web-import {
+	margin: 0 0 20px;
+	padding: 16px 18px;
+	border: 1px solid var(--mfa-color-border, #e2e8ee);
+	border-radius: 10px;
+	background: var(--mfa-color-surface-alt, #f4f7f9);
+}
+
+.mfa-admin-web-import-head {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px 24px;
+	align-items: flex-start;
+	justify-content: space-between;
+}
+
+.mfa-admin-web-import-note {
+	margin: 4px 0 0;
+	max-width: 62ch;
+	font-size: 0.875rem;
+	color: var(--mfa-color-muted, #64748b);
+}
+
+.mfa-admin-web-import-form {
+	flex: 0 0 auto;
+}
+
+.mfa-admin-web-import-last {
+	margin: 10px 0 0;
+	font-size: 0.8125rem;
+	color: var(--mfa-color-muted, #64748b);
+}
+
+.mfa-admin-web-import-report {
+	margin: 12px 0 0;
+	padding: 12px 14px;
+	list-style: none;
+	border-radius: 8px;
+	background: var(--mfa-color-surface, #fff);
+	border: 1px solid var(--mfa-color-border, #e2e8ee);
+	font-size: 0.875rem;
+}
+
+.mfa-admin-web-import-report li + li {
+	margin-top: 4px;
+}
+
+.mfa-admin-web-import-error {
+	margin: 12px 0 0;
+	padding: 10px 14px;
+	border-radius: 8px;
+	background: #fdecec;
+	color: #8a1c1c;
+	font-size: 0.875rem;
+}

@@ -64,13 +64,46 @@ function mfa_web_extract_social_domains() {
 	);
 }
 
-function mfa_web_extract_is_social_host( $host ) {
-	foreach ( mfa_web_extract_social_domains() as $sd ) {
-		if ( $host === $sd || ( strlen( $host ) > strlen( $sd ) && substr( $host, -strlen( $sd ) - 1 ) === '.' . $sd ) ) {
+function mfa_web_extract_host_matches( $host, $domains ) {
+	foreach ( $domains as $d ) {
+		if ( $host === $d || ( strlen( $host ) > strlen( $d ) && substr( $host, -strlen( $d ) - 1 ) === '.' . $d ) ) {
 			return true;
 		}
 	}
 	return false;
+}
+
+function mfa_web_extract_is_social_host( $host ) {
+	return mfa_web_extract_host_matches( $host, mfa_web_extract_social_domains() );
+}
+
+/**
+ * Ordering and aggregator portals - a listing on someone else's platform,
+ * not the organisation's own website. Same judgement as the social list
+ * above: an eatbu.com page shows this restaurant's menu alongside its
+ * competitors', exactly as a facebook.com page does. 937 such rows were
+ * measured in the directory on 2026-08-18, about 3.7%.
+ *
+ * Site builders are deliberately NOT here - wixsite, squarespace, blogspot,
+ * wordpress.com, weebly, canva.site, and the deploy hosts like vercel.app.
+ * Those genuinely are the business's own site: they wrote it and own the
+ * content. Excluding them would filter out the smallest businesses, the ones
+ * least able to afford a custom domain and most in need of being findable,
+ * for 1.9% of rows. Whether such a site is any good is a question for a link
+ * checker, not for a guess based on its domain.
+ */
+function mfa_web_extract_platform_domains() {
+	return array(
+		'eatbu.com', 'metro.rest', 'metro.bar', 'cloveronline.com', 'nextorder.com',
+		'dishop.co', 'toast.site', 'poi.place', 'grexa.site', 'edan.io',
+		'dine.online', 'yumbojumbo.com.au', 'grub24.co.uk', 'orderexperience.net',
+		'petpooja.com', 'halalmart.me', 'gaqo.net', 'paqe.io', 'shoppingflash.it',
+		'heartland.us', 'campusdish.com', 'oddle.me',
+	);
+}
+
+function mfa_web_extract_is_platform_host( $host ) {
+	return mfa_web_extract_host_matches( $host, mfa_web_extract_platform_domains() );
 }
 
 /**
@@ -174,6 +207,7 @@ function mfa_web_extract_from_business( $apply = false, $limit = 0, $offset = 0,
 	$report = array(
 		'scanned'            => 0,
 		'social_excluded'    => 0,
+		'platform_excluded'  => 0,
 		'duplicate_existing' => 0,
 		'duplicate_in_batch' => 0,
 		'eligible'           => 0,
@@ -186,7 +220,11 @@ function mfa_web_extract_from_business( $apply = false, $limit = 0, $offset = 0,
 
 	$sql = "SELECT name, website, country, city, address FROM {$table} WHERE website IS NOT NULL AND website <> ''";
 	if ( '' !== $since ) {
-		$sql .= $wpdb->prepare( ' AND cct_created >= %s', $since );
+		// cct_modified as well as cct_created: a business that already existed and
+		// later gained a website would otherwise never be looked at again, since
+		// its creation date is forever behind the watermark. 191 such rows were
+		// sitting unscanned when this was measured on 2026-08-18.
+		$sql .= $wpdb->prepare( ' AND ( cct_created >= %s OR cct_modified >= %s )', $since, $since );
 	}
 	$sql .= ' ORDER BY _ID';
 	if ( $limit > 0 ) {
@@ -204,6 +242,11 @@ function mfa_web_extract_from_business( $apply = false, $limit = 0, $offset = 0,
 
 		if ( mfa_web_extract_is_social_host( $host ) ) {
 			$report['social_excluded']++;
+			continue;
+		}
+
+		if ( mfa_web_extract_is_platform_host( $host ) ) {
+			$report['platform_excluded']++;
 			continue;
 		}
 

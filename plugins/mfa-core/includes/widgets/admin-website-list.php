@@ -40,6 +40,8 @@ function mfa_admin_website_list_shortcode() {
 	global $wpdb;
 	$cct_table = $wpdb->prefix . 'jet_cct_web';
 
+	$mfa_web_import_report = mfa_admin_website_maybe_run_import();
+
 	$search         = isset( $_GET['website_search'] ) ? sanitize_text_field( wp_unslash( $_GET['website_search'] ) ) : '';
 	$status_filter  = isset( $_GET['status'] ) ? sanitize_text_field( wp_unslash( $_GET['status'] ) ) : '';
 	$category_filter = isset( $_GET['category'] ) ? sanitize_text_field( wp_unslash( $_GET['category'] ) ) : '';
@@ -95,6 +97,7 @@ function mfa_admin_website_list_shortcode() {
 	ob_start();
 	?>
 	<div class="mfa-admin-website-list">
+		<?php echo mfa_admin_website_import_panel( $mfa_web_import_report ); // phpcs:ignore WordPress.Security.EscapeOutput ?>
 		<div class="mfa-admin-website-list-heading">
 			<div>
 				<h1 class="mfa-h2">Websites</h1>
@@ -189,6 +192,93 @@ function mfa_admin_website_list_shortcode() {
 					<a href="<?php echo esc_url( add_query_arg( 'paged', $paged + 1 ) ); ?>" class="mfa-admin-website-page-link">Next &rarr;</a>
 				<?php endif; ?>
 			</nav>
+		<?php endif; ?>
+	</div>
+	<?php
+	return ob_get_clean();
+}
+
+/**
+ * Runs the business -> website import when the panel button is submitted.
+ *
+ * Synchronous rather than the batched AJAX the crawler pages use, because the
+ * scan is bounded by the mfa_web_extract_last_run watermark: a routine run
+ * only looks at businesses created or edited since last time, which is seconds
+ * of work rather than the whole 78K table. The first run after a long gap is
+ * the slow case, hence the raised time limit.
+ *
+ * @return array|null Report to render, or null when nothing was submitted.
+ */
+function mfa_admin_website_maybe_run_import() {
+	if ( empty( $_POST['mfa_web_import'] ) ) {
+		return null;
+	}
+
+	if ( ! isset( $_POST['mfa_web_import_nonce'] )
+		|| ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['mfa_web_import_nonce'] ) ), 'mfa_web_import' ) ) {
+		return array( 'error' => 'Security check failed. Reload the page and try again.' );
+	}
+
+	// The shortcode's section gate has already run, but this one writes rows -
+	// check again rather than trust having been reached from the right page.
+	if ( function_exists( 'mfa_user_can_access_admin_section' ) && ! mfa_user_can_access_admin_section( 'website' ) ) {
+		return array( 'error' => 'You do not have permission to run the import.' );
+	}
+
+	if ( ! function_exists( 'mfa_web_extract_daily_run' ) ) {
+		return array( 'error' => 'Website extract is unavailable.' );
+	}
+
+	@set_time_limit( 120 );
+
+	return mfa_web_extract_daily_run();
+}
+
+/**
+ * The import panel: when it last ran, the button, and the result of the run
+ * just performed. Scanned/skipped counts are shown rather than only the number
+ * added, so a run that adds nothing still reads as "it worked and there was
+ * nothing new" instead of looking broken.
+ */
+function mfa_admin_website_import_panel( $report ) {
+	$last = get_option( 'mfa_web_extract_last_run', '' );
+
+	ob_start();
+	?>
+	<div class="mfa-admin-web-import">
+		<div class="mfa-admin-web-import-head">
+			<div>
+				<strong>Import websites from business listings</strong>
+				<p class="mfa-admin-web-import-note">
+					Scans business records for a website address and adds any new ones to this directory.
+					Only businesses added or edited since the last run are checked, so this is quick to repeat.
+					Social media and ordering-platform links are skipped.
+				</p>
+			</div>
+			<form method="post" class="mfa-admin-web-import-form">
+				<?php wp_nonce_field( 'mfa_web_import', 'mfa_web_import_nonce' ); ?>
+				<button type="submit" name="mfa_web_import" value="1" class="mfa-btn mfa-btn-primary">Run import</button>
+			</form>
+		</div>
+
+		<p class="mfa-admin-web-import-last">
+			<?php if ( $last ) : ?>
+				Last run: <?php echo esc_html( $last ); ?>
+			<?php else : ?>
+				Never run.
+			<?php endif; ?>
+		</p>
+
+		<?php if ( is_array( $report ) && isset( $report['error'] ) ) : ?>
+			<p class="mfa-admin-web-import-error"><?php echo esc_html( $report['error'] ); ?></p>
+		<?php elseif ( is_array( $report ) ) : ?>
+			<ul class="mfa-admin-web-import-report">
+				<li><strong><?php echo esc_html( number_format_i18n( (int) $report['applied'] ) ); ?></strong> websites added</li>
+				<li><?php echo esc_html( number_format_i18n( (int) $report['scanned'] ) ); ?> business records scanned</li>
+				<li><?php echo esc_html( number_format_i18n( (int) $report['duplicate_existing'] + (int) $report['duplicate_in_batch'] ) ); ?> already listed</li>
+				<li><?php echo esc_html( number_format_i18n( (int) $report['social_excluded'] ) ); ?> social media links skipped</li>
+				<li><?php echo esc_html( number_format_i18n( isset( $report['platform_excluded'] ) ? (int) $report['platform_excluded'] : 0 ) ); ?> ordering-platform links skipped</li>
+			</ul>
 		<?php endif; ?>
 	</div>
 	<?php

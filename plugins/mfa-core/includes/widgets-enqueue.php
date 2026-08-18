@@ -104,6 +104,17 @@ function mfa_core_enqueue_widget_assets() {
 			wp_enqueue_script( 'mfa-core-admin-tabs', MFA_CORE_URL . 'assets/js/admin-tabs-v1.js', array(), $get_version( $admin_tabs_js ), true );
 		}
 
+		// /admin/member/import/ - child of the Members page, matched by slug
+		// rather than a fixed ID so staging and production share one rule.
+		// Reuses the member list stylesheet, which owns the import panel's
+		// .mfa-admin-mem-import-* classes.
+		$is_member_import = $post && 'import' === $post->post_name && $post->post_parent
+			&& 'member' === get_post_field( 'post_name', $post->post_parent );
+		if ( $is_member_import ) {
+			$admin_member_list_css = MFA_CORE_PATH . 'assets/css/admin-member-list-v1.css';
+			wp_enqueue_style( 'mfa-core-admin-member-list', MFA_CORE_URL . 'assets/css/admin-member-list-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell' ), $get_version( $admin_member_list_css ) );
+		}
+
 		if ( $post && 'mosque' === $post->post_name && 9343 === (int) $post->post_parent ) {
 			$admin_mosque_list_css = MFA_CORE_PATH . 'assets/css/admin-mosque-list-v1.css';
 			wp_enqueue_style( 'mfa-core-admin-mosque-list', MFA_CORE_URL . 'assets/css/admin-mosque-list-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell' ), $get_version( $admin_mosque_list_css ) );

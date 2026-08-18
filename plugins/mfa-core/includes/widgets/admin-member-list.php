@@ -82,10 +82,19 @@ function mfa_admin_member_list_shortcode() {
 	$data_params = array_merge( $params, array( $per_page, $offset ) );
 	$rows        = $wpdb->get_results( $wpdb->prepare( $data_sql, $data_params ), ARRAY_A );
 
+	// Runs before any output so a dry run or a progress reset is reflected in
+	// the panel rendered below, not one page load late.
+	$import_report = function_exists( 'mfa_admin_member_import_maybe_run' )
+		? mfa_admin_member_import_maybe_run()
+		: null;
+
 	ob_start();
 	?>
 	<div class="mfa-admin-member-list">
 		<h1 class="mfa-h2">Members</h1>
+<?php if ( function_exists( 'mfa_admin_member_import_panel' ) ) : ?>
+		<?php echo mfa_admin_member_import_panel( $import_report ); // phpcs:ignore WordPress.Security.EscapeOutput ?>
+<?php endif; ?>
 		<p class="mfa-body-muted"><?php echo esc_html( number_format_i18n( $total ) ); ?> member<?php echo 1 === $total ? '' : 's'; ?></p>
 
 		<form method="get" class="mfa-admin-member-filters">

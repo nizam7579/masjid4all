@@ -78,7 +78,7 @@ function mfa_admin_member_list_shortcode() {
 	$paged       = min( $paged, $total_pages );
 	$offset      = ( $paged - 1 ) * $per_page;
 
-	$data_sql    = "SELECT _ID, user_id, name, status, rank, cct_created FROM {$cct_table} WHERE {$where_sql} ORDER BY user_id DESC LIMIT %d OFFSET %d";
+	$data_sql    = "SELECT _ID, user_id, name, status, rank, registered, cct_created FROM {$cct_table} WHERE {$where_sql} ORDER BY user_id DESC LIMIT %d OFFSET %d";
 	$data_params = array_merge( $params, array( $per_page, $offset ) );
 	$rows        = $wpdb->get_results( $wpdb->prepare( $data_sql, $data_params ), ARRAY_A );
 
@@ -146,7 +146,19 @@ function mfa_admin_member_list_shortcode() {
 									<?php endif; ?>
 								</td>
 								<td data-label="Rank"><?php echo esc_html( trim( (string) $row['rank'] ) ? trim( (string) $row['rank'] ) : '—' ); ?></td>
-								<td data-label="Registered"><?php echo esc_html( $row['cct_created'] ? date_i18n( 'j M Y', strtotime( $row['cct_created'] ) ) : '—' ); ?></td>
+								<?php
+								// The registration date is the 'registered' column, not
+								// cct_created - cct_created is when the row was written,
+								// which for any imported member is the day of the import
+								// rather than the date they count from. The two differ for
+								// 74,502 of the existing members, so this column has been
+								// showing the wrong date all along; it only became obvious
+								// once the directory import made the gap months wide.
+								// Falls back to cct_created for the 91 rows with no
+								// registered value.
+								$registered_at = ! empty( $row['registered'] ) ? $row['registered'] : $row['cct_created'];
+								?>
+								<td data-label="Registered"><?php echo esc_html( $registered_at ? date_i18n( 'j M Y', strtotime( $registered_at ) ) : '—' ); ?></td>
 								<td data-label="" class="mfa-admin-member-actions">
 									<?php if ( ! empty( $row['user_id'] ) ) : ?>
 										<a href="<?php echo esc_url( add_query_arg( 'id', (int) $row['user_id'], home_url( '/admin/member/info/' ) ) ); ?>" target="_blank" rel="noopener" class="mfa-btn mfa-btn-solid-dark mfa-admin-member-view-btn">View</a>

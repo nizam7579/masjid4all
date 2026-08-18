@@ -188,8 +188,17 @@ function mfa_web_linkcheck_batch( $limit = 50, $apply = false ) {
 				}
 			} while ( $running && CURLM_OK === $status );
 
+			// curl_errno() stays 0 on a multi handle, so the real result code has to
+			// be drained from the info queue - without this a DNS failure and a
+			// timeout both recorded as status '0' and the reason was lost.
+			$errmap = array();
+			while ( $info = curl_multi_info_read( $mh ) ) {
+				$errmap[ spl_object_id( $info['handle'] ) ] = (int) $info['result'];
+			}
+
 			foreach ( $handles as $h ) {
-				mfa_web_linkcheck_record( $h['ch'], $h['row'], $apply, $report );
+				$errno = isset( $errmap[ spl_object_id( $h['ch'] ) ] ) ? $errmap[ spl_object_id( $h['ch'] ) ] : 0;
+				mfa_web_linkcheck_record( $h['ch'], $h['row'], $apply, $report, $errno );
 				curl_multi_remove_handle( $mh, $h['ch'] );
 				curl_close( $h['ch'] );
 			}
@@ -203,12 +212,16 @@ function mfa_web_linkcheck_batch( $limit = 50, $apply = false ) {
 }
 
 /** Applies one result: counters, columns, and unpublishing when it is due. */
-function mfa_web_linkcheck_record( $ch, $row, $apply, &$report ) {
+function mfa_web_linkcheck_record( $ch, $row, $apply, &$report, $errno = 0 ) {
 	global $wpdb;
 	$table = $wpdb->prefix . 'jet_cct_web';
 
 	$code  = (int) curl_getinfo( $ch, CURLINFO_RESPONSE_CODE );
-	$errno = curl_errno( $ch );
+	$errno = (int) $errno;
+	// A response code of 0 with no curl error still means nothing came back.
+	if ( ! $errno && ! $code ) {
+		$errno = 7;
+	}
 	$verdict = mfa_web_linkcheck_classify( $code, $errno );
 
 	$report['checked']++;

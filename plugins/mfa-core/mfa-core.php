@@ -31,6 +31,7 @@ $mfa_core_includes = array(
 	'includes/places.php',
 	'includes/updates.php',
 	'includes/website-extract.php',
+	'includes/website-linkcheck.php',
 	'includes/knowledge-ai.php',
 	'includes/founding-member.php',
 	'includes/ads.php',

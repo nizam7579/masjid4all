@@ -41,6 +41,7 @@ function mfa_admin_website_list_shortcode() {
 	$cct_table = $wpdb->prefix . 'jet_cct_web';
 
 	$mfa_web_import_report = mfa_admin_website_maybe_run_import();
+	$mfa_web_linkcheck_report = mfa_admin_website_maybe_run_linkcheck();
 
 	$search         = isset( $_GET['website_search'] ) ? sanitize_text_field( wp_unslash( $_GET['website_search'] ) ) : '';
 	$status_filter  = isset( $_GET['status'] ) ? sanitize_text_field( wp_unslash( $_GET['status'] ) ) : '';
@@ -98,6 +99,7 @@ function mfa_admin_website_list_shortcode() {
 	?>
 	<div class="mfa-admin-website-list">
 		<?php echo mfa_admin_website_import_panel( $mfa_web_import_report ); // phpcs:ignore WordPress.Security.EscapeOutput ?>
+		<?php echo mfa_admin_website_linkcheck_panel( $mfa_web_linkcheck_report ); // phpcs:ignore WordPress.Security.EscapeOutput ?>
 		<div class="mfa-admin-website-list-heading">
 			<div>
 				<h1 class="mfa-h2">Websites</h1>
@@ -298,6 +300,96 @@ function mfa_admin_website_import_panel( $report ) {
 				<li><?php echo esc_html( number_format_i18n( (int) $report['duplicate_existing'] + (int) $report['duplicate_in_batch'] ) ); ?> already listed</li>
 				<li><?php echo esc_html( number_format_i18n( (int) $report['social_excluded'] ) ); ?> social media links skipped</li>
 				<li><?php echo esc_html( number_format_i18n( isset( $report['platform_excluded'] ) ? (int) $report['platform_excluded'] : 0 ) ); ?> ordering-platform links skipped</li>
+			</ul>
+		<?php endif; ?>
+	</div>
+	<?php
+	return ob_get_clean();
+}
+
+/**
+ * Runs a link-check batch when its button is submitted. Separate from the
+ * import handler because they answer different questions - one adds listings,
+ * the other retires them - and mixing the two into one button would make it
+ * impossible to run either on its own.
+ */
+function mfa_admin_website_maybe_run_linkcheck() {
+	if ( empty( $_POST['mfa_web_linkcheck'] ) ) {
+		return null;
+	}
+
+	if ( ! isset( $_POST['mfa_web_linkcheck_nonce'] )
+		|| ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['mfa_web_linkcheck_nonce'] ) ), 'mfa_web_linkcheck' ) ) {
+		return array( 'error' => 'Security check failed. Reload the page and try again.' );
+	}
+
+	if ( function_exists( 'mfa_user_can_access_admin_section' ) && ! mfa_user_can_access_admin_section( 'website' ) ) {
+		return array( 'error' => 'You do not have permission to run the link check.' );
+	}
+
+	if ( ! function_exists( 'mfa_web_linkcheck_batch' ) ) {
+		return array( 'error' => 'Link checker is unavailable.' );
+	}
+
+	@set_time_limit( 300 );
+
+	return mfa_web_linkcheck_batch( 200, true );
+}
+
+/**
+ * Link-check panel: how far through the directory we are, the button, and the
+ * result of the run just performed.
+ *
+ * The blocked count is shown deliberately. Roughly one site in eight answers
+ * 403 to an automated request while being perfectly alive, and anyone reading
+ * this panel needs to see that those were recognised rather than quietly
+ * counted as broken.
+ */
+function mfa_admin_website_linkcheck_panel( $report ) {
+	if ( ! function_exists( 'mfa_web_linkcheck_progress' ) ) {
+		return '';
+	}
+	$p = mfa_web_linkcheck_progress();
+
+	ob_start();
+	?>
+	<div class="mfa-admin-web-import">
+		<div class="mfa-admin-web-import-head">
+			<div>
+				<strong>Check website links</strong>
+				<p class="mfa-admin-web-import-note">
+					Visits each listed website and records what it returns. Sites that fail three times
+					on three separate days are marked as an error and removed from the public directory.
+					Sites that merely block automated visitors are left alone.
+				</p>
+			</div>
+			<form method="post" class="mfa-admin-web-import-form">
+				<?php wp_nonce_field( 'mfa_web_linkcheck', 'mfa_web_linkcheck_nonce' ); ?>
+				<button type="submit" name="mfa_web_linkcheck" value="1" class="mfa-btn mfa-btn-primary">Check 200 links</button>
+			</form>
+		</div>
+
+		<p class="mfa-admin-web-import-last">
+			<?php echo esc_html( number_format_i18n( $p['checked'] ) ); ?> of
+			<?php echo esc_html( number_format_i18n( $p['checkable'] ) ); ?> checked
+			&middot; <?php echo esc_html( number_format_i18n( $p['failing'] ) ); ?> currently failing
+			&middot; <?php echo esc_html( number_format_i18n( $p['errors'] ) ); ?> marked as error
+		</p>
+
+		<?php if ( is_array( $report ) && isset( $report['error'] ) ) : ?>
+			<p class="mfa-admin-web-import-error"><?php echo esc_html( $report['error'] ); ?></p>
+		<?php elseif ( is_array( $report ) && 0 === (int) $report['checked'] ) : ?>
+			<p class="mfa-admin-web-import-empty">
+				Nothing due a check right now. Working sites are re-checked every 30 days, failing ones every day.
+			</p>
+		<?php elseif ( is_array( $report ) ) : ?>
+			<ul class="mfa-admin-web-import-report">
+				<li><strong><?php echo esc_html( number_format_i18n( (int) $report['checked'] ) ); ?></strong> sites checked</li>
+				<li><?php echo esc_html( number_format_i18n( (int) $report['alive'] ) ); ?> responded normally</li>
+				<li><?php echo esc_html( number_format_i18n( (int) $report['blocked'] ) ); ?> blocked automated visits (treated as alive)</li>
+				<li><?php echo esc_html( number_format_i18n( (int) $report['dead'] ) ); ?> returned not-found</li>
+				<li><?php echo esc_html( number_format_i18n( (int) $report['transient'] ) ); ?> timed out or failed to connect</li>
+				<li><?php echo esc_html( number_format_i18n( (int) $report['unpublished'] ) ); ?> removed from the directory this run</li>
 			</ul>
 		<?php endif; ?>
 	</div>

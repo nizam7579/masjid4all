@@ -94,9 +94,13 @@ function mfa_masjid_page_shortcode() {
 			</div>
 
 			<div class="mfa-page-col-ad">
-				<?php echo mfa_place_links_or_ads(); // phpcs:ignore WordPress.Security.EscapeOutput ?>
+				<h3 class="mfa-tool-page-ad-heading">Recommended Products/Services</h3>
+				<?php echo do_shortcode( '[enaizi_ads count="4" layout="vertical"]' ); ?>
 			</div>
 		</div>
+
+		<?php // Full-width band under the row; renders nothing outside a hub country. ?>
+		<?php echo do_shortcode( '[mfa_place_links]' ); ?>
 	</div>
 	<?php
 	return ob_get_clean();

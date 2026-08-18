@@ -35,10 +35,10 @@ function mfa_directory_single_config() {
 				array( 'Local Business', 'mfa_mosque_local_business_tab' ),
 				array( 'Review', 'niz_review' ),
 			),
-			// Hub links into /places/ for this mosque's country, falling back to
-			// the same ad unit when that country has no hub yet. Only masjid uses
-			// this so far - business and web keep plain ads.
-			'sidebar'       => '[mfa_place_links ad_count="4" ad_layout="vertical"]',
+			'sidebar'       => '[enaizi_ads count="4" layout="vertical"]',
+			// Full-width band under the listing body. Renders nothing unless this
+			// mosque's country has a /places/ hub. Only masjid has one so far.
+			'below'         => '[mfa_place_links]',
 			'owner_col'     => 'cct_author_id',
 			'action'        => null,
 			// Matches mfa_mosque_info_display()'s own "actual content" gate.
@@ -258,6 +258,19 @@ function mfa_directory_single_shortcode() {
 				<aside class="mfa-dir-sidebar"><?php echo do_shortcode( $c['sidebar'] ); ?></aside>
 			<?php endif; ?>
 		</div>
+
+		<?php
+		// Full width, outside the main/sidebar row. empty() rather than isset()
+		// so a type config without a 'below' key is simply skipped.
+		if ( ! empty( $c['below'] ) ) {
+			$below_html = do_shortcode( $c['below'] );
+			// Only wrap when there is something to wrap - the block renders ''
+			// for a country with no hub, and an empty div still carries margin.
+			if ( '' !== trim( $below_html ) ) {
+				echo '<div class="mfa-dir-below">' . $below_html . '</div>';
+			}
+		}
+		?>
 	</div>
 	<?php
 	return ob_get_clean();

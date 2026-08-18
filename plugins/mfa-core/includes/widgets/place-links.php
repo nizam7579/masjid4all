@@ -11,11 +11,14 @@ if ( ! defined( 'ABSPATH' ) ) {
  * intent already matches: someone looking at a mosque is plausibly interested
  * in other mosques near it.
  *
- * The rule is per country. If the listing's country has a hub, show its child
- * hubs (for Malaysia, the 16 states) with live counts. If it does not, fall
- * back to the ad unit, so the slot is never wasted on a country we cannot
- * link into yet. New country hubs light this up automatically - nothing here
- * hardcodes Malaysia.
+ * Rendered as a full-width band beneath the listing content, not in the
+ * sidebar - 16 states read badly as a tall narrow column, and the ad unit
+ * earns more beside the content than under it. The list is a responsive grid,
+ * so it still collapses to a single column on mobile.
+ *
+ * Country-gated: if the listing's country has a hub, show its child hubs. If
+ * not, render nothing at all (the ads in the sidebar are unaffected either
+ * way). Nothing here hardcodes Malaysia - adding a country hub lights it up.
  */
 
 /** Top-level hub post for a country name, or null. */
@@ -90,10 +93,13 @@ function mfa_place_links_block( $country, $highlight = '' ) {
 		return strcasecmp( $a['title'], $b['title'] );
 	} );
 
+	$directory = home_url( '/masjid/' );
+
 	ob_start();
 	?>
-	<div class="mfa-place-links">
-		<h3 class="mfa-place-links-heading">Mosques in <?php echo esc_html( $hub->post_title ); ?></h3>
+	<section class="mfa-place-links">
+		<h2 class="mfa-place-links-heading">Browse mosques in <?php echo esc_html( $hub->post_title ); ?></h2>
+		<p class="mfa-place-links-intro">Pick a state to see every mosque we have listed there, or <a href="<?php echo esc_url( $directory ); ?>">search for the nearest mosque to you</a>.</p>
 		<ul class="mfa-place-links-list">
 			<?php foreach ( $items as $item ) : ?>
 				<li class="mfa-place-links-item<?php echo $item['is_here'] ? ' is-here' : ''; ?>">
@@ -104,32 +110,33 @@ function mfa_place_links_block( $country, $highlight = '' ) {
 				</li>
 			<?php endforeach; ?>
 		</ul>
-		<a class="mfa-place-links-all" href="<?php echo esc_url( get_permalink( $hub->ID ) ); ?>">View all of <?php echo esc_html( $hub->post_title ); ?> &rarr;</a>
-	</div>
+		<div class="mfa-place-links-actions">
+			<a class="mfa-place-links-all" href="<?php echo esc_url( get_permalink( $hub->ID ) ); ?>">View all of <?php echo esc_html( $hub->post_title ); ?> &rarr;</a>
+			<a class="mfa-place-links-near" href="<?php echo esc_url( $directory ); ?>">Search the nearest mosque to you &rarr;</a>
+		</div>
+	</section>
 	<?php
 	return ob_get_clean();
 }
 
 /**
- * Hub links when we have them, the ad unit when we do not.
+ * [mfa_place_links country="" highlight=""]
  *
- * $args: country (string, optional), highlight (string, optional),
- *        ad_count (int), ad_layout (string).
- * When country is omitted it is taken from the current mosque post, falling
- * back to the visitor's country cookie - which is what the directory page
- * needs, since no single listing is in context there. LiteSpeed already has a
- * no-cache rule for that cookie, so varying on it is safe.
+ * With no country given it takes the active mosque's own country and state,
+ * falling back to the visitor's country cookie when no single listing is in
+ * context (the /masjid/ directory). LiteSpeed already has a no-cache rule for
+ * that cookie, so varying on it is safe. Renders nothing when the country has
+ * no hub - the caller does not need to handle that case.
  */
-function mfa_place_links_or_ads( $args = array() ) {
-	$args = wp_parse_args( $args, array(
+add_shortcode( 'mfa_place_links', 'mfa_place_links_shortcode' );
+function mfa_place_links_shortcode( $atts ) {
+	$atts = shortcode_atts( array(
 		'country'   => '',
 		'highlight' => '',
-		'ad_count'  => 4,
-		'ad_layout' => 'vertical',
-	) );
+	), $atts );
 
-	$country   = $args['country'];
-	$highlight = $args['highlight'];
+	$country   = $atts['country'];
+	$highlight = $atts['highlight'];
 
 	if ( '' === $country ) {
 		if ( is_singular( 'masjid' ) ) {
@@ -142,24 +149,5 @@ function mfa_place_links_or_ads( $args = array() ) {
 		}
 	}
 
-	$links = mfa_place_links_block( $country, $highlight );
-	if ( '' !== $links ) {
-		return $links;
-	}
-
-	return '<h3 class="mfa-tool-page-ad-heading">Recommended Products/Services</h3>'
-		. do_shortcode( '[enaizi_ads count="' . (int) $args['ad_count'] . '" layout="' . sanitize_key( $args['ad_layout'] ) . '"]' );
-}
-
-/** [mfa_place_links country="" highlight="" ad_count="4" ad_layout="vertical"] */
-add_shortcode( 'mfa_place_links', 'mfa_place_links_shortcode' );
-function mfa_place_links_shortcode( $atts ) {
-	$atts = shortcode_atts( array(
-		'country'   => '',
-		'highlight' => '',
-		'ad_count'  => 4,
-		'ad_layout' => 'vertical',
-	), $atts );
-
-	return mfa_place_links_or_ads( $atts );
+	return mfa_place_links_block( $country, $highlight );
 }

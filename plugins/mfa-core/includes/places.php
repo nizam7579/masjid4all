@@ -367,12 +367,31 @@ function mfa_place_listing_where( $place_id, $table_alias = '' ) {
 		return array( 'sql' => $sql, 'args' => $args );
 	}
 
+	// A state-level hub matches on `state` alone. It used to OR in a bounding
+	// box for rows with no state, but rectangles over irregular borders
+	// overlap, so a single listing near a border matched several states at
+	// once and the 16 states summed to ~74% more than the country did. Every
+	// row is now attributed to exactly one state up front - by address text
+	// (mfa_geohash_guess_state), by reverse geocode, or by
+	// mfa_geohash_backfill_state_geo()'s nearest-centroid tiebreak - so the
+	// ambiguity is resolved once at write time instead of per query, and
+	// double-counting is structurally impossible rather than merely unlikely.
+	//
+	// A row that somehow still has no state is absent from every state hub
+	// while remaining on the country hub. That is deliberate: undercounting
+	// one listing is a far smaller error than counting it in four states, and
+	// it stays visible where it matters. Re-running the backfills picks it up.
 	if ( 1 === count( get_post_ancestors( $place_id ) ) ) {
-		$sql   .= " AND ( {$p}state = %s OR ( ( {$p}state IS NULL OR {$p}state = '' ) AND {$p}latitude BETWEEN %f AND %f AND {$p}longitude BETWEEN %f AND %f ) )";
+		$sql   .= " AND {$p}state = %s";
 		$args[] = get_the_title( $place_id );
-	} else {
-		$sql .= " AND {$p}latitude BETWEEN %f AND %f AND {$p}longitude BETWEEN %f AND %f";
+
+		return array( 'sql' => $sql, 'args' => $args );
 	}
+
+	// Deeper hubs (district level) still fall back to the bounding box. No such
+	// hubs exist yet; if they are ever added they will need the same
+	// single-attribution treatment, at a finer granularity than `state`.
+	$sql .= " AND {$p}latitude BETWEEN %f AND %f AND {$p}longitude BETWEEN %f AND %f";
 
 	$args[] = $geo['south'];
 	$args[] = $geo['north'];

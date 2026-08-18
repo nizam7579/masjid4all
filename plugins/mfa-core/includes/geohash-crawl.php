@@ -1813,3 +1813,110 @@ if ( defined( 'WP_CLI' ) && WP_CLI ) {
 		WP_CLI::success( sprintf( 'Backfilled %d cells total.', $r['direct_matched'] + $r['alias_matched'] ) );
 	} );
 }
+
+/**
+ * Final-pass attribution for rows still lacking a state after
+ * mfa_geohash_backfill_state() (address text) and the Nominatim fallback -
+ * typically a bare street fragment with no locality, e.g.
+ * "Surau Al-Aziziah Jalan AU 1b/1".
+ *
+ * Assigns each row to exactly ONE state, which is the whole point. The hub
+ * query's bbox fallback matched every state whose rectangle covered the
+ * point, so a mosque near a border was counted once per overlapping state
+ * and the 16 states summed to ~74% more than the country. Rectangles over
+ * irregular borders cannot be made non-overlapping, so resolve the ambiguity
+ * once here and store the winner - after which mfa_place_listing_where() can
+ * match on `state` alone and double-counting becomes structurally impossible.
+ *
+ * Per row: inside exactly one bbox -> that state; inside several -> nearest
+ * of those by centroid; inside none -> nearest overall by centroid.
+ *
+ * Distance is squared lat/lng, not great-circle: all candidates sit inside
+ * one country, so it only has to rank consistently, not measure accurately.
+ *
+ * Same contract as its siblings - dry run unless $apply, only touches rows
+ * with no state, so re-running resumes rather than redoing.
+ */
+function mfa_geohash_backfill_state_geo( $apply = false, $limit = 0, $country = 'Malaysia' ) {
+	global $wpdb;
+	$report = array( 'scanned' => 0, 'assigned' => 0, 'applied' => 0, 'skipped_no_coords' => 0, 'by_state' => array(), 'by_rule' => array( 'single' => 0, 'overlap' => 0, 'outside' => 0 ) );
+
+	$root = get_page_by_path( sanitize_title( $country ), OBJECT, 'place' );
+	if ( ! $root ) {
+		return $report;
+	}
+	$hubs = array();
+	foreach ( get_children( array( 'post_parent' => $root->ID, 'post_type' => 'place', 'post_status' => 'publish', 'numberposts' => -1 ) ) as $kid ) {
+		$geo = mfa_place_geo( $kid->ID );
+		if ( mfa_place_has_bbox( $geo ) ) {
+			$hubs[] = array(
+				'title' => $kid->post_title,
+				'geo'   => $geo,
+				'clat'  => ( $geo['north'] + $geo['south'] ) / 2,
+				'clng'  => ( $geo['east'] + $geo['west'] ) / 2,
+			);
+		}
+	}
+	if ( ! $hubs ) {
+		return $report;
+	}
+
+	foreach ( array( 'jet_cct_mosque', 'jet_cct_business' ) as $tbl ) {
+		$table = $wpdb->prefix . $tbl;
+		$sql = $wpdb->prepare( "SELECT _ID, latitude, longitude FROM {$table} WHERE country = %s AND ( state IS NULL OR state = '' )", $country );
+		if ( $limit > 0 ) {
+			$sql .= $wpdb->prepare( ' LIMIT %d', $limit );
+		}
+		foreach ( $wpdb->get_results( $sql, ARRAY_A ) as $row ) {
+			$report['scanned']++;
+			$lat = (float) $row['latitude'];
+			$lng = (float) $row['longitude'];
+			if ( ! $lat || ! $lng ) {
+				$report['skipped_no_coords']++;
+				continue;
+			}
+
+			$inside = array();
+			foreach ( $hubs as $h ) {
+				$g = $h['geo'];
+				if ( $lat >= $g['south'] && $lat <= $g['north'] && $lng >= $g['west'] && $lng <= $g['east'] ) {
+					$inside[] = $h;
+				}
+			}
+
+			$pool = $inside ? $inside : $hubs;
+			if ( 1 === count( $inside ) ) {
+				$report['by_rule']['single']++;
+			} elseif ( $inside ) {
+				$report['by_rule']['overlap']++;
+			} else {
+				$report['by_rule']['outside']++;
+			}
+
+			$best = null;
+			$bestd = null;
+			foreach ( $pool as $h ) {
+				$d = ( $lat - $h['clat'] ) * ( $lat - $h['clat'] ) + ( $lng - $h['clng'] ) * ( $lng - $h['clng'] );
+				// Strict < keeps the first hub on an exact tie, so the result is
+				// stable across runs rather than depending on row order.
+				if ( null === $bestd || $d < $bestd ) {
+					$bestd = $d;
+					$best  = $h['title'];
+				}
+			}
+			if ( null === $best ) {
+				continue;
+			}
+
+			$report['assigned']++;
+			$report['by_state'][ $best ] = ( $report['by_state'][ $best ] ?? 0 ) + 1;
+			if ( $apply ) {
+				$wpdb->update( $table, array( 'state' => $best ), array( '_ID' => $row['_ID'] ), array( '%s' ), array( '%d' ) );
+				$report['applied']++;
+			}
+		}
+	}
+
+	ksort( $report['by_state'] );
+	return $report;
+}

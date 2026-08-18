@@ -320,15 +320,26 @@ function mfa_travel_plan( $from, $to, $depart_date, $depart_time, $duration_hour
 			// Keep the first sighting of a prayer - the departure city's, since
 			// that schedule is listed first and is the one in force in the air.
 			if ( ! isset( $in_transit[ $name ] ) ) {
+				// Carry the exact schedule this was read from. The departure
+				// city appears twice (its departure date and the next), so
+				// matching on city name alone later picked the wrong day and
+				// silently mis-answered whether the prayer could wait.
 				$in_transit[ $name ] = array(
 					'clock' => $moment->setTimezone( new DateTimeZone( $schedule['tz'] ) )->format( 'H:i' ),
 					'city'  => $schedule['city'],
+					'date'  => $schedule['date'],
+					'tz'    => $schedule['tz'],
+					'times' => $schedule['times'],
 				);
 			}
 		}
 	}
 
 	$qasar = $distance_km >= $threshold;
+
+	// Can each in-transit prayer be moved to the ground at one end or the
+	// other, or does its whole window pass in the air?
+	$onboard = mfa_travel_onboard_required( $in_transit, $schedules, $depart_local, $arrive_local );
 
 	return array(
 		'from'            => $origin,
@@ -347,8 +358,96 @@ function mfa_travel_plan( $from, $to, $depart_date, $depart_time, $duration_hour
 		'times_from'      => $depart_times['times'],
 		'times_to'        => $arrive_times['times'],
 		'in_transit'      => $in_transit,
+		'onboard'         => $onboard,
 		'crosses_date'    => $depart_local->format( 'Y-m-d' ) !== $arrive_local->format( 'Y-m-d' ),
 	);
+}
+
+/**
+ * Which in-transit prayers cannot be shifted to the ground.
+ *
+ * A prayer only has to be performed in the air when neither end works: it
+ * cannot be brought forward to before departure (jamak taqdim) and cannot be
+ * held until after landing (jamak ta'khir). Fajr is the case that bites -
+ * it combines with nothing, so on an overnight flight whose window falls
+ * wholly between takeoff and landing there is no alternative.
+ *
+ * Windows, with jamak taken into account:
+ *   Fajr    Fajr -> Sunrise            (no combining either way)
+ *   Dhuhr   Dhuhr -> Maghrib           (ta'khir with Asr)
+ *   Asr     Dhuhr -> Maghrib           (taqdim with Dhuhr)
+ *   Maghrib Maghrib -> next Fajr       (ta'khir with Isha)
+ *   Isha    Maghrib -> next Fajr       (taqdim with Maghrib)
+ *
+ * @return array prayer => reason, empty when everything can be prayed on the
+ *               ground.
+ */
+function mfa_travel_onboard_required( $in_transit, $schedules, $depart_local, $arrive_local ) {
+	if ( empty( $in_transit ) ) {
+		return array();
+	}
+
+	$bounds = array(
+		'Fajr'    => array( 'Fajr', 'Sunrise' ),
+		'Dhuhr'   => array( 'Dhuhr', 'Maghrib' ),
+		'Asr'     => array( 'Dhuhr', 'Maghrib' ),
+		'Maghrib' => array( 'Maghrib', null ),
+		'Isha'    => array( 'Maghrib', null ),
+	);
+
+	$onboard = array();
+
+	foreach ( $in_transit as $prayer => $info ) {
+		if ( ! isset( $bounds[ $prayer ] ) ) {
+			continue;
+		}
+
+		// The schedule this prayer was actually sighted in, carried on the
+		// entry itself rather than looked up by city.
+		if ( empty( $info['times'] ) || empty( $info['date'] ) || empty( $info['tz'] ) ) {
+			continue;
+		}
+
+		$schedule = array(
+			'times' => $info['times'],
+			'date'  => $info['date'],
+			'tz'    => $info['tz'],
+		);
+
+		list( $earliest_key, $latest_key ) = $bounds[ $prayer ];
+
+		$earliest = isset( $schedule['times'][ $earliest_key ] )
+			? mfa_travel_prayer_moment( $schedule['date'], $schedule['times'][ $earliest_key ], $schedule['tz'] )
+			: null;
+
+		if ( null === $latest_key ) {
+			// Maghrib/Isha run to the following dawn; approximate that as the
+			// same schedule's Fajr a day on, which is within a minute or two.
+			$latest = isset( $schedule['times']['Fajr'] )
+				? mfa_travel_prayer_moment( $schedule['date'], $schedule['times']['Fajr'], $schedule['tz'] )
+				: null;
+			$latest = $latest ? $latest->modify( '+1 day' ) : null;
+		} else {
+			$latest = isset( $schedule['times'][ $latest_key ] )
+				? mfa_travel_prayer_moment( $schedule['date'], $schedule['times'][ $latest_key ], $schedule['tz'] )
+				: null;
+		}
+
+		if ( ! $earliest || ! $latest ) {
+			continue;
+		}
+
+		$can_pray_before = ( $earliest <= $depart_local );
+		$can_pray_after  = ( $latest >= $arrive_local );
+
+		if ( ! $can_pray_before && ! $can_pray_after ) {
+			$onboard[ $prayer ] = ( 'Fajr' === $prayer )
+				? 'Fajr cannot be combined with any other prayer, and its whole time falls during the flight.'
+				: 'Its time passes entirely during the journey, at both ends.';
+		}
+	}
+
+	return $onboard;
 }
 
 /**
@@ -401,7 +500,33 @@ function mfa_travel_format_reply( $plan ) {
 		$out .= "You may also *jamak* (combine) Zuhr with Asr, and Maghrib with Isha — either early (taqdim, at the earlier prayer's time) or late (ta'khir, at the later one's).\n\n";
 
 		if ( ! empty( $plan['in_transit'] ) ) {
-			$out .= "Since " . implode( ' and ', array_keys( $plan['in_transit'] ) ) . " fall during the journey, the simplest option is to combine them before you depart, or on arrival — whichever you can perform settled and facing qiblah.\n\n";
+			$names   = array_keys( $plan['in_transit'] );
+			$onboard = isset( $plan['onboard'] ) ? $plan['onboard'] : array();
+			$ground  = array_values( array_diff( $names, array_keys( $onboard ) ) );
+
+			// Fajr is never combined with another prayer, so it must not be
+			// swept into the jamak sentence - it is prayed in its own time,
+			// before departure or after landing.
+			$fajr_on_ground = in_array( 'Fajr', $ground, true );
+			$combinable     = array_values( array_diff( $ground, array( 'Fajr' ) ) );
+
+			if ( ! empty( $combinable ) ) {
+				$verb = ( 1 === count( $combinable ) ) ? 'falls' : 'fall';
+				$out .= mfa_travel_list_names( $combinable ) . " {$verb} during the journey. The simplest option is to combine "
+					. ( 1 === count( $combinable ) ? 'it' : 'them' )
+					. " before you depart, or on arrival — whichever you can perform settled and facing qiblah.\n\n";
+			}
+
+			if ( $fajr_on_ground ) {
+				$out .= "Fajr falls during the journey. It is never combined with another prayer, so pray it in its own time — before you depart if it has come in, or as soon as you land while the time still holds.\n\n";
+			}
+
+			if ( ! empty( $onboard ) ) {
+				$verb = ( 1 === count( $onboard ) ) ? 'needs' : 'need';
+				$out .= "✈️ *" . mfa_travel_list_names( array_keys( $onboard ) ) . "* {$verb} to be prayed on board.\n";
+				$out .= reset( $onboard ) . " You cannot delay it to after you land, and its time has not come in before you leave.\n\n";
+				$out .= "On board: pray at your seat if you cannot stand safely, face the qiblah as you begin if you can and simply continue as the aircraft turns, and use tayammum if no water is available. The prayer is valid.\n\n";
+			}
 		}
 	} else {
 		$out .= "ℹ️ Your journey is about " . number_format_i18n( $plan['distance_km'] ) . " km, short of the two-marhalah distance (~" . (int) $plan['threshold_km'] . " km), so pray as normal — no qasar or jamak.\n\n";
@@ -429,4 +554,25 @@ function mfa_travel_short_place( $label ) {
 	}
 
 	return $parts[0] . ', ' . end( $parts );
+}
+
+/**
+ * "Fajr", "Fajr and Isha", "Dhuhr, Asr and Isha" - reads as a sentence rather
+ * than a comma-joined list.
+ */
+function mfa_travel_list_names( $names ) {
+	$names = array_values( array_filter( $names ) );
+	$count = count( $names );
+
+	if ( 0 === $count ) {
+		return '';
+	}
+
+	if ( 1 === $count ) {
+		return $names[0];
+	}
+
+	$last = array_pop( $names );
+
+	return implode( ', ', $names ) . ' and ' . $last;
 }

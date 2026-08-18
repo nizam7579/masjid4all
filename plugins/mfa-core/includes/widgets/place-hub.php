@@ -35,6 +35,55 @@ function mfa_place_template_include( $template ) {
  * internal link, and the whole job of this page is to hand out link equity. */
 const MFA_PLACE_PER_PAGE = 24;
 
+/**
+ * A page number past the end of a section's list must 404, not render an
+ * empty shell at HTTP 200.
+ *
+ * This matters more since the single-state attribution fix: hubs used to
+ * match every listing whose coordinates fell in their bounding box, so
+ * Pahang paginated to 139 pages; matching on `state` alone cut it to ~36.
+ * Pages 37-139 are still indexed and would otherwise keep answering 200
+ * with nothing on them, which is exactly the soft-404 pattern search
+ * engines penalise.
+ *
+ * 404 rather than a redirect to page 1 on purpose: those listings did not
+ * move to page 1, they moved to a different state's hub. Redirecting there
+ * would point the crawler at a page that does not contain what it asked
+ * for, which Google treats as a soft 404 anyway.
+ *
+ * Page 1 is always valid, even for a hub with no listings at all - an empty
+ * hub is a real page that should say so, not a missing one.
+ *
+ * set_404() alone is enough to hand rendering to the theme's 404.php:
+ * mfa_place_template_include() above only claims the template while
+ * is_singular() is still true, and set_404() ends that.
+ */
+add_action( 'template_redirect', 'mfa_place_404_on_out_of_range_page' );
+function mfa_place_404_on_out_of_range_page() {
+	if ( is_admin() || ! is_singular( MFA_PLACE_POST_TYPE ) ) {
+		return;
+	}
+
+	$counts = mfa_place_counts( get_queried_object_id() );
+
+	foreach ( array( 'mosque', 'business' ) as $type ) {
+		$requested = mfa_place_current_page( $type );
+		if ( 1 === $requested ) {
+			continue;
+		}
+
+		$max = max( 1, (int) ceil( ( isset( $counts[ $type ] ) ? (int) $counts[ $type ] : 0 ) / MFA_PLACE_PER_PAGE ) );
+		if ( $requested > $max ) {
+			global $wp_query;
+			$wp_query->set_404();
+			status_header( 404 );
+			nocache_headers();
+
+			return;
+		}
+	}
+}
+
 /** Each listing type paginates independently ($type is 'mosque' or
  * 'business') via its own ?mosque_pg=/?business_pg= query arg - a shared
  * ?pg= meant paging through one tab's list silently moved the other tab's

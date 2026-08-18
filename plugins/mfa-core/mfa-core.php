@@ -33,6 +33,7 @@ $mfa_core_includes = array(
 	'includes/website-extract.php',
 	'includes/phone-extract.php',
 	'includes/seo-index-control.php',
+	'includes/seo-location-backfill.php',
 	'includes/member-import.php',
 	'includes/website-linkcheck.php',
 	'includes/knowledge-ai.php',

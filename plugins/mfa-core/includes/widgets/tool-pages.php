@@ -29,6 +29,14 @@ function mfa_prayer_times_page_shortcode() {
 					<?php echo do_shortcode( '[niz_mfa_prayer_times]' ); ?>
 				</div>
 
+				<?php
+				// Directly under the times, where someone who has just checked
+				// them is most likely to be thinking about a journey. Rendered
+				// from inside this shortcode rather than added to the page
+				// content, so the page still resolves to exactly one shortcode.
+				echo do_shortcode( '[mfa_travel_cta source="prayer-times"]' );
+				?>
+
 				<div class="mfa-faq-list">
 					<details open>
 						<summary>How are these prayer times calculated?</summary>

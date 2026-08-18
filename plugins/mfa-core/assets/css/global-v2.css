@@ -144,3 +144,50 @@
 .mfa-btn-ghost:hover { background: rgba(255, 255, 255, 0.1); color: var(--mfa-white); }
 .mfa-btn-solid-dark { background: var(--mfa-ink); color: var(--mfa-white); }
 .mfa-btn-solid-dark:hover { background: #1b242d; color: var(--mfa-white); }
+
+/* ---------------------------------------------------------------------------
+   Travel prayer CTA — the WhatsApp entry point into Sofia's solat planner.
+   Lives here rather than in a page stylesheet because it appears on several
+   page types (prayer times, mosque listings) that each load their own CSS.
+   --------------------------------------------------------------------------- */
+
+.mfa-travel-cta {
+  margin: var(--mfa-space-5, 24px) 0;
+  padding: var(--mfa-space-5, 24px);
+  border: 1px solid var(--mfa-color-border, #e2e8ee);
+  border-radius: 12px;
+  background: var(--mfa-color-surface-alt, #f4f7f9);
+}
+
+.mfa-travel-cta-title {
+  margin: 0 0 8px;
+  font-size: 1.125rem;
+  line-height: 1.3;
+}
+
+.mfa-travel-cta-text {
+  margin: 0 0 16px;
+  max-width: 62ch;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--mfa-color-muted, #64748b);
+}
+
+/* Scoped to the CTA's own button rather than any link inside the box — a
+   broad `.mfa-travel-cta a` rule is exactly the pattern that has produced
+   invisible buttons on this project before. */
+a.mfa-travel-cta-btn {
+  display: inline-block;
+  text-decoration: none;
+}
+
+@media (max-width: 640px) {
+  .mfa-travel-cta {
+    padding: var(--mfa-space-4, 16px);
+  }
+
+  a.mfa-travel-cta-btn {
+    display: block;
+    text-align: center;
+  }
+}

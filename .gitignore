@@ -57,3 +57,7 @@ plugins/enaizi-mfa/includes/stripe-php/
 # payloads (phone numbers, message bodies), not code.
 wa-log.txt
 wa-error.txt
+
+# Word lock files - created whenever a .docx in this repo is open,
+# and never worth committing.
+~$*.docx

@@ -91,6 +91,92 @@ function mfa_admin_website_generate_start_render() {
  *
  * @return array ok (bool), status (string) - the code or ERR:n to record.
  */
+/**
+ * Claim columns, so two tabs cannot generate the same record.
+ *
+ * Verified on every load rather than trusted to a version option - the same
+ * reasoning as the state and http_* columns, and the same failure they were
+ * bitten by.
+ */
+add_action( 'plugins_loaded', 'mfa_web_generate_maybe_add_claim_columns' );
+function mfa_web_generate_maybe_add_claim_columns() {
+	global $wpdb;
+	$table = $wpdb->prefix . 'jet_cct_web';
+
+	$wanted = array(
+		'claimed_at'  => 'ADD COLUMN claimed_at DATETIME NULL',
+		'claim_token' => 'ADD COLUMN claim_token VARCHAR(32) NULL',
+	);
+
+	$missing = array();
+	foreach ( $wanted as $col => $clause ) {
+		if ( ! $wpdb->get_var( $wpdb->prepare( 'SHOW COLUMNS FROM ' . $table . ' LIKE %s', $col ) ) ) {
+			$missing[] = $clause;
+		}
+	}
+	if ( $missing ) {
+		$wpdb->query( "ALTER TABLE {$table} " . implode( ', ', $missing ) );
+		$wpdb->query( "ALTER TABLE {$table} ADD INDEX idx_claim_token (claim_token)" );
+	}
+}
+
+/**
+ * Takes exactly one record for this tab, or null when there is nothing to take.
+ *
+ * The claim is a single UPDATE ... ORDER BY ... LIMIT 1 stamped with a token
+ * unique to this page load, so two tabs racing cannot both win the same row -
+ * whichever UPDATE lands second simply matches a different record.
+ *
+ * It deliberately does NOT mark the row with a "Generating" listing_status,
+ * which was the obvious approach. website_update_content() reads the previous
+ * status and awards the contributor 10 Barakah points when a New or Pending
+ * record becomes Approved; a status of "Generating" would fail that test and
+ * silently stop paying people for their submissions.
+ *
+ * A claim older than ten minutes is up for grabs again, so closing a tab
+ * mid-record releases it rather than stranding it. Ten minutes is generous
+ * against a 12-26 second generation plus a retry.
+ */
+function mfa_admin_website_generate_claim() {
+	global $wpdb;
+	$table = $wpdb->prefix . 'jet_cct_web';
+	$token = wp_generate_password( 32, false, false );
+
+	$claimed = $wpdb->query(
+		$wpdb->prepare(
+			"UPDATE {$table}
+			 SET claimed_at = %s, claim_token = %s
+			 WHERE listing_status IN ('New','Pending')
+			   AND cct_single_post_id IS NOT NULL
+			   AND ( claimed_at IS NULL OR claimed_at < %s )
+			 ORDER BY _ID ASC
+			 LIMIT 1",
+			current_time( 'mysql' ),
+			$token,
+			gmdate( 'Y-m-d H:i:s', time() - 10 * MINUTE_IN_SECONDS )
+		)
+	);
+
+	if ( ! $claimed ) {
+		return null;
+	}
+
+	return $wpdb->get_row(
+		$wpdb->prepare( "SELECT _ID, name, url, cct_single_post_id FROM {$table} WHERE claim_token = %s LIMIT 1", $token ),
+		ARRAY_A
+	);
+}
+
+/** Releases a claim so a record that stayed New/Pending is not locked out. */
+function mfa_admin_website_generate_release( $id ) {
+	global $wpdb;
+	$wpdb->update(
+		$wpdb->prefix . 'jet_cct_web',
+		array( 'claimed_at' => null, 'claim_token' => null ),
+		array( '_ID' => (int) $id )
+	);
+}
+
 function mfa_admin_website_generate_precheck( $url ) {
 	$url = trim( (string) $url );
 	if ( '' === $url ) {
@@ -150,7 +236,7 @@ function mfa_admin_website_generate_start_attempt() {
 	$table    = $wpdb->prefix . 'jet_cct_web';
 	$next_url = home_url( '/admin/website/generate/' );
 
-	$row = $wpdb->get_row( "SELECT _ID, name, url, cct_single_post_id FROM {$table} WHERE listing_status IN ('New','Pending') AND cct_single_post_id IS NOT NULL ORDER BY _ID ASC LIMIT 1", ARRAY_A );
+	$row = mfa_admin_website_generate_claim();
 
 	if ( ! $row ) {
 		$stuck = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table} WHERE listing_status IN ('New','Pending')" );
@@ -189,6 +275,8 @@ function mfa_admin_website_generate_start_attempt() {
 			array( '_ID' => (int) $row['_ID'] )
 		);
 
+		mfa_admin_website_generate_release( $row['_ID'] );
+
 		ob_start();
 		?>
 		<div class="mfa-crawler-banner is-paused">
@@ -200,6 +288,11 @@ function mfa_admin_website_generate_start_attempt() {
 	}
 
 	$result = website_update_content( (int) $row['cct_single_post_id'] );
+
+	// Released either way: the record has left New/Pending so it will not be
+	// re-selected, but leaving a stale claim behind would confuse anyone
+	// reading the table later.
+	mfa_admin_website_generate_release( $row['_ID'] );
 
 	if ( is_wp_error( $result ) ) {
 		$wpdb->update(

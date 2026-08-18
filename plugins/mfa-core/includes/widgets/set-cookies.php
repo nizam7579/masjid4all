@@ -28,6 +28,11 @@ function niz_mfa_set_cookies_shortcode() {
         var containerId = '<?php echo esc_js($instance_id); ?>';
         var watchId = null;
         var isUpdating = false;
+        var MFA_GEO_AJAX = '<?php echo esc_url_raw( admin_url( 'admin-ajax.php' ) ); ?>';
+        // A stored location used to be trusted forever, so a wrong country sat
+        // there for the life of the cookie with only the manual button as a way
+        // out. Re-check on a schedule instead.
+        var MFA_GEO_MAX_AGE = 7 * 24 * 60 * 60;
 
         function getContainer() {
             return document.getElementById(containerId);
@@ -62,6 +67,27 @@ function niz_mfa_set_cookies_shortcode() {
                 window.nizSyncGeoDisplays();
             }
         };
+
+        // One coordinate, one country, one city - written together or not at
+        // all. Writing them independently is what let the city and country
+        // cookies drift apart and describe two different places.
+        function applyLocation(lat, lon, country, city, hash) {
+            window.setCookie('latitude', lat);
+            window.setCookie('longitude', lon);
+            window.setCookie('geohash', hash || encodeGeohash(lat, lon, 9));
+            window.setCookie('country', country);
+            // Cleared rather than left behind when the geocoder has no name for
+            // the place, so it can never describe a different location.
+            window.setCookie('city', city || '');
+            window.setCookie('loc_updated', String(Math.floor(Date.now() / 1000)));
+        }
+
+        function locationIsStale() {
+            if (!window.getCookie('latitude') || !window.getCookie('country')) { return true; }
+            var updated = parseInt(window.getCookie('loc_updated') || '0', 10);
+            if (!updated) { return true; } // stored before this field existed
+            return (Math.floor(Date.now() / 1000) - updated) > MFA_GEO_MAX_AGE;
+        }
 
         window.getCookie = function(name) {
             var match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
@@ -124,23 +150,30 @@ function niz_mfa_set_cookies_shortcode() {
             return geohash;
         }
 
+        // Goes through our own endpoint rather than Nominatim directly: that
+        // can send an identifying User-Agent, cache by geohash cell and rate
+        // limit, none of which a browser can do. callback(err, data) is ALWAYS
+        // invoked - the old version only fired on HTTP 200 with an address
+        // present, so a throttled or malformed reply left the button disabled
+        // and the cookies silently stale.
         function reverseGeocode(lat, lon, callback) {
-            var url = 'https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lon + '&zoom=18&addressdetails=1';
+            var url = MFA_GEO_AJAX + '?action=mfa_geo_locate&lat=' + encodeURIComponent(lat) + '&lon=' + encodeURIComponent(lon);
             var xhr = new XMLHttpRequest();
             xhr.open('GET', url, true);
             xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === 4 && xhr.status === 200) {
-                    try {
-                        var data = JSON.parse(xhr.responseText);
-                        if (data && data.address) {
-                            var country = data.address.country || '';
-                            var city = data.address.city || data.address.town || data.address.village || '';
-                            callback(country, city);
-                        }
-                    } catch(e) { callback('', ''); }
+            xhr.timeout = 15000;
+            xhr.onload = function() {
+                var payload = null;
+                try { payload = JSON.parse(xhr.responseText); } catch (e) {}
+                if (xhr.status === 200 && payload && payload.success && payload.data && payload.data.country) {
+                    callback(null, payload.data);
+                } else {
+                    var msg = (payload && payload.data && payload.data.message) ? payload.data.message : ('Lookup failed (' + xhr.status + ')');
+                    callback(msg, null);
                 }
             };
+            xhr.onerror = function() { callback('Network error while looking up your location.', null); };
+            xhr.ontimeout = function() { callback('Location lookup timed out.', null); };
             xhr.send();
         }
 
@@ -178,13 +211,18 @@ function niz_mfa_set_cookies_shortcode() {
                 function(position) {
                     var lat = position.coords.latitude;
                     var lon = position.coords.longitude;
-                    reverseGeocode(lat, lon, function(country, city) {
-                        var hash = encodeGeohash(lat, lon, 9);
-                        window.setCookie('latitude', lat);
-                        window.setCookie('longitude', lon);
-                        window.setCookie('geohash', hash);
-                        if (country) window.setCookie('country', country);
-                        if (city) window.setCookie('city', city);
+                    reverseGeocode(lat, lon, function(err, data) {
+                        if (err) {
+                            // Leave every cookie exactly as it was. A partial
+                            // write is what produced mismatched pairs - a city
+                            // from one place shown against another's country.
+                            updateStatusIndicator('⚠️ ' + err);
+                            if (btn) { btn.textContent = '🔄 Try Again'; btn.disabled = false; }
+                            isUpdating = false;
+                            return;
+                        }
+
+                        applyLocation(lat, lon, data.country, data.city, data.geohash);
 
                         updateStatusIndicator('✅ Precise GPS Location Saved');
                         if (btn) { btn.textContent = '🔄 Update Location'; btn.disabled = false; }
@@ -239,8 +277,7 @@ function niz_mfa_set_cookies_shortcode() {
             initializeExistingCookies();
             buildUIControls();
 
-            var existingLat = window.getCookie('latitude');
-            if (!existingLat) {
+            if (locationIsStale()) {
                 // Wait 1 second before prompting on first load so it isn't too jarring
                 setTimeout(manualUpdate, 1000);
             } else {

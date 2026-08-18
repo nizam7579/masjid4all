@@ -86,16 +86,22 @@
    is sitewide too - a previous per-template version of this only lived in
    tool-page-v7.css and missed the homepage and single-post templates.
 
-   Desktop clears the tallest button (scroll-up, bottom:160px + ~26px
-   tall = 186px) with margin. Mobile clears scroll-up's mobile position
-   (bottom:210px + ~26px = 236px) with margin, which is already taller
-   than the footer nav bar (~63px + safe-area) it also needs to clear. */
-body.wp-theme-kadence, body.mfa-site {
+   Measured in a browser 2026-08-19, after the Kadence scroll-up went with
+   the theme it belonged to. Desktop: share button tops out 170px above the
+   fold, so 200px. Mobile: share 194px, sofia 130px, footer nav 51px, so
+   220px leaves a little under 30px below the topmost button.
+
+   The theme's footer-nav.css used to set 64px here too and, loading later,
+   won - leaving mobile content under the button stack on every page. It now
+   defers to this file. */
+html body.wp-theme-kadence,
+html body.mfa-site {
   padding-bottom: 200px;
 }
 @media (max-width: 782px) {
-  body.wp-theme-kadence, body.mfa-site {
-    padding-bottom: 260px;
+  html body.wp-theme-kadence,
+  html body.mfa-site {
+    padding-bottom: 220px;
   }
 }
 

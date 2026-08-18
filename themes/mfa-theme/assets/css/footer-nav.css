@@ -7,7 +7,12 @@
 .mfa-footer-nav { display: none; }
 
 @media (max-width: 782px) {
-  body.mfa-site { padding-bottom: 64px; }
+  /* Bottom clearance is deliberately NOT set here. This file only knew about
+     its own 51px bar, but the sofia/share buttons stack above it to ~194px,
+     and because the theme loads after the plugin a 64px rule here silently
+     won over the plugin figure that accounts for the whole stack. The plugin
+     owns the floating buttons, so it owns the clearance:
+     mfa-core/assets/css/share-button-v15.css. */
 
   .mfa-footer-nav {
     position: fixed;

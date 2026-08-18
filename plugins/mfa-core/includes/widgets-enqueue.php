@@ -65,8 +65,8 @@ function mfa_core_enqueue_widget_assets() {
 	// Global design tokens (colors, spacing, buttons, etc) — sitewide,
 	// loaded first so every other mfa-core stylesheet can build on it.
 	// See global-v1.css's own header comment for what's in it and why.
-	$global_css_path = MFA_CORE_PATH . 'assets/css/global-v2.css';
-	wp_enqueue_style( 'mfa-core-global', MFA_CORE_URL . 'assets/css/global-v2.css', array(), $get_version( $global_css_path ) );
+	$global_css_path = MFA_CORE_PATH . 'assets/css/global-v3.css';
+	wp_enqueue_style( 'mfa-core-global', MFA_CORE_URL . 'assets/css/global-v3.css', array(), $get_version( $global_css_path ) );
 
 	// Hub links / ad fallback - the mosque directory and every single mosque.
 	if ( is_singular( 'masjid' ) || is_page( 'masjid' ) ) {
@@ -491,7 +491,7 @@ function mfa_core_litespeed_css_excludes( $excludes ) {
 	$excludes[] = 'mfa-core/assets/css/member-shell-v1.css';
 	$excludes[] = 'mfa-core/assets/css/member-dashboard-v1.css';
 	$excludes[] = 'mfa-core/assets/css/member-account-modals-v1.css';
-	$excludes[] = 'mfa-core/assets/css/global-v2.css';
+	$excludes[] = 'mfa-core/assets/css/global-v3.css';
 	$excludes[] = 'mfa-core/assets/css/admin-shell-v3.css';
 	$excludes[] = 'mfa-core/assets/css/admin-member-list-v1.css';
 	$excludes[] = 'mfa-core/assets/css/admin-member-info-v3.css';

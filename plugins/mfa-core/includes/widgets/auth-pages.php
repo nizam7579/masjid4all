@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * one wrapper shortcode here: the original shortcode via do_shortcode()
  * plus the shared member-return button.
  *
- * Styling: button comes from .mfa-btn in global-v2.css (sitewide); the
+ * Styling: button comes from .mfa-btn in global-v3.css (sitewide); the
  * centering wrapper and payment-failed message come from auth-return-v1.css
  * (enqueued by post_name in widgets-enqueue.php).
  */

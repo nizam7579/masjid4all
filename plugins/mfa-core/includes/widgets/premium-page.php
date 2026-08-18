@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Platform Credit, Founding Member status) in a "launching soon" state -
  * founding membership is not purchasable yet, so there is no live buy CTA,
  * only a Back to Dashboard action. Styled by premium-page-v1.css using the
- * global-v2 design tokens.
+ * global-v3 design tokens.
  *
  * Still the target of the member dashboard "See Founding Member Details"
  * button and the niz-wa pricing reply (both link /member/premium/).

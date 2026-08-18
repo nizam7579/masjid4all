@@ -191,8 +191,11 @@ a.mfa-tool-cta-btn {
 @media (max-width: 640px) {
   .mfa-travel-cta,
   .mfa-tool-cta {
-    margin-left: 0;
-    margin-right: 0;
+    /* Keep an inset on phones rather than dropping it. The content column has
+       no gutter of its own, so zeroing this ran a bordered, rounded box flush
+       into the viewport edge and clipped its own corners. */
+    margin-left: 12px;
+    margin-right: 12px;
     padding: var(--mfa-space-4, 16px);
   }
 

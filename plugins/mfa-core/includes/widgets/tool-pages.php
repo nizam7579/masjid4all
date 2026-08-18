@@ -30,12 +30,19 @@ function mfa_prayer_times_page_shortcode() {
 				</div>
 
 				<?php
-				// Directly under the times, where someone who has just checked
-				// them is most likely to be thinking about a journey. Rendered
-				// from inside this shortcode rather than added to the page
+				// The two follow-ons a person who has just checked the times
+				// actually wants, nearest need first: which way to face, then
+				// what happens to these times on a journey. Both render from
+				// inside this shortcode rather than being added to the page
 				// content, so the page still resolves to exactly one shortcode.
-				echo do_shortcode( '[mfa_travel_cta source="prayer-times"]' );
 				?>
+				<div class="mfa-tool-cta">
+					<h2 class="mfa-tool-cta-title">Which way is the qiblah?</h2>
+					<p class="mfa-tool-cta-text">Point your phone and face the Kaaba from wherever you are — no account, no setup.</p>
+					<a class="mfa-btn mfa-btn-primary mfa-tool-cta-btn" href="<?php echo esc_url( home_url( '/qibla-finder/' ) ); ?>">Open the Qibla Finder</a>
+				</div>
+
+				<?php echo do_shortcode( '[mfa_travel_cta source="prayer-times"]' ); ?>
 
 				<div class="mfa-faq-list">
 					<details open>
@@ -45,6 +52,18 @@ function mfa_prayer_times_page_shortcode() {
 					<details>
 						<summary>Do I need to allow location access?</summary>
 						<p>Yes — accurate prayer times depend on your coordinates. If location access isn't available, we fall back to Kuala Lumpur, Malaysia as a default.</p>
+					</details>
+					<details>
+						<summary>Can I shorten or combine my prayers while travelling?</summary>
+						<p>On a journey beyond roughly 90 km — two marhalah — you may pray qasar, shortening Zuhr, Asr and Isha to two raka'at, and you may combine Zuhr with Asr and Maghrib with Isha, either at the earlier prayer's time (jamak taqdim) or the later one's (jamak ta'khir). Fajr is never combined. Schools of fiqh differ on the exact distance, so for a journey close to that threshold please confirm with your local religious authority.</p>
+					</details>
+					<details>
+						<summary>What if a prayer time passes while I'm on the plane?</summary>
+						<p>Where you can, pray before you board or once you land — combining the pair is usually the simplest way to manage it. Sometimes neither works: on an overnight flight, Fajr's whole time can fall between take-off and landing, and Fajr cannot be combined with anything. Then pray on board — seated if you cannot stand safely, facing the qiblah as you begin, and using tayammum if no water is available.</p>
+					</details>
+					<details>
+						<summary>How do prayer times work across a time zone change?</summary>
+						<p>Prayer times follow the place you are in, not the clock you set out with, so a long flight can shift them by hours and even land you on a different calendar day. Tell Sofia your journey on WhatsApp and she will work out each leg for you — including a long stopover, where prayers falling during the wait can be performed properly at the airport rather than in the air.</p>
 					</details>
 					<details>
 						<summary>How often do the times update?</summary>

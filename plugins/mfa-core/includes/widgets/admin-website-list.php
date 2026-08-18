@@ -201,6 +201,17 @@ function mfa_admin_website_list_shortcode() {
 }
 
 /**
+ * Both bulk tools on this page are administrator-only, tighter than the rest
+ * of the section. Editors and Helpline staff legitimately manage individual
+ * listings here, but importing writes rows in bulk and the link check retires
+ * them and fires thousands of outbound requests - neither is something to
+ * leave one mis-click away for everyone with access to the page.
+ */
+function mfa_admin_website_tools_allowed() {
+	return current_user_can( 'administrator' );
+}
+
+/**
  * Runs the business -> website import when the panel button is submitted.
  *
  * Synchronous rather than the batched AJAX the crawler pages use, because the
@@ -225,8 +236,8 @@ function mfa_admin_website_maybe_run_import() {
 
 	// The shortcode's section gate has already run, but this one writes rows -
 	// check again rather than trust having been reached from the right page.
-	if ( function_exists( 'mfa_user_can_access_admin_section' ) && ! mfa_user_can_access_admin_section( 'website' ) ) {
-		return array( 'error' => 'You do not have permission to run the import.' );
+	if ( ! mfa_admin_website_tools_allowed() ) {
+		return array( 'error' => 'Only an administrator can run the import.' );
 	}
 
 	if ( ! function_exists( 'mfa_web_extract_daily_run' ) ) {
@@ -257,6 +268,12 @@ function mfa_admin_website_maybe_run_import() {
  * nothing new" instead of looking broken.
  */
 function mfa_admin_website_import_panel( $report ) {
+	// Hidden rather than shown-and-refused: a button that always errors is
+	// worse than no button.
+	if ( ! mfa_admin_website_tools_allowed() ) {
+		return '';
+	}
+
 	$last = get_option( 'mfa_web_extract_last_run', '' );
 
 	ob_start();
@@ -323,8 +340,8 @@ function mfa_admin_website_maybe_run_linkcheck() {
 		return array( 'error' => 'Security check failed. Reload the page and try again.' );
 	}
 
-	if ( function_exists( 'mfa_user_can_access_admin_section' ) && ! mfa_user_can_access_admin_section( 'website' ) ) {
-		return array( 'error' => 'You do not have permission to run the link check.' );
+	if ( ! mfa_admin_website_tools_allowed() ) {
+		return array( 'error' => 'Only an administrator can run the link check.' );
 	}
 
 	if ( ! function_exists( 'mfa_web_linkcheck_batch' ) ) {
@@ -346,6 +363,9 @@ function mfa_admin_website_maybe_run_linkcheck() {
  * counted as broken.
  */
 function mfa_admin_website_linkcheck_panel( $report ) {
+	if ( ! mfa_admin_website_tools_allowed() ) {
+		return '';
+	}
 	if ( ! function_exists( 'mfa_web_linkcheck_progress' ) ) {
 		return '';
 	}

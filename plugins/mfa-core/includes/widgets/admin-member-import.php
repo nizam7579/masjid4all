@@ -244,6 +244,7 @@ function mfa_admin_member_import_shortcode() {
 	// same loop covers both the first sweep and the later follow-up passes,
 	// and a source that is finished costs one empty query to skip.
 	$report = null;
+	$busy   = false;
 
 	foreach ( array_keys( mfa_member_import_sources() ) as $source ) {
 		$attempt = mfa_member_import_batch( $source, mfa_admin_member_import_batch_size(), true );
@@ -251,6 +252,13 @@ function mfa_admin_member_import_shortcode() {
 		if ( isset( $attempt['error'] ) ) {
 			$report = $attempt;
 			break;
+		}
+
+		// Another tab or process holds this source's lock. Note it and try the
+		// next source rather than reporting the queue as finished.
+		if ( ! empty( $attempt['busy'] ) ) {
+			$busy = true;
+			continue;
 		}
 
 		if ( (int) $attempt['scanned'] > 0 ) {
@@ -264,7 +272,14 @@ function mfa_admin_member_import_shortcode() {
 	<div class="mfa-admin-mem-import mfa-admin-member-import-run">
 		<h2 class="mfa-h2">Importing users</h2>
 
-		<?php if ( null === $report ) : ?>
+		<?php if ( null === $report && $busy ) : ?>
+			<p class="mfa-admin-mem-import-empty">
+				An import is already running somewhere else - another tab, or another
+				person. Only one run works on a directory at a time, so there is nothing
+				for this tab to do. It will pick up automatically if the other one stops.
+			</p>
+			<script>setTimeout( function () { location.href = <?php echo wp_json_encode( mfa_admin_member_import_url() ); ?>; }, <?php echo (int) wp_rand( 8000, 15000 ); ?> );</script>
+		<?php elseif ( null === $report ) : ?>
 			<p class="mfa-admin-mem-import-empty">
 				All three directories have been swept. New and edited records are picked up the
 				next time this page is opened - there is nothing to do right now.

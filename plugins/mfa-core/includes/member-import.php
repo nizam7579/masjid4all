@@ -159,6 +159,54 @@ function mfa_member_import_batch( $source, $limit = 200, $apply = true ) {
 		return array( 'error' => 'Unknown source.' );
 	}
 
+	// A dry run writes nothing and does not move the cursor, so it needs no
+	// lock and must not be blocked by a run in progress.
+	if ( ! $apply ) {
+		return mfa_member_import_run_batch( $source, $limit, false );
+	}
+
+	// Two runners on the same source read the same cursor, resolve the same
+	// numbers, and both pass the dedupe check before either has committed -
+	// whichever loses the race then fails at insert on username_exists. Not
+	// corrupting (nothing duplicate is created) but pure wasted work, and it
+	// happens as soon as someone opens the import page in two tabs. Serialise
+	// per source; a timeout of 0 means the second caller reports busy rather
+	// than queueing up behind a batch it would only repeat.
+	$lock = 'mfa_member_import_' . $source;
+
+	if ( ! (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 0)', $lock ) ) ) {
+		return array(
+			'source'       => $source,
+			'label'        => $sources[ $source ],
+			'phase'        => 'busy',
+			'busy'         => true,
+			'scanned'      => 0,
+			'added'        => 0,
+			'dup_existing' => 0,
+			'dup_batch'    => 0,
+			'failed'       => 0,
+			'reasons'      => array(),
+			'complete'     => false,
+			'samples'      => array(),
+		);
+	}
+
+	$report = mfa_member_import_run_batch( $source, $limit, $apply );
+
+	$wpdb->query( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock ) );
+
+	return $report;
+}
+
+/**
+ * The batch itself. Always call it through mfa_member_import_batch(), which
+ * owns the per-source lock.
+ */
+function mfa_member_import_run_batch( $source, $limit, $apply ) {
+	global $wpdb;
+
+	$sources = mfa_member_import_sources();
+
 	$limit = max( 1, min( 1000, (int) $limit ) );
 	$table = $wpdb->prefix . 'jet_cct_' . $source;
 	$state = mfa_member_import_state();

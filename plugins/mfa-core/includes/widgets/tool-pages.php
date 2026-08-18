@@ -38,9 +38,15 @@ function mfa_prayer_times_page_shortcode() {
 				// inside this shortcode rather than being added to the page
 				// content, so the page still resolves to exactly one shortcode.
 				?>
-				<?php echo do_shortcode( '[mfa_tool_cta tool="qibla"]' ); ?>
-
-				<?php echo do_shortcode( '[mfa_travel_cta source="prayer-times"]' ); ?>
+				<?php
+				// Wrapped in the shared measure so the CTAs line up with the card
+				// and FAQ above and below them; without it they ran the full column
+				// width on desktop and stuck out either side of everything else.
+				?>
+				<div class="mfa-measure">
+					<?php echo do_shortcode( '[mfa_tool_cta tool="qibla"]' ); ?>
+					<?php echo do_shortcode( '[mfa_travel_cta source="prayer-times"]' ); ?>
+				</div>
 
 				<div class="mfa-faq-list mfa-measure">
 					<details open>

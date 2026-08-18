@@ -31,13 +31,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 add_shortcode( 'mfa_admin_website_generate_start', 'mfa_admin_website_generate_start_shortcode' );
 function mfa_admin_website_generate_start_shortcode() {
-	if ( function_exists( 'mfa_admin_require_section_access' ) ) {
-		$no_access = mfa_admin_require_section_access( 'website' );
-		if ( $no_access ) {
-			return $no_access;
+	// Administrator-only, tighter than the rest of the website section: this
+	// rewrites listing content and status in a loop, so it is not something to
+	// leave one URL away for every Editor and Helpline user with page access.
+	// Checked here as well as behind the button, because hiding a button is not
+	// a control - the page can be opened directly.
+	if ( function_exists( 'mfa_admin_website_tools_allowed' ) ) {
+		if ( ! mfa_admin_website_tools_allowed() ) {
+			return '<p class="mfa-body-muted">Only an administrator can generate website content.</p>';
 		}
-	} elseif ( ! current_user_can( 'manage_options' ) ) {
-		return '<p>You do not have permission to view this page.</p>';
+	} elseif ( ! current_user_can( 'administrator' ) ) {
+		return '<p class="mfa-body-muted">Only an administrator can generate website content.</p>';
 	}
 
 	$list_url = home_url( '/admin/website/' );

@@ -268,6 +268,37 @@ working copy: `C:\projects\masjid4all`.
   inside this container" rules. Apply this as a deliberate pass over existing
   CSS when asked, not silently on unrelated work.
 
+  **Scope agreed 2026-08-19, still not started.** The trigger was that every
+  newly built page ends up fighting its own formatting. Two halves:
+
+  1. **One global stylesheet that seldom changes.** Today there is
+     `mfa-core/assets/css/global-v3.css` plus roughly thirty per-page sheets,
+     each redefining spacing, buttons and cards for itself — which is the
+     actual source of the per-page drift. The global sheet should own the
+     tokens and the shared components; a page sheet should only carry what is
+     genuinely unique to that page. When the global sheet does change, the
+     version is bumped in **one** place: `includes/widgets-enqueue.php`
+     (`$get_version()` and the `mfa-core-global` registration, with a
+     LiteSpeed exclusion for the same file further down that file).
+  2. **An administrator-only `/ui/` page** — a pattern library listing the
+     sections, cards and buttons side by side under names (btn1, btn2, btn3,
+     card1, card2 …). Agree the set once, visually, then reuse those exact
+     classes everywhere instead of inventing a variant per page. Same rules as
+     any other page: one shortcode, and gated like the rest of `/admin/`.
+
+  **Cache-busting note, because it shaped the above.** A CSS fix was deployed
+  twice in one day and reached nobody: LiteSpeed's "Remove Query Strings"
+  (`litespeed.conf.optm-qs_rm`) was stripping WordPress's `?ver=`, and CSS is
+  served with `max-age=3155760` (~36 days), so an edited stylesheet at a
+  stable URL stays invisible to returning visitors for over a month. Verified
+  in a real browser — the page held 5,764 bytes while the server had 7,464.
+  **That setting was turned off on both environments on 2026-08-19**, so
+  `filemtime` versioning works again. This is why every stylesheet here
+  carries a hand-applied `-vN` suffix; don't reintroduce that habit during
+  the design-system pass, and when checking whether a CSS change is live,
+  look at what the browser actually loaded rather than fetching the file with
+  a cache-busting query string, which always succeeds.
+
 ## WhatsApp Business Plugin — `niz-wa` (Meta Cloud API)
 - **Currently masjid4all-specific, not portable** — see the "Not yet portable" note
   above. Portability to nemkad.com/other sites is an unstarted goal, not a completed

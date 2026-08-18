@@ -218,7 +218,7 @@ function mfa_travel_prayer_moment( $date_ymd, $clock, $timezone ) {
  *
  * @return array|WP_Error Facts only - no prose, nothing rounded away.
  */
-function mfa_travel_plan( $from, $to, $depart_date, $depart_time, $duration_hours, $mode = '' ) {
+function mfa_travel_plan( $from, $to, $depart_date, $depart_time, $duration_hours, $mode = '', $layover_from = '' ) {
 	$origin = mfa_travel_geocode( $from );
 
 	if ( is_wp_error( $origin ) ) {
@@ -341,6 +341,50 @@ function mfa_travel_plan( $from, $to, $depart_date, $depart_time, $duration_hour
 	// other, or does its whole window pass in the air?
 	$onboard = mfa_travel_onboard_required( $in_transit, $schedules, $depart_local, $arrive_local );
 
+	// On a connecting leg, the hours before this flight are a layover spent on
+	// the ground - and a prayer that falls then can be performed properly at
+	// the airport rather than in a seat. Without this the wait looks like part
+	// of the journey and the advice comes out far more restrictive than it
+	// should be.
+	$layover       = array();
+	$layover_hours = 0;
+
+	if ( '' !== $layover_from ) {
+		try {
+			$landed = new DateTimeImmutable( $layover_from, new DateTimeZone( $origin_tz ) );
+		} catch ( Exception $e ) {
+			$landed = null;
+		}
+
+		if ( $landed && $landed < $depart_local ) {
+			$layover_hours = round( ( $depart_local->getTimestamp() - $landed->getTimestamp() ) / 3600, 1 );
+
+			// The wait can straddle midnight, so check the landing date and the
+			// departure date's schedules both.
+			$dates = array_unique( array( $landed->format( 'Y-m-d' ), $depart_local->format( 'Y-m-d' ) ) );
+
+			foreach ( $dates as $date ) {
+				$sched = mfa_travel_prayer_times( $origin['lat'], $origin['lng'], $date );
+
+				if ( is_wp_error( $sched ) ) {
+					continue;
+				}
+
+				foreach ( $sched['times'] as $name => $clock ) {
+					if ( 'Sunrise' === $name || isset( $layover[ $name ] ) ) {
+						continue;
+					}
+
+					$moment = mfa_travel_prayer_moment( $date, $clock, $origin_tz );
+
+					if ( $moment && $moment >= $landed && $moment <= $depart_local ) {
+						$layover[ $name ] = $moment->format( 'H:i' );
+					}
+				}
+			}
+		}
+	}
+
 	return array(
 		'from'            => $origin,
 		'to'              => $dest,
@@ -352,6 +396,9 @@ function mfa_travel_plan( $from, $to, $depart_date, $depart_time, $duration_hour
 		'depart_local'    => $depart_local->format( 'D, j M Y H:i' ),
 		'depart_tz'       => $origin_tz,
 		'arrive_local'    => $arrive_local->format( 'D, j M Y H:i' ),
+		// Machine-readable arrival, in the destination's own local time. A
+		// connecting leg departs from here, so this becomes that leg's clock.
+		'arrive_iso'      => $arrive_local->format( 'Y-m-d H:i' ),
 		'arrive_tz'       => $dest_tz,
 		'offset_hours'    => $offset_hours,
 		'duration_hours'  => (float) $duration_hours,
@@ -359,6 +406,8 @@ function mfa_travel_plan( $from, $to, $depart_date, $depart_time, $duration_hour
 		'times_to'        => $arrive_times['times'],
 		'in_transit'      => $in_transit,
 		'onboard'         => $onboard,
+		'layover'         => $layover,
+		'layover_hours'   => $layover_hours,
 		'crosses_date'    => $depart_local->format( 'Y-m-d' ) !== $arrive_local->format( 'Y-m-d' ),
 	);
 }
@@ -476,6 +525,21 @@ function mfa_travel_format_reply( $plan ) {
 		$out .= "⚠️ You arrive on a different calendar day — the prayer times below are for your *arrival* date.\n";
 	}
 
+	// Report the layover before the flight, because that is the part of this
+	// leg the traveller reaches first - and it is the easiest place to pray.
+	if ( ! empty( $plan['layover'] ) ) {
+		$out .= "\n🛫 *Your " . $plan['layover_hours'] . " hour wait in " . $from_city . "*\n";
+		$out .= "These fall while you are on the ground — pray them properly at the airport rather than in the air:\n";
+
+		foreach ( $plan['layover'] as $name => $clock ) {
+			$out .= "• {$name}: {$clock}\n";
+		}
+
+		$out .= "Most large airports have a prayer room; airport staff can point you to it.\n";
+	} elseif ( $plan['layover_hours'] > 0 ) {
+		$out .= "\n🛫 You have about " . $plan['layover_hours'] . " hours in " . $from_city . ", with no prayer time falling during the wait.\n";
+	}
+
 	$out .= "\n*Prayer times at " . $to_city . "* (arrival date)\n";
 
 	foreach ( $plan['times_to'] as $name => $clock ) {
@@ -485,12 +549,14 @@ function mfa_travel_format_reply( $plan ) {
 		$out .= "• {$name}: {$clock}\n";
 	}
 
-	if ( ! empty( $plan['in_transit'] ) ) {
-		$out .= "\n*Falls while you are travelling:*\n";
-
-		foreach ( $plan['in_transit'] as $name => $info ) {
-			$out .= "• {$name} — {$info['clock']} ({$info['city']} time)\n";
-		}
+	// Deliberately not a list of every prayer that passes on either clock.
+	// Flying west you gain hours, so Maghrib can pass by the departure city's
+	// time while the destination has not reached it yet - printing both made a
+	// journey with nothing to worry about look alarming, and the same prayer
+	// appeared twice under two clocks. What the traveller needs is the one
+	// distinction that changes what they do: in the air, or on the ground.
+	if ( ! empty( $plan['in_transit'] ) && empty( $plan['onboard'] ) ) {
+		$out .= "\n✅ No prayer has to be performed in the air on this leg — each one can be prayed before you depart or once you have landed.\n";
 	}
 
 	$out .= "\n";
@@ -511,10 +577,9 @@ function mfa_travel_format_reply( $plan ) {
 			$combinable     = array_values( array_diff( $ground, array( 'Fajr' ) ) );
 
 			if ( ! empty( $combinable ) ) {
-				$verb = ( 1 === count( $combinable ) ) ? 'falls' : 'fall';
-				$out .= mfa_travel_list_names( $combinable ) . " {$verb} during the journey. The simplest option is to combine "
+				$out .= "For " . mfa_travel_list_names( $combinable ) . ", the simplest option is to combine "
 					. ( 1 === count( $combinable ) ? 'it' : 'them' )
-					. " before you depart, or on arrival — whichever you can perform settled and facing qiblah.\n\n";
+					. " before you depart, or once you land — whichever you can perform settled and facing qiblah.\n\n";
 			}
 
 			if ( $fajr_on_ground ) {

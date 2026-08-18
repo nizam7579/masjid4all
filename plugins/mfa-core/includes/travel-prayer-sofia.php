@@ -217,21 +217,98 @@ function niz_wa_travel_route( $override, $user_id, $wa_number, $message_text, $c
 			return '';
 		}
 
-		NWA_DB::set_pending_action( $conversation->id, null );
 		nwa_send_message( $user_id, $wa_number, "Give me a moment — working out your prayer times… 🕋" );
 
-		$plan = mfa_travel_plan( $ctx['from'], $ctx['to'], $ctx['date'], $ctx['time'], $hours, $ctx['mode'] );
+		$layover_from = isset( $ctx['landed_at'] ) ? (string) $ctx['landed_at'] : '';
+		$plan         = mfa_travel_plan( $ctx['from'], $ctx['to'], $ctx['date'], $ctx['time'], $hours, $ctx['mode'], $layover_from );
 
 		if ( is_wp_error( $plan ) ) {
+			NWA_DB::set_pending_action( $conversation->id, null );
 			nwa_send_message( $user_id, $wa_number, $plan->get_error_message() . "\n\nMessage *travel* to start again." );
 			return '';
 		}
 
 		nwa_send_message( $user_id, $wa_number, mfa_travel_format_reply( $plan ) );
+
+		// Keep the session open for a connecting flight. Planning each leg in
+		// turn beats asking for a whole itinerary up front: the traveller
+		// answers the same short questions again, and the wait between legs
+		// becomes something we can rule on rather than a gap in a single long
+		// journey - eight hours in Dubai is time to pray properly on the
+		// ground, not a reason to pray in a seat.
+		$next = array(
+			'step'      => 'next_leg',
+			'mode'      => $ctx['mode'],
+			'at_city'   => $ctx['to'],
+			'landed_at' => $plan['arrive_iso'],
+			'leg'       => isset( $ctx['leg'] ) ? (int) $ctx['leg'] + 1 : 2,
+		);
+
+		NWA_DB::set_pending_action( $conversation->id, 'travel_flow', $next, 30 );
+
+		nwa_send_message(
+			$user_id,
+			$wa_number,
+			"Is *{$ctx['to']}* your final destination?\n\nReply *done* if so — or tell me your *next destination* and I'll plan the onward leg, including your wait at the airport."
+		);
+
+		return '';
+	}
+
+	if ( 'next_leg' === $step ) {
+		if ( in_array( strtolower( $text ), array( 'done', 'no', 'final', 'finish', 'that\'s all', 'thats all', 'selesai', 'tamat' ), true ) ) {
+			NWA_DB::set_pending_action( $conversation->id, null );
+			nwa_send_message( $user_id, $wa_number, "Safe travels, and may Allah accept your prayers. 🤲\n\nMessage *travel* anytime to plan another journey." );
+			return '';
+		}
+
+		if ( mb_strlen( $text ) < 2 ) {
+			nwa_send_message( $user_id, $wa_number, "Please type your *next destination*, or reply *done* if you've arrived." );
+			return '';
+		}
+
+		$ctx['to']   = sanitize_text_field( $text );
+		$ctx['from'] = $ctx['at_city'];
+		$ctx['step'] = 'next_when';
+		NWA_DB::set_pending_action( $conversation->id, 'travel_flow', $ctx, 30 );
+
+		$landed = mfa_travel_friendly_landing( $ctx['landed_at'] );
+
+		nwa_send_message(
+			$user_id,
+			$wa_number,
+			"*{$ctx['from']}* ➡️ *{$ctx['to']}*.\n\nYou land in {$ctx['from']} at *{$landed}* local time. What time does your onward flight *depart*? Give the time in {$ctx['from']}'s local time — for example *12:15*, or *tomorrow 08:00*."
+		);
+		return '';
+	}
+
+	if ( 'next_when' === $step ) {
+		// Interpreted against the landing moment, so "08:00" means the next
+		// 08:00 after arriving rather than 08:00 today wherever the server is.
+		$when = mfa_travel_parse_when( $text, $ctx['landed_at'] );
+
+		if ( ! $when ) {
+			nwa_send_message( $user_id, $wa_number, "I couldn't read that as a time. Please try like *12:15*, or *tomorrow 08:00*." );
+			return '';
+		}
+
+		$ctx['date'] = $when['date'];
+		$ctx['time'] = $when['time'];
+		$ctx['step'] = 'duration';
+		NWA_DB::set_pending_action( $conversation->id, 'travel_flow', $ctx, 30 );
+
+		nwa_send_message( $user_id, $wa_number, "Departing *" . $when['label'] . "*.\n\nAnd roughly how *long* is that flight? For example *7 hours* or *6h45*." );
 		return '';
 	}
 
 	return $override;
+}
+
+/** "Fri, 11 Sep 04:00" from the stored ISO landing moment. */
+function mfa_travel_friendly_landing( $iso ) {
+	$dt = date_create_immutable_from_format( 'Y-m-d H:i', (string) $iso );
+
+	return $dt ? $dt->format( 'D, j M H:i' ) : (string) $iso;
 }
 
 /* -------------------------------------------------------------------------
@@ -244,7 +321,7 @@ function niz_wa_travel_route( $override, $user_id, $wa_number, $message_text, $c
  *
  * @return array|null date (Y-m-d), time (H:i), label (what we echo back).
  */
-function mfa_travel_parse_when( $text ) {
+function mfa_travel_parse_when( $text, $base_iso = '' ) {
 	$text = trim( (string) $text );
 
 	if ( '' === $text ) {
@@ -273,19 +350,36 @@ function mfa_travel_parse_when( $text ) {
 		$text
 	);
 
-	// Resolve relative words ("tomorrow 9pm") against site time rather than
-	// UTC, so "tomorrow" means what the traveller means.
-	$base = current_time( 'timestamp' );
-	$ts   = strtotime( $text, $base );
+	// On a connecting leg the clock that matters is the one at the airport
+	// they are sitting in, so relative answers resolve against the landing
+	// moment: "08:00" means the next 08:00 after arriving, not 08:00 today
+	// wherever the server happens to be.
+	// Both branches must live in the same frame as the gmdate() calls below.
+	// current_time('timestamp') is already offset so gmdate reads back as site
+	// local; pinning the landing string to UTC makes the connecting base
+	// round-trip identically instead of shifting by the server's offset.
+	$connecting = ( '' !== $base_iso );
+	$base       = $connecting ? strtotime( (string) $base_iso . ' UTC' ) : current_time( 'timestamp' );
+
+	if ( false === $base ) {
+		$base = current_time( 'timestamp' );
+	}
+
+	$ts = strtotime( $text, $base );
 
 	if ( false === $ts ) {
 		return null;
 	}
 
-	// Refuse a departure in the past. A bare time ("23:30") resolves to today
-	// and may just have passed, so a few hours' grace is allowed for someone
-	// already on the way - but "yesterday" is a typo, not a journey.
-	if ( $ts < $base - ( 6 * HOUR_IN_SECONDS ) ) {
+	if ( $connecting ) {
+		// A bare "08:00" resolves to the landing date; if that has already
+		// passed by the time they land, they mean the following morning.
+		if ( $ts < $base ) {
+			$ts += DAY_IN_SECONDS;
+		}
+	} elseif ( $ts < $base - ( 6 * HOUR_IN_SECONDS ) ) {
+		// Refuse a departure in the past, with a few hours' grace for someone
+		// already under way - but "yesterday" is a typo, not a journey.
 		return null;
 	}
 

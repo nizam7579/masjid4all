@@ -98,3 +98,36 @@ function mfa_user_joined_community( $user_id, $mosque_post_id ) {
 		)
 	);
 }
+
+/**
+ * /register/ is a retired URL. Web self-registration was replaced by the
+ * WhatsApp/Sofia flow launched from /member/ ([mfa_auth_tabs] in
+ * member-logged-out.php), but the page was left holding a "Registration
+ * will be available soon." placeholder that contradicted the live flow -
+ * a visitor landing there would conclude they couldn't sign up at all.
+ * Redirect it to /member/, where the real registration call-to-action is,
+ * rather than deleting the page (deleting would 404 instead of routing,
+ * and the URL is still reachable from older shared links).
+ *
+ * 302, not 301: registration at this URL is retired rather than provably
+ * gone forever, and a cached 301 would keep bouncing visitors even after
+ * a future change here. Revisit if web registration is ruled out for good.
+ *
+ * Matched by slug on a top-level page rather than the hardcoded ID, so
+ * staging and production work from the same file - same reasoning as
+ * mfa_admin_page_hides_chrome()'s slug matching in admin-template.php.
+ */
+add_action( 'template_redirect', 'mfa_redirect_retired_register_page' );
+function mfa_redirect_retired_register_page() {
+	if ( is_admin() || ! is_page() ) {
+		return;
+	}
+
+	$post = get_queried_object();
+	if ( ! ( $post instanceof WP_Post ) || $post->post_parent || 'register' !== $post->post_name ) {
+		return;
+	}
+
+	wp_safe_redirect( home_url( '/member/' ), 302 );
+	exit;
+}

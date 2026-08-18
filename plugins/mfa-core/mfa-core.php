@@ -32,6 +32,7 @@ $mfa_core_includes = array(
 	'includes/updates.php',
 	'includes/website-extract.php',
 	'includes/phone-extract.php',
+	'includes/seo-index-control.php',
 	'includes/member-import.php',
 	'includes/website-linkcheck.php',
 	'includes/knowledge-ai.php',

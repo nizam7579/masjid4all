@@ -93,6 +93,12 @@ function mfa_core_enqueue_widget_assets() {
 		$admin_shell_css = MFA_CORE_PATH . 'assets/css/admin-shell-v3.css';
 		wp_enqueue_style( 'mfa-core-admin-shell', MFA_CORE_URL . 'assets/css/admin-shell-v3.css', array( 'mfa-core-global' ), $get_version( $admin_shell_css ) );
 
+		// Signups panel - only the /admin/ root renders [mfa_admin_signups].
+		if ( $post && 'admin' === $post->post_name ) {
+			$signups_css = MFA_CORE_PATH . 'assets/css/admin-signups-v1.css';
+			wp_enqueue_style( 'mfa-core-admin-signups', MFA_CORE_URL . 'assets/css/admin-signups-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell' ), $get_version( $signups_css ) );
+		}
+
 		if ( $post && 'member' === $post->post_name ) {
 			$admin_member_list_css = MFA_CORE_PATH . 'assets/css/admin-member-list-v1.css';
 			wp_enqueue_style( 'mfa-core-admin-member-list', MFA_CORE_URL . 'assets/css/admin-member-list-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell' ), $get_version( $admin_member_list_css ) );
@@ -493,6 +499,7 @@ function mfa_core_litespeed_css_excludes( $excludes ) {
 	$excludes[] = 'mfa-core/assets/css/member-account-modals-v1.css';
 	$excludes[] = 'mfa-core/assets/css/global-v3.css';
 	$excludes[] = 'mfa-core/assets/css/admin-shell-v3.css';
+	$excludes[] = 'mfa-core/assets/css/admin-signups-v1.css';
 	$excludes[] = 'mfa-core/assets/css/admin-member-list-v1.css';
 	$excludes[] = 'mfa-core/assets/css/admin-member-info-v3.css';
 	$excludes[] = 'mfa-core/assets/css/admin-mosque-list-v1.css';

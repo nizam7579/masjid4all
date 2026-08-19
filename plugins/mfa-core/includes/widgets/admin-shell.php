@@ -147,6 +147,9 @@ function mfa_admin_home_shortcode() {
 	<div class="mfa-admin-home">
 		<h1 class="mfa-h2">Assalamualaikum, <?php echo esc_html( $name ); ?></h1>
 		<p class="mfa-body-muted">Choose a section to get started.</p>
+
+		<?php echo do_shortcode( '[mfa_admin_signups]' ); ?>
+
 		<div class="mfa-admin-home-grid">
 			<?php foreach ( $nav_items as $item ) :
 				$has_access = mfa_admin_nav_item_has_access( $item );

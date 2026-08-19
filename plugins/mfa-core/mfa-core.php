@@ -86,6 +86,7 @@ $mfa_core_includes = array(
 	'includes/widgets/member-account-modals.php',
 	'includes/widgets/member-namecard.php',
 	'includes/widgets/admin-shell.php',
+	'includes/widgets/admin-signups.php',
 	'includes/widgets/admin-member-list.php',
 	'includes/widgets/admin-member-import.php',
 	'includes/widgets/ui-library.php',

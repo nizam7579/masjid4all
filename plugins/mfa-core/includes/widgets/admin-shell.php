@@ -19,6 +19,7 @@ function mfa_admin_nav_items() {
 		array( 'label' => 'Dashboard', 'url' => home_url( '/admin/' ),          'icon' => 'dashboard', 'section' => 'dashboard' ),
 		array( 'label' => 'Inquiry',   'url' => home_url( '/admin/inquiry/' ),  'icon' => 'mail',      'section' => 'inquiry' ),
 		array( 'label' => 'Members',   'url' => home_url( '/admin/member/' ),   'icon' => 'users',     'section' => 'member' ),
+		array( 'label' => 'Prospects', 'url' => home_url( '/admin/prospects/' ), 'icon' => 'users',     'section' => 'member' ),
 		array( 'label' => 'WhatsApp',  'url' => home_url( '/admin/whatsapp/' ), 'icon' => 'chat',      'section' => 'whatsapp' ),
 		array( 'label' => 'Mosque',    'url' => home_url( '/admin/mosque/' ),   'icon' => 'mosque',    'section' => 'mosque' ),
 		array( 'label' => 'Business',  'url' => home_url( '/admin/business/' ), 'icon' => 'briefcase', 'section' => 'business' ),

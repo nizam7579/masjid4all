@@ -99,7 +99,8 @@ function mfa_core_enqueue_widget_assets() {
 			wp_enqueue_style( 'mfa-core-admin-signups', MFA_CORE_URL . 'assets/css/admin-signups-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell' ), $get_version( $signups_css ) );
 		}
 
-		if ( $post && 'member' === $post->post_name ) {
+		// Members and Prospects render the same table component.
+		if ( $post && in_array( $post->post_name, array( 'member', 'prospects' ), true ) ) {
 			$admin_member_list_css = MFA_CORE_PATH . 'assets/css/admin-member-list-v1.css';
 			wp_enqueue_style( 'mfa-core-admin-member-list', MFA_CORE_URL . 'assets/css/admin-member-list-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell' ), $get_version( $admin_member_list_css ) );
 		}

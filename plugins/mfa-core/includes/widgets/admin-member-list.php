@@ -18,7 +18,20 @@ function mfa_admin_member_status_options() {
 }
 
 add_shortcode( 'mfa_admin_member_list', 'mfa_admin_member_list_shortcode' );
-function mfa_admin_member_list_shortcode() {
+
+/**
+ * The /admin/ member table.
+ *
+ * @param array $atts 'statuses' - comma-separated cct status values to
+ *                    restrict the table to, and 'title' for the heading.
+ *                    Unrestricted (the default) lists every status and
+ *                    shows the member-import panel: that is the
+ *                    /admin/prospects/ view. /admin/member/ passes the
+ *                    member statuses so it shows conversions only, and
+ *                    the import panel is hidden there because importing
+ *                    creates prospects, not members.
+ */
+function mfa_admin_member_list_shortcode( $atts = array() ) {
 	if ( function_exists( 'mfa_admin_require_section_access' ) ) {
 		$no_access = mfa_admin_require_section_access( 'member' );
 		if ( $no_access ) {
@@ -43,6 +56,22 @@ function mfa_admin_member_list_shortcode() {
 
 	$status_options = mfa_admin_member_status_options();
 
+	$atts = shortcode_atts(
+		array( 'statuses' => '', 'title' => '' ),
+		is_array( $atts ) ? $atts : array(),
+		'mfa_admin_member_list'
+	);
+
+	// Restricting the table restricts the dropdown too - offering a filter
+	// that could only ever return nothing is worse than not offering it.
+	$restrict = array_filter( array_map( 'trim', explode( ',', (string) $atts['statuses'] ) ) );
+	$restrict = array_values( array_intersect( $restrict, $status_options ) );
+	$is_restricted = ! empty( $restrict );
+
+	if ( $is_restricted ) {
+		$status_options = $restrict;
+	}
+
 	// Rank values in this table are inconsistent (trailing spaces, emoji,
 	// values outside JetEngine's configured rank options) - build the
 	// filter from what's actually in the data, not a hardcoded list.
@@ -62,6 +91,12 @@ function mfa_admin_member_list_shortcode() {
 	if ( '' !== $status_filter && in_array( $status_filter, $status_options, true ) ) {
 		$where[]  = 'status = %s';
 		$params[] = $status_filter;
+	} elseif ( $is_restricted ) {
+		// No explicit filter chosen, so bound the table to the allowed set.
+		$where[] = 'status IN (' . implode( ',', array_fill( 0, count( $restrict ), '%s' ) ) . ')';
+		foreach ( $restrict as $allowed_status ) {
+			$params[] = $allowed_status;
+		}
 	}
 
 	if ( '' !== $rank_filter && in_array( $rank_filter, $rank_options, true ) ) {
@@ -91,11 +126,11 @@ function mfa_admin_member_list_shortcode() {
 	ob_start();
 	?>
 	<div class="mfa-admin-member-list">
-		<h1 class="mfa-h2">Members</h1>
-<?php if ( function_exists( 'mfa_admin_member_import_panel' ) ) : ?>
+		<h1 class="mfa-h2"><?php echo esc_html( '' !== $atts['title'] ? $atts['title'] : 'Members' ); ?></h1>
+<?php if ( ! $is_restricted && function_exists( 'mfa_admin_member_import_panel' ) ) : ?>
 		<?php echo mfa_admin_member_import_panel( $import_report ); // phpcs:ignore WordPress.Security.EscapeOutput ?>
 <?php endif; ?>
-		<p class="mfa-body-muted"><?php echo esc_html( number_format_i18n( $total ) ); ?> member<?php echo 1 === $total ? '' : 's'; ?></p>
+		<p class="mfa-body-muted"><?php echo esc_html( number_format_i18n( $total ) ); ?> <?php echo esc_html( $is_restricted ? 'member' : 'record' ); ?><?php echo 1 === $total ? '' : 's'; ?></p>
 
 		<form method="get" class="mfa-admin-member-filters">
 			<input type="text" name="member_search" value="<?php echo esc_attr( $search ); ?>" placeholder="Search name, phone, or email" class="mfa-admin-member-search">

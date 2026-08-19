@@ -108,26 +108,32 @@ function mfa_member_account_modals_shortcode() {
 		</form>
 	</div>
 
-	<div class="mfa-modal" id="mfa-change-password-modal" role="dialog" aria-modal="true" aria-label="Change Password" aria-hidden="true">
+	<?php
+	// Wording follows whether they have ever chosen a password. Google and
+	// Sofia registrations never give the member one, so for them this is
+	// "set" rather than "change".
+	$mfa_has_password = function_exists( 'mfa_user_has_password' ) && mfa_user_has_password( get_current_user_id() );
+	$mfa_pw_title     = $mfa_has_password ? 'Change Password' : 'Set a Password';
+	?>
+	<div class="mfa-modal" id="mfa-change-password-modal" role="dialog" aria-modal="true" aria-label="<?php echo esc_attr( $mfa_pw_title ); ?>" aria-hidden="true">
 		<button type="button" class="mfa-modal-close" data-mfa-modal-close aria-label="Close">
 			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
 		</button>
-		<h3 class="mfa-h3">Change Password</h3>
+		<h3 class="mfa-h3"><?php echo esc_html( $mfa_pw_title ); ?></h3>
+		<?php if ( ! $mfa_has_password ) : ?>
+			<p class="mfa-body-muted">You signed in without a password. Set one here and you'll be able to log in with your email address as well.</p>
+		<?php endif; ?>
 		<form id="mfa-change-password-form" class="mfa-modal-form">
 			<input type="hidden" name="nonce" value="<?php echo esc_attr( wp_create_nonce( 'mfa_change_password' ) ); ?>">
 			<div class="mfa-form-group">
-				<label for="mfa-current-password">Current Password</label>
-				<input type="password" id="mfa-current-password" name="current_password" required>
+				<label for="mfa-new-password"><?php echo $mfa_has_password ? 'New Password' : 'Password'; ?></label>
+				<input type="password" id="mfa-new-password" name="new_password" minlength="8" autocomplete="new-password" required>
 			</div>
 			<div class="mfa-form-group">
-				<label for="mfa-new-password">New Password</label>
-				<input type="password" id="mfa-new-password" name="new_password" minlength="8" required>
+				<label for="mfa-confirm-password">Confirm Password</label>
+				<input type="password" id="mfa-confirm-password" name="confirm_password" minlength="8" autocomplete="new-password" required>
 			</div>
-			<div class="mfa-form-group">
-				<label for="mfa-confirm-password">Confirm New Password</label>
-				<input type="password" id="mfa-confirm-password" name="confirm_password" minlength="8" required>
-			</div>
-			<button type="submit" class="mfa-btn mfa-btn-primary mfa-modal-submit">Update Password</button>
+			<button type="submit" class="mfa-btn mfa-btn-primary mfa-modal-submit"><?php echo $mfa_has_password ? 'Update Password' : 'Set Password'; ?></button>
 			<p class="mfa-modal-message" data-mfa-form-message></p>
 		</form>
 	</div>
@@ -293,12 +299,29 @@ function mfa_ajax_update_profile() {
 }
 
 /**
- * Lets a logged-in user change their own password. Requires their current
- * password (standard practice, not a token/reset flow). wp_set_password()
- * wipes all existing session tokens as a side effect (including the
- * current one) - wp_set_auth_cookie() re-establishes a fresh session for
- * this browser only, matching how WordPress core's own user-edit.php
- * handles a user changing their own password.
+ * Lets a logged-in user set or change their own password.
+ *
+ * The current-password check was REMOVED on 2026-08-19, on request. Two
+ * of the three registration routes - Google and Sofia - never give the
+ * member a password they know, so requiring the old one made "set a
+ * password so you can also log in with email" impossible for them, which
+ * was the point of the change.
+ *
+ * What that costs, stated plainly: anyone who reaches an already
+ * authenticated session (a shared or unattended browser, a stolen session
+ * cookie) can now take the account over permanently without knowing the
+ * old password. What still stands in the way:
+ *   - the login requirement and the nonce, so it cannot be driven from
+ *     another origin (CSRF);
+ *   - a notification email to the account address on every change, which
+ *     is the standard compensating control - it does not prevent the
+ *     change but it tells the owner it happened while they can still act.
+ *
+ * wp_set_password() wipes all existing session tokens as a side effect
+ * (including this one); wp_set_auth_cookie() re-establishes a fresh
+ * session for this browser only, matching WordPress core's own
+ * user-edit.php behaviour. That is also useful here: any other session an
+ * attacker left open is destroyed by a legitimate change.
  */
 add_action( 'wp_ajax_mfa_change_password', 'mfa_ajax_change_password' );
 function mfa_ajax_change_password() {
@@ -308,27 +331,68 @@ function mfa_ajax_change_password() {
 
 	check_ajax_referer( 'mfa_change_password', 'nonce' );
 
-	$user              = wp_get_current_user();
-	$current_password  = isset( $_POST['current_password'] ) ? (string) $_POST['current_password'] : '';
-	$new_password      = isset( $_POST['new_password'] ) ? (string) $_POST['new_password'] : '';
-	$confirm_password  = isset( $_POST['confirm_password'] ) ? (string) $_POST['confirm_password'] : '';
-
-	if ( ! wp_check_password( $current_password, $user->user_pass, $user->ID ) ) {
-		wp_send_json_error( array( 'message' => 'Current password is incorrect.' ) );
-	}
+	$user             = wp_get_current_user();
+	$new_password     = isset( $_POST['new_password'] ) ? (string) $_POST['new_password'] : '';
+	$confirm_password = isset( $_POST['confirm_password'] ) ? (string) $_POST['confirm_password'] : '';
 
 	if ( strlen( $new_password ) < 8 ) {
-		wp_send_json_error( array( 'message' => 'New password must be at least 8 characters.' ) );
+		wp_send_json_error( array( 'message' => 'Password must be at least 8 characters.' ) );
 	}
 
 	if ( $new_password !== $confirm_password ) {
-		wp_send_json_error( array( 'message' => 'New passwords do not match.' ) );
+		wp_send_json_error( array( 'message' => 'Passwords do not match.' ) );
 	}
+
+	$was_first_time = ! mfa_user_has_password( $user->ID );
 
 	wp_set_password( $new_password, $user->ID );
 	wp_set_auth_cookie( $user->ID );
 
-	wp_send_json_success( array( 'message' => 'Password updated successfully.' ) );
+	// From here on we know they have one they chose themselves.
+	update_user_meta( $user->ID, 'mfa_password_set', 'yes' );
+
+	mfa_notify_password_changed( $user );
+
+	wp_send_json_success( array(
+		'message' => $was_first_time
+			? 'Password set. You can now log in with your email and password.'
+			: 'Password updated successfully.',
+	) );
+}
+
+/**
+ * Tell the account owner their password changed.
+ *
+ * The compensating control for dropping the current-password check: it
+ * cannot stop an unauthorised change, but it gives the real owner a
+ * chance to notice one. Failure to send is logged and never surfaced to
+ * the user - the password has already changed by this point, and an error
+ * here would wrongly suggest it had not.
+ */
+function mfa_notify_password_changed( $user ) {
+	if ( ! is_email( $user->user_email ) || preg_match( '/@mfa\.com$/i', $user->user_email ) ) {
+		return;
+	}
+
+	$name = $user->display_name ? $user->display_name : $user->user_login;
+
+	$body = "Assalamualaikum {$name},\n\n"
+		. "The password on your Masjid4All account was just changed.\n\n"
+		. "If this was you, no action is needed.\n\n"
+		. "If it was NOT you, please reset your password immediately at "
+		. home_url( '/forgot-password/' ) . " and contact us at " . home_url( '/contact-us/' ) . ".\n\n"
+		. "JazakAllah khair,\nMasjid4All Team";
+
+	$sent = wp_mail(
+		$user->user_email,
+		'Your Masjid4All password was changed',
+		$body,
+		array( 'From: Masjid4All <' . get_option( 'admin_email' ) . '>' )
+	);
+
+	if ( ! $sent ) {
+		error_log( 'mfa_notify_password_changed: could not email user ' . $user->ID );
+	}
 }
 
 /**

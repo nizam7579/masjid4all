@@ -148,6 +148,13 @@ public static function init(){
         update_user_meta($user_id, 'niz_whatsapp_verified', 'No' );
         
         if(!empty($phone)){
+            // Store it the same way the WhatsApp side does (digits only), or a
+            // number typed as '+60 12-345 6789' here would never match the same
+            // number arriving from Sofia, and the prospect merge that depends on
+            // that lookup would silently miss.
+            $phone = function_exists('niz_user_normalize_phone')
+                ? niz_user_normalize_phone($phone)
+                : preg_replace('/\D/', '', $phone);
             update_user_meta($user_id, 'user_phone', $phone );
         }
 

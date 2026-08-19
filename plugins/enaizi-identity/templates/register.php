@@ -99,6 +99,29 @@ required>
 <div class="niz-input-group">
 
 <label>
+WhatsApp Number
+</label>
+
+
+<input
+type="tel"
+name="phone"
+id="niz_phone"
+placeholder="e.g. 60123456789"
+inputmode="tel"
+autocomplete="tel"
+required>
+
+<small class="niz-input-hint">Include your country code. We use this to verify your account with Sofia on WhatsApp.</small>
+
+</div>
+
+
+
+
+<div class="niz-input-group">
+
+<label>
 Password
 </label>
 

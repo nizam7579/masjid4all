@@ -37,6 +37,7 @@ $mfa_core_includes = array(
 	'includes/travel-prayer.php',
 	'includes/travel-prayer-sofia.php',
 	'includes/sofia-leads.php',
+	'includes/account-completion.php',
 	'includes/whatsapp-nudge.php',
 	'includes/member-import.php',
 	'includes/website-linkcheck.php',

@@ -14,7 +14,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  * grid widget - this file only wraps them in the page chrome. Unlike the
  * small prayer-times/qibla tool card, these are full-width directory
  * grids, so the shortcode sits directly in the content column instead of
- * a narrow .mfa-tool-page-card.
+ * a narrow .mfa-card--tool.
+ *
+ * All four now use the shared design system - .mfa-shell, .mfa-hero,
+ * .mfa-row, .mfa-section-label from global-v3.css - rather than the
+ * page-scoped classes in tool-page-v9.css they were built with.
  *
  * Each of these pages previously carried dead, already-hidden Kadence
  * content left over from earlier iterations (a disabled legacy "Share"
@@ -181,19 +185,21 @@ add_shortcode( 'mfa_knowledge_page', 'mfa_knowledge_page_shortcode' );
 function mfa_knowledge_page_shortcode() {
 	ob_start();
 	?>
-	<div class="mfa-tool-page">
-		<header class="mfa-tool-page-header">
-			<h1>Knowledge Hub</h1>
-			<p class="mfa-tool-page-tagline">Islamic knowledge and resources.</p>
+	<div class="mfa-shell mfa-stack">
+		<header class="mfa-hero mfa-hero--brand mfa-hero--bleed">
+			<div class="mfa-hero-inner">
+				<h1 class="mfa-hero-title">Knowledge Hub</h1>
+				<p class="mfa-hero-tagline">Islamic knowledge and resources.</p>
+			</div>
 		</header>
 
-		<div class="mfa-page-row">
-			<div class="mfa-page-col-content">
+		<div class="mfa-row">
+			<div class="mfa-row-main mfa-stack">
 				<?php echo do_shortcode( '[niz_mfa_knowledge_directory]' ); ?>
 			</div>
 
-			<div class="mfa-page-col-ad">
-				<h3 class="mfa-tool-page-ad-heading">Recommended Products/Services</h3>
+			<div class="mfa-row-side">
+				<h3 class="mfa-section-label">Recommended Products/Services</h3>
 				<?php echo do_shortcode( '[enaizi_ads count="4" layout="vertical"]' ); ?>
 			</div>
 		</div>

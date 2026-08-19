@@ -201,7 +201,7 @@ function mfa_claim_or_manage_cta( $type, $post_id ) {
 			<div class="mfa-assist-emoji"><?php echo $emoji; // phpcs:ignore WordPress.Security.EscapeOutput ?></div>
 			<h3 class="mfa-assist-title">Claim this <?php echo esc_html( $noun ); ?></h3>
 			<p class="mfa-assist-text">Are you the owner? Our AI assistant <strong>Sofia</strong> will verify you and hand over management of this <?php echo esc_html( $noun ); ?> on WhatsApp &mdash; it&rsquo;s quick and free, no password needed.</p>
-			<a class="mfa-assist-cta" href="<?php echo esc_url( $wa_link ); ?>" target="_blank" rel="noopener noreferrer"><?php echo $wa_icon; // phpcs:ignore WordPress.Security.EscapeOutput ?> Claim on WhatsApp</a>
+			<a class="mfa-btn mfa-btn-primary mfa-btn--block mfa-assist-cta" href="<?php echo esc_url( $wa_link ); ?>" target="_blank" rel="noopener noreferrer"><?php echo $wa_icon; // phpcs:ignore WordPress.Security.EscapeOutput ?> Claim on WhatsApp</a>
 		</div>
 	</div>
 	<?php

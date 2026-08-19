@@ -67,27 +67,18 @@
 	color: #444;
 }
 
+/* The dialog's WhatsApp button is now .mfa-btn.mfa-btn-primary from
+   global-v3.css (2026-08-19). It used to carry its own raw #25d366 WhatsApp
+   green with a 10px radius - not one of the design-system buttons, and white
+   on that green measures 1.98:1, far below the 4.5:1 AA threshold. This rule
+   is reduced to the only thing the shared button cannot express: aligning the
+   inline WhatsApp glyph next to the label. */
 .mfa-assist-cta {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
 	gap: 8px;
-	width: 100%;
-	box-sizing: border-box;
-	padding: 13px 22px;
-	font-size: 15px;
-	font-weight: 700;
-	color: #fff;
 	text-decoration: none;
-	background: #25d366;
-	border-radius: 10px;
-	transition: background 0.2s ease;
-}
-
-.mfa-assist-cta:hover,
-.mfa-assist-cta:focus {
-	color: #fff;
-	background: #1ebe5b;
 }
 
 /* Text-link triggers for the Sofia register/login options on the /member

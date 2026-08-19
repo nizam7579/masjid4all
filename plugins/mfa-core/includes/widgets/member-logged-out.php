@@ -59,7 +59,7 @@ function mfa_assist_popup( $id, $emoji, $title, $text_html, $btn, $href ) {
 			<div class="mfa-assist-emoji"><?php echo $emoji; // phpcs:ignore WordPress.Security.EscapeOutput ?></div>
 			<h3 class="mfa-assist-title"><?php echo esc_html( $title ); ?></h3>
 			<p class="mfa-assist-text"><?php echo wp_kses_post( $text_html ); ?></p>
-			<a class="mfa-assist-cta" href="<?php echo esc_url( $href ); ?>" target="_blank" rel="noopener noreferrer"><?php echo $wa_icon; // phpcs:ignore WordPress.Security.EscapeOutput ?> <?php echo esc_html( $btn ); ?></a>
+			<a class="mfa-btn mfa-btn-primary mfa-btn--block mfa-assist-cta" href="<?php echo esc_url( $href ); ?>" target="_blank" rel="noopener noreferrer"><?php echo $wa_icon; // phpcs:ignore WordPress.Security.EscapeOutput ?> <?php echo esc_html( $btn ); ?></a>
 		</div>
 	</div>
 	<?php

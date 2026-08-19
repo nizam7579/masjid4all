@@ -387,26 +387,123 @@ function mfa_lead_ask( $user_id, $wa_number, $conversation, $cfg, $ctx, $field )
 	nwa_send_message( $user_id, $wa_number, $msg );
 }
 
-/** Capture is complete: store it and confirm. */
+/** Capture is complete: store it, record it, and confirm. */
 function mfa_lead_finish( $user_id, $wa_number, $conversation, $cfg, $ctx ) {
 	NWA_DB::set_pending_action( $conversation->id, null );
 
-	mfa_lead_capture( $user_id, $ctx['type'], array(
+	$data = array(
 		'name'   => isset( $ctx['name'] ) ? $ctx['name'] : '',
 		'email'  => isset( $ctx['email'] ) ? $ctx['email'] : '',
 		'detail' => isset( $ctx['detail'] ) ? $ctx['detail'] : '',
 		'phone'  => $wa_number,
-	) );
+	);
 
-	$message = $cfg['done'];
+	mfa_lead_capture( $user_id, $ctx['type'], $data );
+	mfa_lead_record_inquiry( $user_id, $ctx['type'], $cfg, $data );
+	mfa_lead_record_activity( $user_id, $ctx['type'], $cfg, $data );
 
-	// Everything captured here is a warm lead who may still not have an
-	// account. Nudge once, and only when they actually need it.
+	nwa_send_message( $user_id, $wa_number, $cfg['done'] . mfa_lead_next_step_line( $user_id ) );
+}
+
+/**
+ * The closing line, which depends on whether they already have an account.
+ *
+ * Not a member: the nudge to register, since every lead captured here is a
+ * warm contact who may still have no account.
+ * Already a member: no nudge - just a way straight into /member/. It is a
+ * magic-login link rather than a bare URL because WhatsApp-created accounts
+ * have a placeholder <phone>@mfa.com email and no password, so a plain link
+ * to /member/ would bounce them to a login they cannot complete.
+ */
+function mfa_lead_next_step_line( $user_id ) {
 	if ( ! niz_wa_is_member( $user_id ) ) {
-		$message .= "\n\nWhile you wait — reply *REGISTER* to set up your free Masjid4All account and start earning Barakah points.";
+		return "\n\nWhile you wait — reply *REGISTER* to set up your free Masjid4All account and start earning Barakah points.";
 	}
 
-	nwa_send_message( $user_id, $wa_number, $message );
+	$url = function_exists( 'niz_wa_magic_login_url' )
+		? niz_wa_magic_login_url( $user_id, '/member/' )
+		: home_url( '/member/' );
+
+	return "\n\nContinue to your member page:\n{$url}";
+}
+
+/**
+ * Mirror the lead into the Contact Us table so it appears in /admin/inquiry/
+ * alongside every other enquiry the team works from.
+ *
+ * Deliberately NOT routed through mfa_contact_us_store(): that helper emails
+ * the sender "Thank you for reaching out... Your message: Subject: ..." and
+ * tells the team it arrived via /contact-us/, both wrong for a waitlist
+ * signup or an advertising enquiry. Sofia has already confirmed in chat, so
+ * the only mail sent here is the team notification.
+ */
+function mfa_lead_record_inquiry( $user_id, $type, $cfg, $data ) {
+	global $wpdb;
+
+	$subject = $cfg['label'];
+	$message = 'Captured by Sofia on WhatsApp.';
+	if ( '' !== $data['detail'] ) {
+		$message .= "\n\n" . $cfg['label'] . ': ' . $data['detail'];
+	}
+
+	$stored = $wpdb->insert(
+		$wpdb->prefix . 'jet_cct_contact_us',
+		array(
+			'cct_status'    => 'New',
+			'name'          => $data['name'],
+			'email'         => $data['email'],
+			'phone'         => $data['phone'],
+			'subject'       => $subject,
+			'message'       => $message,
+			'cct_author_id' => (int) $user_id,
+			'cct_created'   => current_time( 'mysql' ),
+			'cct_modified'  => current_time( 'mysql' ),
+		),
+		array( '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s' )
+	);
+
+	if ( ! $stored ) {
+		error_log( 'mfa_lead_record_inquiry: insert failed for user_id=' . $user_id . ' type=' . $type );
+		return false;
+	}
+
+	$body = "A new {$cfg['label']} came in through Sofia on WhatsApp.\n\n"
+		. "Name: {$data['name']}\n"
+		. "Email: {$data['email']}\n"
+		. "WhatsApp: {$data['phone']}\n";
+	if ( '' !== $data['detail'] ) {
+		$body .= "Details: {$data['detail']}\n";
+	}
+	$body .= "\nTagged in FluentCRM as: {$cfg['tag_title']}\n"
+		. 'Admin: ' . home_url( '/admin/inquiry/' );
+
+	wp_mail(
+		get_option( 'admin_email' ),
+		$cfg['label'] . ' - ' . $data['name'],
+		$body,
+		array( 'From: Masjid4All <' . get_option( 'admin_email' ) . '>' )
+	);
+
+	return true;
+}
+
+/** Record it on the member's activity timeline (/member/ and the admin member view). */
+function mfa_lead_record_activity( $user_id, $type, $cfg, $data ) {
+	if ( ! function_exists( 'mfa_log_activity' ) ) {
+		return;
+	}
+
+	mfa_log_activity(
+		$user_id,
+		'sofia_lead',
+		$cfg['label'] . ' submitted via Sofia',
+		array(
+			'lead_type' => $type,
+			'email'     => $data['email'],
+			'detail'    => $data['detail'],
+			'tag'       => $cfg['tag_slug'],
+		)
+	);
 }
 
 
@@ -699,7 +796,7 @@ function mfa_lead_modal_html( $type ) {
 			<div class="mfa-assist-emoji"><?php echo $cfg['emoji']; // phpcs:ignore WordPress.Security.EscapeOutput ?></div>
 			<h3 class="mfa-assist-title"><?php echo esc_html( $cfg['cta_title'] ); ?></h3>
 			<p class="mfa-assist-text"><?php echo esc_html( $cfg['cta_text'] ); ?></p>
-			<a class="mfa-assist-cta" href="<?php echo esc_url( $wa_link ); ?>" target="_blank" rel="noopener noreferrer"><?php echo $wa_icon; // phpcs:ignore WordPress.Security.EscapeOutput ?> Continue on WhatsApp</a>
+			<a class="mfa-btn mfa-btn-primary mfa-btn--block mfa-assist-cta" href="<?php echo esc_url( $wa_link ); ?>" target="_blank" rel="noopener noreferrer"><?php echo $wa_icon; // phpcs:ignore WordPress.Security.EscapeOutput ?> Continue on WhatsApp</a>
 		</div>
 	</div>
 	<?php

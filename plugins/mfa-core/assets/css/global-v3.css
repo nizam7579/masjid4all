@@ -385,3 +385,61 @@
   letter-spacing: 0.5px;
   color: var(--mfa-label);
 }
+
+/* ---------- Split hero ----------
+   Title and tagline on one side, a call to action on the other. Promoted
+   while converting /masjid/; the directory pages all use this shape. Stacks
+   centred on small screens and splits at the 901px breakpoint. */
+
+.mfa-hero-split {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--mfa-space-6);
+}
+
+@media (min-width: 901px) {
+  .mfa-hero-split {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    text-align: left;
+  }
+
+  .mfa-hero-split .mfa-hero-tagline { margin-left: 0; margin-right: 0; }
+}
+
+.mfa-hero-cta-heading {
+  margin: 0 0 var(--mfa-space-4);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--mfa-white);
+}
+
+/* A primary button sitting on a dark background. --mfa-teal against white
+   text is 3.53:1 and fails WCAG AA; --mfa-teal-dark clears it at ~4.96:1.
+   This is why the hero CTA must not simply reuse .mfa-btn-primary. */
+.mfa-btn-on-dark {
+  background: var(--mfa-teal-dark);
+  color: var(--mfa-white);
+}
+
+.mfa-btn-on-dark:hover {
+  background: var(--mfa-teal);
+  color: var(--mfa-white);
+}
+
+/* Directory listings ship their own 10px inset from the legacy plugin's
+   stylesheet. Inside a row column that stacks on top of the column gutter,
+   leaving the listing 22px in while everything beside it sits at 12px.
+   Scoped to the direct child so nothing else is affected. */
+.mfa-row-main > .niz-directory-wrapper,
+.mfa-row-main > .niz-business-wrapper,
+.mfa-row-main > .niz-web-wrapper,
+.mfa-row-main > .niz-knowledge-wrapper {
+  padding-left: 0;
+  padding-right: 0;
+}

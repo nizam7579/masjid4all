@@ -53,7 +53,7 @@ function mfa_dir_assist_cta( $type ) {
 
 	ob_start();
 	?>
-	<button type="button" class="mfa-tool-page-header-cta-btn mfa-assist-open" data-target="<?php echo esc_attr( $modal_id ); ?>" aria-haspopup="dialog" aria-controls="<?php echo esc_attr( $modal_id ); ?>"><?php echo esc_html( $c['label'] ); ?></button>
+	<button type="button" class="mfa-btn mfa-btn-on-dark mfa-assist-open" data-target="<?php echo esc_attr( $modal_id ); ?>" aria-haspopup="dialog" aria-controls="<?php echo esc_attr( $modal_id ); ?>"><?php echo esc_html( $c['label'] ); ?></button>
 
 	<div class="mfa-assist-overlay" id="<?php echo esc_attr( $modal_id ); ?>" role="dialog" aria-modal="true" aria-hidden="true" aria-label="<?php echo esc_attr( $c['title'] ); ?>">
 		<div class="mfa-assist-modal">
@@ -74,29 +74,31 @@ add_shortcode( 'mfa_masjid_page', 'mfa_masjid_page_shortcode' );
 function mfa_masjid_page_shortcode() {
 	ob_start();
 	?>
-	<div class="mfa-tool-page">
-		<header class="mfa-tool-page-header mfa-tool-page-header--split">
-			<div class="mfa-tool-page-header-inner">
-				<div class="mfa-tool-page-header-main">
-					<h1>Mosque Directory</h1>
-					<p class="mfa-tool-page-tagline">Find your nearest mosque and explore.</p>
-				</div>
-				<div class="mfa-tool-page-header-cta">
-					<h2>Your mosque is not listed?</h2>
-					<?php echo mfa_dir_assist_cta( 'mosque' ); // phpcs:ignore WordPress.Security.EscapeOutput ?>
+	<div class="mfa-shell mfa-stack">
+		<header class="mfa-hero mfa-hero--brand mfa-hero--bleed">
+			<div class="mfa-hero-inner">
+				<div class="mfa-hero-split">
+					<div>
+						<h1 class="mfa-hero-title">Mosque Directory</h1>
+						<p class="mfa-hero-tagline">Find your nearest mosque and explore.</p>
+					</div>
+					<div>
+						<h2 class="mfa-hero-cta-heading">Your mosque is not listed?</h2>
+						<?php echo mfa_dir_assist_cta( 'mosque' ); // phpcs:ignore WordPress.Security.EscapeOutput ?>
+					</div>
 				</div>
 			</div>
 		</header>
 
-		<div class="mfa-page-row">
-			<div class="mfa-page-col-content">
+		<div class="mfa-row">
+			<div class="mfa-row-main mfa-stack">
 				<?php echo do_shortcode( '[niz_mfa_nearest_mosque]' ); ?>
 				<?php // Under the directory listing, in the same column; nothing outside a hub country. ?>
 				<?php echo do_shortcode( '[mfa_place_links]' ); ?>
 			</div>
 
-			<div class="mfa-page-col-ad">
-				<h3 class="mfa-tool-page-ad-heading">Recommended Products/Services</h3>
+			<div class="mfa-row-side">
+				<h3 class="mfa-section-label">Recommended Products/Services</h3>
 				<?php echo do_shortcode( '[enaizi_ads count="4" layout="vertical"]' ); ?>
 			</div>
 		</div>

@@ -467,7 +467,12 @@ error_log('CURRENT CCT RECORD: ' . print_r($current_record,true));
     // 7. Update WordPress Post Content & SEO Meta
     $post_update = array(
         'ID'           => $post_id,
-        'post_content' => wp_kses_post( $ai_data['content'] )
+        // The About Masjid4All card is appended here rather than asked of
+        // the model, which put it above the <h1> on at least one listing.
+        // See mfa-core/includes/content-boilerplate.php.
+        'post_content' => function_exists( 'mfa_append_about_block' )
+            ? mfa_append_about_block( wp_kses_post( $ai_data['content'] ) )
+            : wp_kses_post( $ai_data['content'] )
     );
     wp_update_post( $post_update );
 

@@ -27,6 +27,18 @@ function mfa_award_points( $user_id, $description, $points ) {
 	global $wpdb;
 	$table = $wpdb->prefix . 'jet_cct_barakah';
 
+	// 80 awards worth 3,470 points were sitting against user_id 0 - awarded
+	// to nobody and unreachable. Whatever calls this with a bad id has a bug
+	// of its own, but the ledger should not absorb it silently.
+	$user_id = (int) $user_id;
+	if ( $user_id <= 0 || ! get_userdata( $user_id ) ) {
+		error_log( 'mfa_award_points: refused award "' . $description . '" for user_id ' . $user_id );
+		return array(
+			'success' => false,
+			'message' => 'Unknown user',
+		);
+	}
+
 	$exists = $wpdb->get_var(
 		$wpdb->prepare(
 			"SELECT _ID FROM {$table} WHERE user_id = %d AND description = %s LIMIT 1",
@@ -64,6 +76,37 @@ function mfa_award_points( $user_id, $description, $points ) {
 
 	if ( function_exists( 'mfa_log_activity' ) ) {
 		mfa_log_activity( $user_id, 'points', $description . ' (+' . (int) $points . ' pts)' );
+	}
+
+	// Prospects earn points too (decision 2026-08-19) - the balance is a
+	// conversion lever: "you've earned 10 Barakah points, register to keep
+	// them". But they need somewhere to live. A contact Sofia created has no
+	// jet_cct_member row, so the sync below silently updated nothing and the
+	// points existed only in the ledger, invisible everywhere in the UI. The
+	// Iqra wa Rattel prospect earned 10 points that way and could never see
+	// them.
+	if ( function_exists( 'niz_user_member_cct' ) ) {
+		$had_row = (bool) $wpdb->get_var( $wpdb->prepare(
+			"SELECT _ID FROM {$wpdb->prefix}jet_cct_member WHERE user_id = %d LIMIT 1",
+			$user_id
+		) );
+
+		if ( ! $had_row ) {
+			niz_user_member_cct( $user_id );
+
+			// Set the status explicitly - an empty one is worse than a wrong
+			// one here, because /admin/ filters match exact values and blank
+			// rows drop out of every filtered view (same trap noted in
+			// niz_user_complete_registration).
+			$status = get_user_meta( $user_id, 'user_status', true );
+			if ( function_exists( 'niz_user_update_field' ) ) {
+				niz_user_update_field(
+					$user_id,
+					'status',
+					in_array( $status, array( 'member', 'premium' ), true ) ? 'Member' : 'Prospect'
+				);
+			}
+		}
 	}
 
 	if ( function_exists( 'niz_user_update_field' ) ) {

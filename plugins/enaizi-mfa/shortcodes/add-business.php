@@ -320,7 +320,11 @@ function directory_process_business_submission() {
             // ==========================================
             $post_args = array(
                 'post_title'   => $name,
-                'post_content' => wp_kses_post($ai_data['content']),
+                // Same as the website generator - the card is appended in
+                // PHP so its position cannot vary with the model output.
+                'post_content' => function_exists( 'mfa_append_about_block' )
+                    ? mfa_append_about_block( wp_kses_post( $ai_data['content'] ) )
+                    : wp_kses_post( $ai_data['content'] ),
                 'post_status'  => 'publish',
                 'post_type'    => 'business',
                 'post_author'  => $user_id

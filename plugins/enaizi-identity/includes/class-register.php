@@ -164,7 +164,7 @@ public static function init(){
         // (2026-08-08), so all three paths behave identically instead of
         // only this one remembering to award points.
         if ( function_exists( 'niz_user_complete_registration' ) ) {
-            niz_user_complete_registration( $user_id, array( 'name' => $name, 'email' => $email ) );
+            niz_user_complete_registration( $user_id, array( 'name' => $name, 'email' => $email, 'route' => 'web' ) );
         } elseif ( function_exists( 'mfa_award_points' ) ) {
             mfa_award_points( $user_id, 'Welcome Bonus', 50 );
         }

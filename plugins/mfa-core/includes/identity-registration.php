@@ -75,6 +75,40 @@ function niz_user_complete_registration( $user_id, $args = array() ) {
 		niz_user_update_field( $user_id, 'status', 'Member' );
 	}
 
+	// The activation moment is the only registration date that carries any
+	// meaning. A prospect row may have been created weeks earlier by a
+	// WhatsApp message, or carry one of the synthetic dates the imports
+	// wrote in bulk. Resetting it here - the single chokepoint every route
+	// (WhatsApp, Google, web form) passes through - is what makes
+	// "members by registration date" a real signal instead of noise.
+	//
+	// GMT, not current_time('mysql'): wp_insert_user() writes user_registered
+	// in GMT, and the site runs at UTC+8, so local time would place every
+	// new member eight hours in the future.
+	//
+	// The original is preserved in usermeta rather than discarded - it is
+	// still the record of when we first heard from them, which the WhatsApp
+	// follow-up flows may want.
+	global $wpdb;
+
+	if ( '' === get_user_meta( $user_id, 'mfa_original_registered', true ) ) {
+		update_user_meta( $user_id, 'mfa_original_registered', $user->user_registered );
+	}
+
+	$wpdb->update(
+		$wpdb->users,
+		array( 'user_registered' => current_time( 'mysql', true ) ),
+		array( 'ID' => $user_id ),
+		array( '%s' ),
+		array( '%d' )
+	);
+	clean_user_cache( $user_id );
+
+	// How they arrived, recorded once. The dashboard splits new members by
+	// this, and it is what lets the follow-up flows differ by starting point.
+	$route = ! empty( $args['route'] ) ? sanitize_key( $args['route'] ) : 'unknown';
+	update_user_meta( $user_id, 'mfa_registration_route', $route );
+
 	update_user_meta( $user_id, 'user_status', 'member' );
 
 	if ( function_exists( 'mfa_award_points' ) ) {

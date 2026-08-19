@@ -286,7 +286,7 @@ function niz_wa_account_apply_email( $user_id, $wa_number, $conversation, $email
 			$name = ( $user && $user->display_name && 0 !== strpos( $user->display_name, 'Prospect ' ) ) ? $user->display_name : 'Member';
 		}
 		if ( function_exists( 'niz_user_complete_registration' ) ) {
-			niz_user_complete_registration( $user_id, array( 'name' => $name, 'email' => $email ) );
+			niz_user_complete_registration( $user_id, array( 'name' => $name, 'email' => $email, 'route' => 'whatsapp' ) );
 		} else {
 			update_user_meta( $user_id, 'user_status', 'member' );
 		}

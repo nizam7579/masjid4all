@@ -128,6 +128,26 @@
   font-weight: 700;
 }
 
+.mfa-signups-tag--whatsapp {
+  background: var(--mfa-mint-bg);
+  color: var(--mfa-teal-dark);
+}
+
+.mfa-signups-tag--google {
+  background: #eef4ff;
+  color: #2b4a86;
+}
+
+.mfa-signups-tag--web {
+  background: #fff5e6;
+  color: #8a5a12;
+}
+
+.mfa-signups-tag--unknown {
+  background: #eef2f6;
+  color: #4a5b6b;
+}
+
 .mfa-signups-tag--self {
   background: var(--mfa-mint-bg);
   color: var(--mfa-teal-dark);

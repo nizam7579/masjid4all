@@ -1,22 +1,29 @@
 <?php
 /**
- * [mfa_admin_signups] - "real signups since launch" panel on /admin/.
+ * [mfa_admin_signups] - real member conversions, shown on /admin/.
  *
- * Why this exists, and why it counts by user ID rather than by date:
+ * The model this reflects (agreed 2026-08-19):
  *
- * `user_registered` cannot be trusted for the bulk of wp_users. The
- * imported cohorts were written with synthetic dates - every month from
- * May to October 2026 spans the same full ID range (14,281 -> 89,3xx),
- * user ID 2 (the admin) carries an October date, and two of those months
- * are in the future. So any "growth" measured from that column is noise.
+ *   Everyone starts as a **prospect** - imported contacts, and accounts
+ *   created automatically the first time someone messages Sofia from an
+ *   unknown number. A prospect is just a contact record.
  *
- * User IDs, by contrast, are monotonic and cannot be backdated. The last
- * imported account is 123910; 123911 (a real Google signup) is the first
- * genuine one. Everything above the watermark is therefore real, and this
- * panel is a clean forward-looking baseline: month one is month one.
+ *   They become a **member** only by completing a real registration, by
+ *   one of three routes: Sofia (WhatsApp), Google, or the web form. All
+ *   three funnel through niz_user_complete_registration(), which sets
+ *   user_status to 'member' AND resets user_registered to that moment.
  *
- * The watermark lives in an option so it can be re-baselined without a
- * deploy, and is filterable for tests.
+ * That reset is what makes this panel trustworthy. user_registered is
+ * otherwise meaningless across most of wp_users: the imports wrote
+ * synthetic dates in bulk (every month from May to October 2026 spans the
+ * same full ID range, user ID 2 carries an October date, and two of those
+ * months are in the future). Filtering on status AND a reset date sidesteps
+ * all of it - prospects are excluded by status, and any member's date is
+ * the moment they actually converted.
+ *
+ * An earlier version of this panel counted by user ID above a watermark.
+ * That worked, but status + date is strictly better: it survives future
+ * imports, and it counts the conversion rather than the account.
  *
  * @package mfa-core
  */
@@ -25,63 +32,85 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/** Last imported user ID. Anything above it is a genuine signup. */
-function mfa_signup_watermark() {
-	$id = (int) get_option( 'mfa_signup_watermark_id', 0 );
+/** Start of the period treated as "new". Stored so it can move without a deploy. */
+function mfa_signup_since() {
+	$date = get_option( 'mfa_signup_since_date', '' );
 
-	if ( $id <= 0 ) {
-		// 123910 is the highest id in the 2026-12-01 import cohort on
-		// production. Stored on first read so the baseline is explicit
-		// rather than a constant buried in code.
-		$id = 123910;
-		update_option( 'mfa_signup_watermark_id', $id, false );
+	if ( '' === $date ) {
+		// The day the status+date model went live.
+		$date = '2026-08-19';
+		update_option( 'mfa_signup_since_date', $date, false );
 	}
 
-	return (int) apply_filters( 'mfa_signup_watermark', $id );
+	return (string) apply_filters( 'mfa_signup_since', $date );
+}
+
+/** Human-readable registration routes. */
+function mfa_signup_routes() {
+	return array(
+		'whatsapp' => 'Sofia (WhatsApp)',
+		'google'   => 'Google',
+		'web'      => 'Web form',
+		'unknown'  => 'Before tracking',
+	);
 }
 
 /**
- * Counts for everything above the watermark.
+ * Conversion counts.
  *
- * A "self signup" is anyone whose email is not the <phone>@mfa.com
- * placeholder WhatsApp-created accounts get - that placeholder is the
- * only reliable marker separating someone who chose to register from an
- * account created for them by a WhatsApp or directory interaction.
+ * "Member" means user_status is member or premium - the statuses that mean
+ * someone completed a registration. Everything else (prospect, or no status
+ * meta at all, which is true of 74,812 imported rows) is a contact, not a
+ * conversion, and is deliberately excluded.
  */
 function mfa_signup_stats() {
 	global $wpdb;
 
-	$mark = mfa_signup_watermark();
+	$since = mfa_signup_since();
+	$stats = array( 'since' => $since );
 
-	$stats = array( 'watermark' => $mark );
+	$member_join = "INNER JOIN {$wpdb->usermeta} s ON s.user_id = u.ID
+	                AND s.meta_key = 'user_status'
+	                AND s.meta_value IN ('member','premium')";
 
-	$stats['total'] = (int) $wpdb->get_var( $wpdb->prepare(
-		"SELECT COUNT(*) FROM {$wpdb->users} WHERE ID > %d", $mark
+	$stats['members_total'] = (int) $wpdb->get_var(
+		"SELECT COUNT(*) FROM {$wpdb->users} u {$member_join}"
+	);
+
+	$stats['members_new'] = (int) $wpdb->get_var( $wpdb->prepare(
+		"SELECT COUNT(*) FROM {$wpdb->users} u {$member_join} WHERE u.user_registered >= %s",
+		$since . ' 00:00:00'
 	) );
 
-	$stats['self'] = (int) $wpdb->get_var( $wpdb->prepare(
-		"SELECT COUNT(*) FROM {$wpdb->users} WHERE ID > %d AND user_email NOT LIKE %s",
-		$mark, '%@mfa.com'
+	// user_registered is GMT, so compare against the GMT date.
+	$stats['today'] = (int) $wpdb->get_var( $wpdb->prepare(
+		"SELECT COUNT(*) FROM {$wpdb->users} u {$member_join} WHERE DATE(u.user_registered) = %s",
+		gmdate( 'Y-m-d' )
 	) );
 
-	$stats['whatsapp'] = $stats['total'] - $stats['self'];
-
-	$stats['members'] = (int) $wpdb->get_var( $wpdb->prepare(
-		"SELECT COUNT(*) FROM {$wpdb->users} u
-		 INNER JOIN {$wpdb->usermeta} m ON m.user_id = u.ID AND m.meta_key = 'user_status'
-		 WHERE u.ID > %d AND m.meta_value IN ('member','premium')",
-		$mark
-	) );
+	$stats['prospects'] = (int) $wpdb->get_var(
+		"SELECT COUNT(*) FROM {$wpdb->usermeta} WHERE meta_key = 'user_status' AND meta_value = 'prospect'"
+	);
 
 	$cct = $wpdb->prefix . 'jet_cct_member';
 	$stats['referred'] = (int) $wpdb->get_var( $wpdb->prepare(
-		"SELECT COUNT(*) FROM {$cct} WHERE user_id > %d AND referrer_id > 0", $mark
+		"SELECT COUNT(*) FROM {$wpdb->users} u {$member_join}
+		 INNER JOIN {$cct} c ON c.user_id = u.ID
+		 WHERE u.user_registered >= %s AND c.referrer_id > 0 AND c.referrer_id <> 14270",
+		$since . ' 00:00:00'
 	) );
 
-	$stats['today'] = (int) $wpdb->get_var( $wpdb->prepare(
-		"SELECT COUNT(*) FROM {$wpdb->users} WHERE ID > %d AND DATE(user_registered) = %s",
-		$mark, current_time( 'Y-m-d' )
-	) );
+	// Split the new members by how they arrived.
+	$stats['routes'] = array();
+	foreach ( mfa_signup_routes() as $key => $label ) {
+		$stats['routes'][ $key ] = (int) $wpdb->get_var( $wpdb->prepare(
+			"SELECT COUNT(*) FROM {$wpdb->users} u {$member_join}
+			 LEFT JOIN {$wpdb->usermeta} r ON r.user_id = u.ID AND r.meta_key = 'mfa_registration_route'
+			 WHERE u.user_registered >= %s AND COALESCE(NULLIF(r.meta_value,''),'unknown') = %s",
+			$since . ' 00:00:00',
+			$key
+		) );
+	}
 
 	return $stats;
 }
@@ -89,35 +118,32 @@ function mfa_signup_stats() {
 /**
  * Sofia lead counts per type - the "gauge interest" numbers.
  *
- * Read from the mfa_sofia_leads user meta rather than FluentCRM, so the
- * panel keeps working if the CRM is ever deactivated, and so it counts
- * leads from accounts of any age (someone who joined the waitlist may
- * have existed long before the watermark).
+ * Read from the mfa_sofia_leads user meta rather than FluentCRM, so it
+ * keeps working if the CRM is deactivated, and counts leads from contacts
+ * of any status - a prospect who joins the waitlist is exactly the signal
+ * being measured.
  */
 function mfa_signup_lead_counts() {
 	global $wpdb;
 
-	$counts = array();
-	$types  = function_exists( 'mfa_lead_types' ) ? mfa_lead_types() : array();
-
+	$types = function_exists( 'mfa_lead_types' ) ? mfa_lead_types() : array();
 	if ( empty( $types ) ) {
-		return $counts;
+		return array();
 	}
 
-	$rows = $wpdb->get_col(
-		"SELECT meta_value FROM {$wpdb->usermeta} WHERE meta_key = 'mfa_sofia_leads'"
-	);
-
+	$counts = array();
 	foreach ( $types as $key => $cfg ) {
 		$counts[ $key ] = array( 'label' => $cfg['label'], 'emoji' => $cfg['emoji'], 'count' => 0 );
 	}
+
+	$rows = $wpdb->get_col( "SELECT meta_value FROM {$wpdb->usermeta} WHERE meta_key = 'mfa_sofia_leads'" );
 
 	foreach ( $rows as $raw ) {
 		$leads = maybe_unserialize( $raw );
 		if ( ! is_array( $leads ) ) {
 			continue;
 		}
-		foreach ( $leads as $type => $lead ) {
+		foreach ( array_keys( $leads ) as $type ) {
 			if ( isset( $counts[ $type ] ) ) {
 				$counts[ $type ]['count']++;
 			}
@@ -127,23 +153,27 @@ function mfa_signup_lead_counts() {
 	return $counts;
 }
 
-/** The most recent real signups, newest first. */
-function mfa_signup_recent( $limit = 20 ) {
+/** Most recent conversions, newest first. */
+function mfa_signup_recent( $limit = 15 ) {
 	global $wpdb;
 
-	$mark = mfa_signup_watermark();
-	$cct  = $wpdb->prefix . 'jet_cct_member';
+	$cct = $wpdb->prefix . 'jet_cct_member';
 
 	return $wpdb->get_results( $wpdb->prepare(
 		"SELECT u.ID, u.user_email, u.display_name, u.user_registered,
-		        m.meta_value AS status, c.referrer_id
+		        s.meta_value AS status,
+		        COALESCE(NULLIF(r.meta_value,''),'unknown') AS route,
+		        o.meta_value AS first_seen,
+		        c.referrer_id
 		 FROM {$wpdb->users} u
-		 LEFT JOIN {$wpdb->usermeta} m ON m.user_id = u.ID AND m.meta_key = 'user_status'
+		 INNER JOIN {$wpdb->usermeta} s ON s.user_id = u.ID AND s.meta_key = 'user_status'
+		        AND s.meta_value IN ('member','premium')
+		 LEFT JOIN {$wpdb->usermeta} r ON r.user_id = u.ID AND r.meta_key = 'mfa_registration_route'
+		 LEFT JOIN {$wpdb->usermeta} o ON o.user_id = u.ID AND o.meta_key = 'mfa_original_registered'
 		 LEFT JOIN {$cct} c ON c.user_id = u.ID
-		 WHERE u.ID > %d
-		 ORDER BY u.ID DESC
+		 ORDER BY u.user_registered DESC
 		 LIMIT %d",
-		$mark, (int) $limit
+		(int) $limit
 	), ARRAY_A );
 }
 
@@ -154,51 +184,60 @@ function mfa_admin_signups_shortcode() {
 	if ( ! is_user_logged_in() ) {
 		return '';
 	}
-	// Same gate as the rest of /admin/ - the dashboard section.
 	if ( function_exists( 'mfa_user_can_access_admin_section' ) && ! mfa_user_can_access_admin_section( 'dashboard' ) ) {
 		return '';
 	}
 
-	$stats = mfa_signup_stats();
-	$leads = mfa_signup_lead_counts();
-	$rows  = mfa_signup_recent( 15 );
+	$stats  = mfa_signup_stats();
+	$leads  = mfa_signup_lead_counts();
+	$rows   = mfa_signup_recent( 15 );
+	$routes = mfa_signup_routes();
+
+	$since_label = date_i18n( 'j M Y', strtotime( $stats['since'] ) );
 
 	ob_start();
 	?>
 	<section class="mfa-signups">
 		<div class="mfa-signups-head">
-			<h2 class="mfa-signups-title">Real signups</h2>
+			<h2 class="mfa-signups-title">Members</h2>
 			<p class="mfa-signups-note">
-				Counted from user ID <strong>#<?php echo esc_html( number_format_i18n( $stats['watermark'] ) ); ?></strong> onward &mdash;
-				everything below that is imported, with registration dates that were written in bulk and cannot be used to measure growth.
+				Someone becomes a member only by completing a registration &mdash; through Sofia, Google or the web form.
+				Contacts we created for them (imports, or a first WhatsApp message) stay <strong>prospects</strong> and are not counted here.
+				&ldquo;New&rdquo; means converted since <strong><?php echo esc_html( $since_label ); ?></strong>.
 			</p>
 		</div>
 
 		<div class="mfa-signups-stats">
 			<div class="mfa-signups-stat">
-				<span class="mfa-signups-num"><?php echo esc_html( number_format_i18n( $stats['total'] ) ); ?></span>
-				<span class="mfa-signups-lbl">New accounts</span>
-			</div>
-			<div class="mfa-signups-stat">
-				<span class="mfa-signups-num"><?php echo esc_html( number_format_i18n( $stats['self'] ) ); ?></span>
-				<span class="mfa-signups-lbl">Registered themselves</span>
-			</div>
-			<div class="mfa-signups-stat">
-				<span class="mfa-signups-num"><?php echo esc_html( number_format_i18n( $stats['whatsapp'] ) ); ?></span>
-				<span class="mfa-signups-lbl">Created via WhatsApp</span>
-			</div>
-			<div class="mfa-signups-stat">
-				<span class="mfa-signups-num"><?php echo esc_html( number_format_i18n( $stats['members'] ) ); ?></span>
-				<span class="mfa-signups-lbl">Became a member</span>
-			</div>
-			<div class="mfa-signups-stat">
-				<span class="mfa-signups-num"><?php echo esc_html( number_format_i18n( $stats['referred'] ) ); ?></span>
-				<span class="mfa-signups-lbl">Came via a referral</span>
+				<span class="mfa-signups-num"><?php echo esc_html( number_format_i18n( $stats['members_new'] ) ); ?></span>
+				<span class="mfa-signups-lbl">New members</span>
 			</div>
 			<div class="mfa-signups-stat">
 				<span class="mfa-signups-num"><?php echo esc_html( number_format_i18n( $stats['today'] ) ); ?></span>
 				<span class="mfa-signups-lbl">Today</span>
 			</div>
+			<div class="mfa-signups-stat">
+				<span class="mfa-signups-num"><?php echo esc_html( number_format_i18n( $stats['referred'] ) ); ?></span>
+				<span class="mfa-signups-lbl">Via a referral</span>
+			</div>
+			<div class="mfa-signups-stat">
+				<span class="mfa-signups-num"><?php echo esc_html( number_format_i18n( $stats['members_total'] ) ); ?></span>
+				<span class="mfa-signups-lbl">Members all time</span>
+			</div>
+			<div class="mfa-signups-stat">
+				<span class="mfa-signups-num"><?php echo esc_html( number_format_i18n( $stats['prospects'] ) ); ?></span>
+				<span class="mfa-signups-lbl">Prospects to convert</span>
+			</div>
+		</div>
+
+		<h3 class="mfa-signups-subtitle">How the new members arrived</h3>
+		<div class="mfa-signups-stats mfa-signups-stats--routes">
+			<?php foreach ( $routes as $key => $label ) : ?>
+				<div class="mfa-signups-stat">
+					<span class="mfa-signups-num"><?php echo esc_html( number_format_i18n( $stats['routes'][ $key ] ) ); ?></span>
+					<span class="mfa-signups-lbl"><?php echo esc_html( $label ); ?></span>
+				</div>
+			<?php endforeach; ?>
 		</div>
 
 		<?php if ( ! empty( $leads ) ) : ?>
@@ -213,34 +252,38 @@ function mfa_admin_signups_shortcode() {
 			</div>
 		<?php endif; ?>
 
-		<h3 class="mfa-signups-subtitle">Most recent</h3>
+		<h3 class="mfa-signups-subtitle">Most recent conversions</h3>
 		<?php if ( empty( $rows ) ) : ?>
-			<p class="mfa-signups-empty">No signups yet above the watermark. The first real one will appear here.</p>
+			<p class="mfa-signups-empty">No members yet. The first completed registration will appear here.</p>
 		<?php else : ?>
 			<div class="mfa-signups-tablewrap">
 				<table class="mfa-signups-table">
 					<thead>
 						<tr>
-							<th>ID</th><th>Name</th><th>Email</th><th>How</th><th>Status</th><th>Referred</th><th>When</th>
+							<th>Name</th><th>Email</th><th>Via</th><th>Status</th><th>Referred</th><th>First seen</th><th>Converted</th>
 						</tr>
 					</thead>
 					<tbody>
 					<?php foreach ( $rows as $r ) :
-						$is_wa  = ( false !== stripos( $r['user_email'], '@mfa.com' ) );
-						$status = $r['status'] ? $r['status'] : 'prospect';
+						$route_key   = isset( $routes[ $r['route'] ] ) ? $r['route'] : 'unknown';
+						$is_placeholder = ( false !== stripos( $r['user_email'], '@mfa.com' ) );
+						// 14270 is the "no real referrer" sentinel used across the codebase.
+						$has_ref = ! empty( $r['referrer_id'] ) && 14270 !== (int) $r['referrer_id'];
 						?>
 						<tr>
-							<td data-label="ID">#<?php echo esc_html( $r['ID'] ); ?></td>
 							<td data-label="Name"><?php echo esc_html( $r['display_name'] ); ?></td>
-							<td data-label="Email"><?php echo $is_wa ? '<span class="mfa-signups-muted">&mdash;</span>' : esc_html( $r['user_email'] ); ?></td>
-							<td data-label="How">
-								<span class="mfa-signups-tag mfa-signups-tag--<?php echo $is_wa ? 'wa' : 'self'; ?>">
-									<?php echo $is_wa ? 'WhatsApp' : 'Registered'; ?>
-								</span>
+							<td data-label="Email"><?php echo $is_placeholder ? '<span class="mfa-signups-muted">no email yet</span>' : esc_html( $r['user_email'] ); ?></td>
+							<td data-label="Via">
+								<span class="mfa-signups-tag mfa-signups-tag--<?php echo esc_attr( $route_key ); ?>"><?php echo esc_html( $routes[ $route_key ] ); ?></span>
 							</td>
-							<td data-label="Status"><?php echo esc_html( ucfirst( $status ) ); ?></td>
-							<td data-label="Referred"><?php echo ! empty( $r['referrer_id'] ) ? '#' . esc_html( $r['referrer_id'] ) : '<span class="mfa-signups-muted">&mdash;</span>'; ?></td>
-							<td data-label="When"><?php echo esc_html( date_i18n( 'j M, H:i', strtotime( $r['user_registered'] ) ) ); ?></td>
+							<td data-label="Status"><?php echo esc_html( ucfirst( (string) $r['status'] ) ); ?></td>
+							<td data-label="Referred"><?php echo $has_ref ? '#' . esc_html( $r['referrer_id'] ) : '<span class="mfa-signups-muted">&mdash;</span>'; ?></td>
+							<td data-label="First seen">
+								<?php echo ! empty( $r['first_seen'] )
+									? esc_html( date_i18n( 'j M Y', strtotime( $r['first_seen'] ) ) )
+									: '<span class="mfa-signups-muted">&mdash;</span>'; ?>
+							</td>
+							<td data-label="Converted"><?php echo esc_html( date_i18n( 'j M, H:i', strtotime( $r['user_registered'] ) ) ); ?></td>
 						</tr>
 					<?php endforeach; ?>
 					</tbody>

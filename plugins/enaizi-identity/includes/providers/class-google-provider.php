@@ -415,6 +415,7 @@ class Niz_Google_Provider {
                     array(
                         'name'  => $name,
                         'email' => $email,
+                        'route' => 'google',
                     )
                 );
             }

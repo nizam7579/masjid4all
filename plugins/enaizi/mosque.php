@@ -535,7 +535,11 @@ function handle_mosque_ai_update_callback() {
     
     $post_update = wp_update_post([
         'ID'           => $post_id,
-        'post_content' => $html_content,
+        // The About Masjid4All card is appended in PHP rather than asked
+        // of the model - see mfa-core/includes/content-boilerplate.php.
+        'post_content' => function_exists( 'mfa_append_about_block' )
+            ? mfa_append_about_block( $html_content )
+            : $html_content,
     ], true);
     
     update_post_meta($post_id, 'rank_math_title', $rm_title ?? '');
@@ -2627,7 +2631,11 @@ function mfa_process_single_mosque_shortcode() {
     // 7. Update the core WordPress Post
     $post_update = wp_update_post([
         'ID'           => $post_id,
-        'post_content' => $html_content,
+        // The About Masjid4All card is appended in PHP rather than asked
+        // of the model - see mfa-core/includes/content-boilerplate.php.
+        'post_content' => function_exists( 'mfa_append_about_block' )
+            ? mfa_append_about_block( $html_content )
+            : $html_content,
     ], true);
     
     if ( is_wp_error( $post_update ) ) {

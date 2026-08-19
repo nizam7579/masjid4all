@@ -36,10 +36,18 @@ function mfa_whatsapp_nudge_tag() {
 }
 
 /**
- * Does this member have an email but no verified WhatsApp number?
+ * Does this member still need to verify a WhatsApp number?
  *
- * Requires member/premium status - a prospect has not registered, so there
- * is nothing to nudge them toward yet - and a real email, since the
+ * The test is verification, NOT whether a number is on file. The
+ * registration form collects a number, but a typed number is only a claim
+ * - ownership is proven by messaging Sofia with the VERIFY code. An
+ * earlier version of this returned false as soon as user_phone had
+ * anything in it, which quietly excluded every web-form signup from the
+ * nudge, since they all type one. That was backwards: they are exactly
+ * the people who still have to prove it.
+ *
+ * Requires member/premium status - a prospect has not registered, so
+ * there is nothing to nudge them toward yet - and a real email, since the
  * <phone>@mfa.com placeholder means we have the opposite problem.
  */
 function mfa_needs_whatsapp_link( $user_id ) {
@@ -57,13 +65,23 @@ function mfa_needs_whatsapp_link( $user_id ) {
 		return false;
 	}
 
-	if ( 'Yes' === get_user_meta( $user_id, 'niz_whatsapp_verified', true ) ) {
-		return false;
+	return 'Yes' !== get_user_meta( $user_id, 'niz_whatsapp_verified', true );
+}
+
+/**
+ * Which of the two states they are in, so the nudge can say the right
+ * thing: 'unclaimed' (we have no number at all) or 'unverified' (they
+ * gave one at registration but have not proven it). Empty string when
+ * they need nothing.
+ */
+function mfa_whatsapp_link_state( $user_id ) {
+	if ( ! mfa_needs_whatsapp_link( $user_id ) ) {
+		return '';
 	}
 
 	$phone = trim( (string) get_user_meta( $user_id, 'user_phone', true ) );
 
-	return ( '' === $phone );
+	return ( '' === $phone ) ? 'unclaimed' : 'unverified';
 }
 
 /**
@@ -86,10 +104,8 @@ function mfa_whatsapp_nudge_find( $limit = 200 ) {
 		 FROM {$wpdb->users} u
 		 INNER JOIN {$wpdb->usermeta} s ON s.user_id = u.ID AND s.meta_key = 'user_status'
 		        AND s.meta_value IN ('member','premium')
-		 LEFT JOIN {$wpdb->usermeta} p ON p.user_id = u.ID AND p.meta_key = 'user_phone'
 		 LEFT JOIN {$wpdb->usermeta} v ON v.user_id = u.ID AND v.meta_key = 'niz_whatsapp_verified'
 		 WHERE u.user_email NOT LIKE %s
-		   AND (p.meta_value IS NULL OR p.meta_value = '')
 		   AND (v.meta_value IS NULL OR v.meta_value <> 'Yes')
 		 ORDER BY u.ID DESC
 		 LIMIT %d",

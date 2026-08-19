@@ -19,8 +19,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Generates a 15-minute verification code for $user_id and returns a
- * wa.me deep link with it pre-filled. Call this from a 'Verify WhatsApp'
- * button/shortcode on the member profile (not yet built).
+ * wa.me deep link with it pre-filled.
+ *
+ * The caller is the WhatsApp card on the member dashboard
+ * (widgets/member-dashboard.php, #mfa-dash-whatsapp) - this docblock used
+ * to say that button was 'not yet built', which stopped being true and
+ * then misled a later reader into nearly building a second one.
+ *
+ * A fresh code is issued on every call, which is what makes the 15-minute
+ * expiry workable: the link is regenerated each time the page renders.
+ *
+ * This is also the only verification path that works from a cold start.
+ * Sofia cannot message someone outside WhatsApp's 24-hour window, so we
+ * cannot send them a code - the user has to open the chat first, which is
+ * exactly what this wa.me link makes them do.
  *
  * @return string|WP_Error wa.me URL, or WP_Error if the business number
  *                          isn't resolvable (bad credentials, API down).

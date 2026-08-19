@@ -111,27 +111,29 @@ add_shortcode( 'mfa_business_page', 'mfa_business_page_shortcode' );
 function mfa_business_page_shortcode() {
 	ob_start();
 	?>
-	<div class="mfa-tool-page">
-		<header class="mfa-tool-page-header mfa-tool-page-header--split">
-			<div class="mfa-tool-page-header-inner">
-				<div class="mfa-tool-page-header-main">
-					<h1>Business Directory</h1>
-					<p class="mfa-tool-page-tagline">Discover trusted local services and explore.</p>
-				</div>
-				<div class="mfa-tool-page-header-cta">
-					<h2>Your business is not listed?</h2>
-					<?php echo mfa_dir_assist_cta( 'business' ); // phpcs:ignore WordPress.Security.EscapeOutput ?>
+	<div class="mfa-shell mfa-stack">
+		<header class="mfa-hero mfa-hero--brand mfa-hero--bleed">
+			<div class="mfa-hero-inner">
+				<div class="mfa-hero-split">
+					<div>
+						<h1 class="mfa-hero-title">Business Directory</h1>
+						<p class="mfa-hero-tagline">Discover trusted local services and explore.</p>
+					</div>
+					<div>
+						<h2 class="mfa-hero-cta-heading">Your business is not listed?</h2>
+						<?php echo mfa_dir_assist_cta( 'business' ); // phpcs:ignore WordPress.Security.EscapeOutput ?>
+					</div>
 				</div>
 			</div>
 		</header>
 
-		<div class="mfa-page-row">
-			<div class="mfa-page-col-content">
+		<div class="mfa-row">
+			<div class="mfa-row-main mfa-stack">
 				<?php echo do_shortcode( '[niz_mfa_nearest_business]' ); ?>
 			</div>
 
-			<div class="mfa-page-col-ad">
-				<h3 class="mfa-tool-page-ad-heading">Recommended Products/Services</h3>
+			<div class="mfa-row-side">
+				<h3 class="mfa-section-label">Recommended Products/Services</h3>
 				<?php echo do_shortcode( '[enaizi_ads count="4" layout="vertical"]' ); ?>
 			</div>
 		</div>
@@ -144,27 +146,29 @@ add_shortcode( 'mfa_web_page', 'mfa_web_page_shortcode' );
 function mfa_web_page_shortcode() {
 	ob_start();
 	?>
-	<div class="mfa-tool-page">
-		<header class="mfa-tool-page-header mfa-tool-page-header--split">
-			<div class="mfa-tool-page-header-inner">
-				<div class="mfa-tool-page-header-main">
-					<h1>Website Directory</h1>
-					<p class="mfa-tool-page-tagline">Discover trusted online resources.</p>
-				</div>
-				<div class="mfa-tool-page-header-cta">
-					<h2>Your website is not listed?</h2>
-					<?php echo mfa_dir_assist_cta( 'website' ); // phpcs:ignore WordPress.Security.EscapeOutput ?>
+	<div class="mfa-shell mfa-stack">
+		<header class="mfa-hero mfa-hero--brand mfa-hero--bleed">
+			<div class="mfa-hero-inner">
+				<div class="mfa-hero-split">
+					<div>
+						<h1 class="mfa-hero-title">Website Directory</h1>
+						<p class="mfa-hero-tagline">Discover trusted online resources.</p>
+					</div>
+					<div>
+						<h2 class="mfa-hero-cta-heading">Your website is not listed?</h2>
+						<?php echo mfa_dir_assist_cta( 'website' ); // phpcs:ignore WordPress.Security.EscapeOutput ?>
+					</div>
 				</div>
 			</div>
 		</header>
 
-		<div class="mfa-page-row">
-			<div class="mfa-page-col-content">
+		<div class="mfa-row">
+			<div class="mfa-row-main mfa-stack">
 				<?php echo do_shortcode( '[niz_mfa_web_directory]' ); ?>
 			</div>
 
-			<div class="mfa-page-col-ad">
-				<h3 class="mfa-tool-page-ad-heading">Recommended Products/Services</h3>
+			<div class="mfa-row-side">
+				<h3 class="mfa-section-label">Recommended Products/Services</h3>
 				<?php echo do_shortcode( '[enaizi_ads count="4" layout="vertical"]' ); ?>
 			</div>
 		</div>

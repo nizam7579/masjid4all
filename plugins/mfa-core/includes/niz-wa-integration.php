@@ -428,10 +428,10 @@ function niz_wa_action_membership_price( $user_id, $context ) {
 	return "Membership starts from RM19.90 per year.\n\nFor the latest pricing and to upgrade, visit:\n{$url}";
 }
 
-function niz_wa_action_advertise( $user_id, $context ) {
-	$url = home_url( '/advertise' );
-	return "Interested in advertising with Masjid4All? Learn more here:\n{$url}\n\nOr reply here and our team will reach out.";
-}
+/* niz_wa_action_advertise() moved to sofia-leads.php on 2026-08-19. It used
+   to return a link to home_url( '/advertise' ) - a page that does not exist
+   (404 on production), so every advertising enquiry was handed a dead link.
+   It is now a real lead-capture conversation. */
 
 /**
  * Personal referral link, same ?id={user_id} format the member dashboard's
@@ -1771,6 +1771,15 @@ function niz_wa_seed_actions() {
 			'callback_function'     => 'niz_wa_action_directory',
 			'enabled'               => true,
 		),
+		array(
+			'intent_key'            => 'founding_member',
+			'keywords'              => 'founding member,founding,waitlist,join waitlist,early access,premium,lifetime,ahli pengasas,senarai menunggu',
+			'description'           => 'User is interested in becoming a Founding Member, joining the waitlist, or asks about premium/lifetime membership',
+			'requires_confirmation' => false,
+			'confirm_message'       => '',
+			'callback_function'     => 'niz_wa_action_founding_member',
+			'enabled'               => true,
+		),
 	);
 
 	foreach ( $actions as $action ) {
@@ -1795,6 +1804,12 @@ function niz_wa_seed_actions() {
 	// Yes/No confirmation, and reset_password now means "log me in". Sync the
 	// existing rows (seeding only inserts). Idempotent.
 	$wpdb->query( "UPDATE {$table} SET requires_confirmation = 0, confirm_message = '' WHERE intent_key = 'register' AND requires_confirmation <> 0" );
+
+	// 'advertise' became a lead-capture conversation whose own first step asks
+	// 'Reply YES to continue' - the registry-level confirmation would ask the
+	// same question twice. Seeding only inserts, so sync the existing row.
+	// Idempotent. (2026-08-19)
+	$wpdb->query( "UPDATE {$table} SET requires_confirmation = 0, confirm_message = '' WHERE intent_key = 'advertise' AND requires_confirmation <> 0" );
 	$wpdb->query( $wpdb->prepare(
 		"UPDATE {$table} SET requires_confirmation = 0, confirm_message = '', keywords = %s, description = %s WHERE intent_key = 'reset_password' AND requires_confirmation <> 0",
 		'password,forgot password,reset password,request password,kata laluan,tukar password,lupa password,change password,login,log in,cannot login,sign in',

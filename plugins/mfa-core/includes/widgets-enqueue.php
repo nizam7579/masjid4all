@@ -309,10 +309,13 @@ function mfa_core_enqueue_widget_assets() {
 	}
 
 	// Sofia-assist popup (.mfa-assist-* component): the "Add Your X" CTAs on the
-	// mosque/business/website directory pages, and the "Register/Log in with
-	// Sofia" popups on the member + forgot-password pages.
+	// mosque/business/website directory pages, the "Register/Log in with
+	// Sofia" popups on the member + forgot-password pages, and the
+	// [mfa_lead_cta] Advertise / Founding Member cards (sofia-leads.php) -
+	// which is why knowledge-hub is in the list: it has no Add Your X CTA but
+	// does carry the Advertise card in its ads column.
 	$is_assist_page = $post && (
-		in_array( $post->post_name, array( 'masjid', 'business', 'web', 'member', 'forgot-password' ), true )
+		in_array( $post->post_name, array( 'masjid', 'business', 'web', 'knowledge-hub', 'member', 'forgot-password' ), true )
 		|| in_array( $post->post_type, array( 'masjid', 'business', 'web' ), true )
 	);
 	if ( $is_assist_page ) {

@@ -113,6 +113,14 @@ function mfa_member_logged_out_shortcode() {
 				<p>🎁 <strong>Earn Rewards</strong><br>Receive points, badges, exclusive recognition, and future member benefits as you contribute and help grow the platform.</p>
 			</div>
 		</div>
+
+		<?php // Founding Member waitlist. Sits directly under "future member
+		      // benefits" above, which is the promise it makes concrete. The
+		      // offer is not purchasable yet, so this collects interest via
+		      // Sofia rather than pretending there is a checkout. ?>
+		<div class="mfa-member-out-founding">
+			<?php echo do_shortcode( '[mfa_lead_cta type="founding_member" style="card"]' ); ?>
+		</div>
 	</div>
 	<?php
 	return ob_get_clean();

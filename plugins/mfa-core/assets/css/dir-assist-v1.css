@@ -138,3 +138,51 @@
 .mfa-assist-link:focus strong {
 	text-decoration: underline;
 }
+
+/* ---------- Lead CTA card (style="card") ----------
+   Used by [mfa_lead_cta] — the Advertise card in the directory ads column
+   and the Founding Member card on /member/. The card itself is the shared
+   .mfa-card--tinted from global-v3.css; these rules only add the internal
+   rhythm, so nothing here redefines colour, radius or shadow.
+
+   Literal px sizes and --mfa-muted, matching .mfa-band-title/.mfa-band-text
+   in the global sheet — there is no --mfa-fs-* type-scale token set, despite
+   what a quick read of the CLAUDE.md summary suggests.
+
+   Selectors are scoped to their own class rather than "any heading/any
+   paragraph inside the card" — the broad-descendant habit is exactly what
+   the design system exists to stop. */
+
+.mfa-lead-card {
+  text-align: center;
+}
+
+.mfa-lead-card-emoji {
+  font-size: 28px;
+  line-height: 1;
+  margin: 0 0 var(--mfa-space-3);
+}
+
+.mfa-lead-card-title {
+  margin: 0 0 var(--mfa-space-2);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--mfa-ink);
+}
+
+.mfa-lead-card-text {
+  margin: 0 0 var(--mfa-space-4);
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--mfa-muted);
+}
+
+/* The Founding Member card on /member/ sits under a full-width card grid;
+   constrain it so it reads as a single focused CTA rather than a banner. */
+.mfa-member-out-founding {
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: var(--mfa-space-7);
+}

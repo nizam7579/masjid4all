@@ -104,6 +104,10 @@ function mfa_masjid_page_shortcode() {
 			<div class="mfa-row-side">
 				<h3 class="mfa-section-label">Recommended Products/Services</h3>
 				<?php echo do_shortcode( '[enaizi_ads count="4" layout="vertical"]' ); ?>
+
+				<?php // Sofia lead capture: the ads column is exactly where someone
+				      // wondering how their own business gets there is already looking. ?>
+				<?php echo do_shortcode( '[mfa_lead_cta type="advertise" style="card"]' ); ?>
 			</div>
 		</div>
 	</div>
@@ -139,6 +143,10 @@ function mfa_business_page_shortcode() {
 			<div class="mfa-row-side">
 				<h3 class="mfa-section-label">Recommended Products/Services</h3>
 				<?php echo do_shortcode( '[enaizi_ads count="4" layout="vertical"]' ); ?>
+
+				<?php // Sofia lead capture: the ads column is exactly where someone
+				      // wondering how their own business gets there is already looking. ?>
+				<?php echo do_shortcode( '[mfa_lead_cta type="advertise" style="card"]' ); ?>
 			</div>
 		</div>
 	</div>
@@ -174,6 +182,10 @@ function mfa_web_page_shortcode() {
 			<div class="mfa-row-side">
 				<h3 class="mfa-section-label">Recommended Products/Services</h3>
 				<?php echo do_shortcode( '[enaizi_ads count="4" layout="vertical"]' ); ?>
+
+				<?php // Sofia lead capture: the ads column is exactly where someone
+				      // wondering how their own business gets there is already looking. ?>
+				<?php echo do_shortcode( '[mfa_lead_cta type="advertise" style="card"]' ); ?>
 			</div>
 		</div>
 	</div>
@@ -201,6 +213,10 @@ function mfa_knowledge_page_shortcode() {
 			<div class="mfa-row-side">
 				<h3 class="mfa-section-label">Recommended Products/Services</h3>
 				<?php echo do_shortcode( '[enaizi_ads count="4" layout="vertical"]' ); ?>
+
+				<?php // Sofia lead capture: the ads column is exactly where someone
+				      // wondering how their own business gets there is already looking. ?>
+				<?php echo do_shortcode( '[mfa_lead_cta type="advertise" style="card"]' ); ?>
 			</div>
 		</div>
 	</div>

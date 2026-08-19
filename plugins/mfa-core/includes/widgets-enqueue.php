@@ -311,12 +311,16 @@ function mfa_core_enqueue_widget_assets() {
 	// Sofia-assist popup (.mfa-assist-* component): the "Add Your X" CTAs on the
 	// mosque/business/website directory pages, the "Register/Log in with
 	// Sofia" popups on the member + forgot-password pages, and the
-	// [mfa_lead_cta] Advertise / Founding Member cards (sofia-leads.php) -
-	// which is why knowledge-hub is in the list: it has no Add Your X CTA but
-	// does carry the Advertise card in its ads column.
+	// [mfa_lead_cta] cards (sofia-leads.php).
+	//
+	// The list is wider than the "Add Your X" pages because the Advertise
+	// promo now renders inside [enaizi_ads] itself, so its modal has to work
+	// on every page carrying an ad column: the four directory pages, single
+	// mosque/business/web posts, /quran/ (page and single), /prayer-times/
+	// and /qibla-finder/. Miss one and the promo button is inert there.
 	$is_assist_page = $post && (
-		in_array( $post->post_name, array( 'masjid', 'business', 'web', 'knowledge-hub', 'member', 'forgot-password' ), true )
-		|| in_array( $post->post_type, array( 'masjid', 'business', 'web' ), true )
+		in_array( $post->post_name, array( 'masjid', 'business', 'web', 'knowledge-hub', 'member', 'forgot-password', 'prayer-times', 'qibla-finder', 'quran' ), true )
+		|| in_array( $post->post_type, array( 'masjid', 'business', 'web', 'quran' ), true )
 	);
 	if ( $is_assist_page ) {
 		$assist_css = MFA_CORE_PATH . 'assets/css/dir-assist-v1.css';

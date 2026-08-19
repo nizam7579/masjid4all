@@ -64,22 +64,38 @@ function mfa_lead_types() {
 		'advertise'       => array(
 			'label'        => 'Advertising enquiry',
 			'emoji'        => '📣',
-			'cta_label'    => 'Promote Your Business',
+			'cta_label'    => 'Feature My Business',
 			'cta_title'    => 'Advertise on Masjid4All',
 			'cta_text'     => 'Reach Muslim families searching for mosques and halal businesses. Sofia will take your details on WhatsApp.',
 			'wa_keyword'   => 'advertise',
-			'fields'       => array( 'name', 'detail', 'email' ),
-			'tag_title'    => 'Advertiser Interest',
-			'tag_slug'     => 'advertiser-interest',
+			'fields'       => array( 'name', 'email' ),
+			'tag_title'    => 'Advertiser Prospect',
+			'tag_slug'     => 'advertiser-prospect',
 			'source'       => 'sofia-advertise',
-			'detail_ask'   => "What would you like to promote? A short line is enough — your business name and what you offer.",
-			'detail_label' => 'Promoting',
-			'detail_retry' => "Tell me briefly what you'd like to promote — your business name and what you offer.",
-			'intro'        => "Happy to help you advertise with Masjid4All. 📣\n\n"
-				. "Your ad can appear alongside our mosque and halal business directories, in front of people already searching for exactly that.\n\n"
-				. "Let me take a few details and our team will come back to you with placements and pricing.\n\n"
-				. "Ready? Reply *YES* to continue, or *STOP* to skip.",
-			'done'         => "Thank you — our team has your details and will be in touch with placements and pricing. 📣",
+			// Opens with native reply buttons rather than asking the user to
+			// type YES. WhatsApp caps titles at 20 chars and delivers a tap
+			// back as the title text, so the titles double as match tokens.
+			'buttons'      => array(
+				'yes' => 'Yes, tell me more',
+				'no'  => 'Not now',
+			),
+			// Native in-chat form, same mechanism as Contact Us. Used only
+			// when the constant is defined AND the send succeeds; otherwise
+			// the text conversation runs instead.
+			'flow_const'   => 'MFA_ADVERTISE_FLOW_ID',
+			'flow_cta'     => 'Send My Details',
+			'flow_screen'  => 'ADVERTISE_FORM',
+			'flow_token'   => 'advertise',
+			'flow_intro'   => "Great! 📣 Just fill in the short form below and tap Submit — it only takes a moment.",
+			'intro'        => "Advertise with Masjid4All 📣\n\n"
+				. "Your ad can appear alongside our mosque and halal business directories — in front of people already searching for exactly that.\n\n"
+				. "Are you interested in advertising with Masjid4All?",
+			'decline'      => "No problem at all. 👍\n\nIf you change your mind, just message me *advertise* anytime.",
+			// No rates quoted on purpose: the rate card is not written yet and
+			// global-vs-per-country pricing is undecided (2026-08-19), so
+			// Sofia must not invent numbers. The lead is captured as a
+			// prospect and the team follows up manually.
+			'done'         => "Thank you — I've passed your details to our team. 📣\n\nThey'll be in touch shortly with our rate card, ad placements and examples, so you can see exactly what's on offer before deciding anything.",
 		),
 	);
 
@@ -243,13 +259,79 @@ function mfa_lead_start( $user_id, $type ) {
 		return $cfg['intro'];
 	}
 
-	nwa_send_message( $user_id, $conversation->wa_number, $cfg['intro'] );
-	NWA_DB::set_pending_action( $conversation->id, 'lead_flow', array(
-		'type' => $type,
-		'step' => 'confirm',
-	), 30 );
+	$ctx = array( 'type' => $type, 'step' => 'confirm' );
+
+	// Native reply buttons where the type asks for them, so the opening
+	// question is a tap rather than typing YES. If the send fails for any
+	// reason the plain-text intro still goes out and the typed path works,
+	// so the flow is never left without a prompt.
+	$sent_buttons = false;
+	if ( ! empty( $cfg['buttons'] ) && function_exists( 'nwa_send_buttons' ) ) {
+		$res = nwa_send_buttons( $user_id, $conversation->wa_number, $cfg['intro'], array(
+			array( 'id' => 'lead_yes', 'title' => $cfg['buttons']['yes'] ),
+			array( 'id' => 'lead_no',  'title' => $cfg['buttons']['no'] ),
+		) );
+		$sent_buttons = ! empty( $res['success'] );
+	}
+
+	if ( ! $sent_buttons ) {
+		$text = $cfg['intro'];
+		if ( ! empty( $cfg['buttons'] ) ) {
+			// Buttons unavailable - spell out the typed equivalent.
+			$text .= "\n\nReply *YES* to continue, or *STOP* to skip.";
+		}
+		nwa_send_message( $user_id, $conversation->wa_number, $text );
+	}
+
+	NWA_DB::set_pending_action( $conversation->id, 'lead_flow', $ctx, 30 );
 
 	return '';
+}
+
+/**
+ * Begin collecting fields once interest is confirmed.
+ *
+ * Prefers a native in-chat Meta Flow form (one screen, submit once) and
+ * falls back to asking one question at a time. Same two-path shape as the
+ * Contact Us flow, and for the same reason: the Flow can fail to send
+ * (outside the 24h window, API error, not configured yet) and the
+ * conversation must continue regardless.
+ *
+ * The advertise Flow is NOT published in Meta yet, so in practice the text
+ * path is what runs today. Define MFA_ADVERTISE_FLOW_ID against the WABA
+ * that actually sends (27070199045967929) to switch it on - a Flow built
+ * against the wrong WABA sends but 400s with error 131009.
+ */
+function mfa_lead_begin_capture( $user_id, $wa_number, $conversation, $cfg, $ctx ) {
+	$flow_id = ( ! empty( $cfg['flow_const'] ) && defined( $cfg['flow_const'] ) )
+		? constant( $cfg['flow_const'] )
+		: '';
+
+	if ( '' !== $flow_id && function_exists( 'nwa_send_flow' ) ) {
+		$sent = nwa_send_flow(
+			$user_id,
+			$wa_number,
+			isset( $cfg['flow_intro'] ) ? $cfg['flow_intro'] : 'Please fill in the short form below.',
+			$flow_id,
+			isset( $cfg['flow_cta'] ) ? $cfg['flow_cta'] : 'Continue',
+			isset( $cfg['flow_screen'] ) ? $cfg['flow_screen'] : '',
+			isset( $cfg['flow_token'] ) ? $cfg['flow_token'] : null
+		);
+		if ( ! empty( $sent['success'] ) ) {
+			// Park the session so the Flow reply can be matched back to this
+			// type - see mfa_lead_flow_reply_route().
+			$ctx['step'] = 'awaiting_flow';
+			NWA_DB::set_pending_action( $conversation->id, 'lead_flow', $ctx, 30 );
+			return;
+		}
+	}
+
+	$next = mfa_lead_next_field( $cfg, $ctx );
+	if ( '' === $next ) {
+		mfa_lead_finish( $user_id, $wa_number, $conversation, $cfg, $ctx );
+		return;
+	}
+	mfa_lead_ask( $user_id, $wa_number, $conversation, $cfg, $ctx, $next );
 }
 
 function niz_wa_action_founding_member( $user_id, $context ) {
@@ -327,6 +409,80 @@ function mfa_lead_finish( $user_id, $wa_number, $conversation, $cfg, $ctx ) {
 	nwa_send_message( $user_id, $wa_number, $message );
 }
 
+
+/* ---------------- Native Flow reply ----------------
+   Priority 4: ahead of niz_wa_contact_flow_reply_route() at 5, which claims
+   ANY inbound message carrying an nfm_reply and would otherwise try to read
+   an advertise submission as a Contact Us one and answer "Sorry, I couldn't
+   read that submission properly."
+
+   Guarded twice so it can never steal a genuine Contact Us submission: a
+   'lead_flow' session must be open AND parked at the awaiting_flow step. The
+   flow_token is checked too when Meta echoes one back. */
+
+add_filter( 'nwa_route_message_override', 'mfa_lead_flow_reply_route', 4, 5 );
+
+function mfa_lead_flow_reply_route( $override, $user_id, $wa_number, $message_text, $conversation ) {
+	if ( null !== $override || ! class_exists( 'NWA_DB' ) ) {
+		return $override;
+	}
+	if ( 'lead_flow' !== NWA_DB::get_active_pending_action( $conversation ) ) {
+		return $override;
+	}
+
+	$interactive = json_decode( (string) $message_text, true );
+	if ( ! is_array( $interactive ) || ! isset( $interactive['nfm_reply']['response_json'] ) ) {
+		return $override;
+	}
+
+	$ctx = json_decode( (string) $conversation->pending_context, true );
+	$ctx = is_array( $ctx ) ? $ctx : array();
+	if ( ! isset( $ctx['step'] ) || 'awaiting_flow' !== $ctx['step'] ) {
+		return $override;
+	}
+
+	$cfg = mfa_lead_type( isset( $ctx['type'] ) ? $ctx['type'] : '' );
+	if ( ! $cfg ) {
+		return $override;
+	}
+
+	$fields = json_decode( (string) $interactive['nfm_reply']['response_json'], true );
+	$fields = is_array( $fields ) ? $fields : array();
+
+	// When Meta echoes the token we sent, insist it matches this type.
+	if ( ! empty( $cfg['flow_token'] ) && ! empty( $fields['flow_token'] )
+		&& $fields['flow_token'] !== $cfg['flow_token'] ) {
+		return $override;
+	}
+
+	$name  = sanitize_text_field( isset( $fields['name'] ) ? $fields['name'] : '' );
+	$email = sanitize_email( isset( $fields['email'] ) ? $fields['email'] : '' );
+
+	if ( '' === $name || '' === $email || ! is_email( $email ) ) {
+		// Don't lose the lead over a malformed submission - fall back to
+		// asking for whatever is still missing, one question at a time.
+		if ( '' !== $name ) {
+			$ctx['name'] = $name;
+		}
+		$next = mfa_lead_next_field( $cfg, $ctx );
+		if ( '' === $next ) {
+			mfa_lead_finish( $user_id, $wa_number, $conversation, $cfg, $ctx );
+			return '';
+		}
+		nwa_send_message( $user_id, $wa_number, "Sorry, I couldn't read that form properly — let me just ask directly." );
+		mfa_lead_ask( $user_id, $wa_number, $conversation, $cfg, $ctx, $next );
+		return '';
+	}
+
+	$ctx['name']  = $name;
+	$ctx['email'] = $email;
+	if ( ! empty( $fields['detail'] ) ) {
+		$ctx['detail'] = sanitize_text_field( $fields['detail'] );
+	}
+
+	mfa_lead_finish( $user_id, $wa_number, $conversation, $cfg, $ctx );
+	return '';
+}
 // Priority 23: after the travel planner (22), before the contact flow (25).
 // Ordering is mostly cosmetic since every handler guards on its own pending
 // action key, but keeping them in a stable sequence makes the chain readable.
@@ -367,10 +523,37 @@ function mfa_lead_route( $override, $user_id, $wa_number, $message_text, $conver
 	$step = isset( $ctx['step'] ) ? $ctx['step'] : '';
 
 	if ( 'confirm' === $step ) {
-		if ( ! niz_wa_contact_is_affirmative( $text ) ) {
-			nwa_send_message( $user_id, $wa_number, "Reply *YES* to continue, or *STOP* if you'd rather not." );
+		// A button tap arrives as the button's own title text (see
+		// NWA_Webhook's interactive handling), so the configured titles are
+		// what we match on, alongside the typed equivalents.
+		$yes = isset( $cfg['buttons']['yes'] ) ? strtolower( $cfg['buttons']['yes'] ) : '';
+		$no  = isset( $cfg['buttons']['no'] ) ? strtolower( $cfg['buttons']['no'] ) : '';
+		$low = strtolower( $text );
+
+		if ( '' !== $no && $low === $no ) {
+			NWA_DB::set_pending_action( $conversation->id, null );
+			nwa_send_message( $user_id, $wa_number,
+				isset( $cfg['decline'] ) ? $cfg['decline'] : "No problem. 👍" );
 			return '';
 		}
+
+		$said_yes = ( '' !== $yes && $low === $yes ) || niz_wa_contact_is_affirmative( $text );
+		if ( ! $said_yes ) {
+			$prompt = ! empty( $cfg['buttons'] )
+				? "Just tap *{$cfg['buttons']['yes']}* or *{$cfg['buttons']['no']}* above — or type *stop* to cancel."
+				: "Reply *YES* to continue, or *STOP* if you'd rather not.";
+			nwa_send_message( $user_id, $wa_number, $prompt );
+			return '';
+		}
+
+		mfa_lead_begin_capture( $user_id, $wa_number, $conversation, $cfg, $ctx );
+		return '';
+	}
+
+	// The user was sent a native Flow form but typed a message instead of
+	// submitting it. Drop to the text path rather than leaving them stuck
+	// waiting on a form they may have dismissed.
+	if ( 'awaiting_flow' === $step ) {
 		$next = mfa_lead_next_field( $cfg, $ctx );
 		if ( '' === $next ) {
 			mfa_lead_finish( $user_id, $wa_number, $conversation, $cfg, $ctx );
@@ -454,7 +637,17 @@ function mfa_lead_cta_shortcode( $atts ) {
 
 	ob_start();
 
-	if ( 'card' === $atts['style'] ) {
+	if ( 'ad' === $atts['style'] ) {
+		// Sized and shaped like an ad slot (full width, 8px radius, same
+		// gap) so it reads as part of the ads block rather than a banner
+		// bolted above it - see .enaizi-ads-container in ads.php.
+		?>
+		<div class="mfa-ad-promo">
+			<p class="mfa-ad-promo-text">You can have your business featured here.</p>
+			<button type="button" class="mfa-btn mfa-btn-primary mfa-ad-promo-btn mfa-assist-open" data-target="<?php echo esc_attr( $modal_id ); ?>" aria-haspopup="dialog" aria-controls="<?php echo esc_attr( $modal_id ); ?>"><?php echo esc_html( $cfg['cta_label'] ); ?></button>
+		</div>
+		<?php
+	} elseif ( 'card' === $atts['style'] ) {
 		?>
 		<div class="mfa-card mfa-card--tinted mfa-lead-card">
 			<div class="mfa-lead-card-emoji"><?php echo $cfg['emoji']; // phpcs:ignore WordPress.Security.EscapeOutput ?></div>
@@ -468,6 +661,35 @@ function mfa_lead_cta_shortcode( $atts ) {
 		<button type="button" class="<?php echo esc_attr( $atts['class'] ); ?> mfa-assist-open" data-target="<?php echo esc_attr( $modal_id ); ?>" aria-haspopup="dialog" aria-controls="<?php echo esc_attr( $modal_id ); ?>"><?php echo esc_html( $cfg['cta_label'] ); ?></button>
 		<?php
 	}
+
+	// style="ad" returns the trigger only. Its modal is emitted by ads.php
+	// AFTER the ads container closes: a full-screen overlay has no business
+	// living inside a narrow sidebar element. It works today because the
+	// overlay is position:fixed, but a single transform/filter/contain on
+	// .enaizi-ads-container would make fixed resolve against that container
+	// instead of the viewport and trap the dialog in the column.
+	if ( 'ad' !== $atts['style'] ) {
+		echo mfa_lead_modal_html( $atts['type'] ); // phpcs:ignore WordPress.Security.EscapeOutput
+	}
+
+	return ob_get_clean();
+}
+
+/**
+ * The dialog markup on its own, so a caller can place it outside whatever
+ * container the trigger sits in. Safe to call once per type per page.
+ */
+function mfa_lead_modal_html( $type ) {
+	$cfg = mfa_lead_type( $type );
+	if ( ! $cfg ) {
+		return '';
+	}
+
+	$modal_id = 'mfa-lead-' . sanitize_html_class( $type );
+	$wa_link  = 'https://wa.me/60189897579?text=' . rawurlencode( $cfg['wa_keyword'] );
+	$wa_icon  = '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2zm0 18.15h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.11.82.83-3.03-.2-.31a8.2 8.2 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.25-8.24 2.2 0 4.27.86 5.83 2.42a8.2 8.2 0 0 1 2.41 5.83c0 4.54-3.7 8.24-8.25 8.24zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.13-.16.24-.64.8-.79.97-.14.16-.29.18-.54.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.02-.38.11-.5.11-.11.25-.29.37-.43.12-.15.16-.25.25-.42.08-.16.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.4-.42-.56-.42h-.48c-.16 0-.43.06-.66.31-.23.24-.86.84-.86 2.06 0 1.22.89 2.4 1.01 2.56.12.16 1.75 2.67 4.23 3.74.59.26 1.05.41 1.41.52.59.19 1.13.16 1.56.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.14-1.18-.06-.11-.22-.17-.47-.29z"/></svg>';
+
+	ob_start();
 	?>
 	<div class="mfa-assist-overlay" id="<?php echo esc_attr( $modal_id ); ?>" role="dialog" aria-modal="true" aria-hidden="true" aria-label="<?php echo esc_attr( $cfg['cta_title'] ); ?>">
 		<div class="mfa-assist-modal">

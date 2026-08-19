@@ -147,6 +147,7 @@ function mfa_ads_shortcode( $atts ) {
 	$atts = shortcode_atts( array(
 		'count'  => 2,
 		'layout' => 'horizontal',
+		'promo'  => 1,
 	), $atts );
 
 	$count = intval( $atts['count'] );
@@ -163,13 +164,25 @@ function mfa_ads_shortcode( $atts ) {
 	}
 
 	$ads = mfa_ads_get_ads( $count );
-	if ( empty( $ads ) ) {
+
+	// The promo card is part of the ads block, not a separate section under
+	// it: "you could be here" only makes sense sitting among the ads it is
+	// talking about. It renders FIRST, and it renders even when there are no
+	// ads to show - an empty slot is the best possible moment to offer it,
+	// and returning '' there (as this shortcode used to) would hide it
+	// exactly where there is most room.
+	$promo = ( ! empty( $atts['promo'] ) && shortcode_exists( 'mfa_lead_cta' ) )
+		? do_shortcode( '[mfa_lead_cta type="advertise" style="ad"]' )
+		: '';
+
+	if ( empty( $ads ) && '' === $promo ) {
 		return '';
 	}
 
 	ob_start();
 	?>
 	<div class="enaizi-ads-container enaizi-layout-<?php echo esc_attr( $layout ); ?> enaizi-cols-<?php echo esc_attr( $count ); ?>">
+		<?php echo $promo; // phpcs:ignore WordPress.Security.EscapeOutput ?>
 		<?php foreach ( $ads as $a ) : ?>
 			<?php
 			$wpdb->query( $wpdb->prepare(
@@ -186,6 +199,13 @@ function mfa_ads_shortcode( $atts ) {
 			</a>
 		<?php endforeach; ?>
 	</div>
+
+	<?php
+	// Dialog goes outside the container on purpose - see mfa_lead_modal_html().
+	if ( '' !== $promo && function_exists( 'mfa_lead_modal_html' ) ) {
+		echo mfa_lead_modal_html( 'advertise' ); // phpcs:ignore WordPress.Security.EscapeOutput
+	}
+	?>
 	<style>
 	.enaizi-ads-container {
 		display: flex;

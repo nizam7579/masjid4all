@@ -186,3 +186,47 @@
   margin-right: auto;
   margin-top: var(--mfa-space-7);
 }
+
+/* ---------- Ad-slot promo ([mfa_lead_cta style="ad"]) ----------
+   Renders as the first child of .enaizi-ads-container (ads.php), so it must
+   match the footprint of a real ad card: full column width and the same 8px
+   radius the ad images use. Deliberately tinted rather than image-like, so
+   it reads as an invitation and is never mistaken for a paid placement.
+
+   Scoped to its own classes - no ".enaizi-ads-container p" style rules, which
+   would reach into ad markup that is not ours. */
+
+.mfa-ad-promo {
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--mfa-space-5);
+  border: 1px dashed var(--mfa-teal);
+  border-radius: 8px;
+  background: var(--mfa-mint-bg);
+  text-align: center;
+}
+
+.mfa-ad-promo-text {
+  margin: 0 0 var(--mfa-space-4);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--mfa-ink);
+}
+
+.mfa-ad-promo-btn {
+  width: 100%;
+  font-size: 14px;
+  /* 12px + 12px + ~20px line-box clears the 44px minimum touch target;
+     11px measured 42px on mobile. */
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+/* Centered ads-column heading. The section is "Featured Business" on every
+   page that carries an ad column; centering is applied via this modifier
+   rather than by retargeting .mfa-section-label, which is used elsewhere. */
+.mfa-section-label--center,
+.mfa-quran-ad-heading {
+  text-align: center;
+}

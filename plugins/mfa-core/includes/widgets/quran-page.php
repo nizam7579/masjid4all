@@ -62,7 +62,7 @@ function mfa_quran_page_shortcode() {
 			</div>
 
 			<div class="mfa-row-side">
-				<h3 class="mfa-quran-ad-heading">Recommended Products/Services</h3>
+				<h3 class="mfa-quran-ad-heading">Featured Business</h3>
 				<?php echo do_shortcode( '[enaizi_ads count="4" layout="vertical"]' ); ?>
 			</div>
 		</div>

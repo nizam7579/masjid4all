@@ -72,6 +72,21 @@ function mfa_admin_member_list_shortcode( $atts = array() ) {
 		$status_options = $restrict;
 	}
 
+	// The import panel creates prospects, so it belongs wherever prospects are
+	// listed - the unrestricted view or a Prospect-only one - and nowhere else.
+	// Tying it to $is_restricted alone would have hidden it from the very page
+	// it exists for.
+	$shows_prospects = ! $is_restricted || in_array( 'Prospect', $restrict, true );
+
+	// What one row is called, so the count line reads honestly on each view.
+	if ( $is_restricted && ! in_array( 'Prospect', $restrict, true ) ) {
+		$noun = 'member';
+	} elseif ( array( 'Prospect' ) === $restrict ) {
+		$noun = 'prospect';
+	} else {
+		$noun = 'record';
+	}
+
 	// Rank values in this table are inconsistent (trailing spaces, emoji,
 	// values outside JetEngine's configured rank options) - build the
 	// filter from what's actually in the data, not a hardcoded list.
@@ -127,10 +142,10 @@ function mfa_admin_member_list_shortcode( $atts = array() ) {
 	?>
 	<div class="mfa-admin-member-list">
 		<h1 class="mfa-h2"><?php echo esc_html( '' !== $atts['title'] ? $atts['title'] : 'Members' ); ?></h1>
-<?php if ( ! $is_restricted && function_exists( 'mfa_admin_member_import_panel' ) ) : ?>
+<?php if ( $shows_prospects && function_exists( 'mfa_admin_member_import_panel' ) ) : ?>
 		<?php echo mfa_admin_member_import_panel( $import_report ); // phpcs:ignore WordPress.Security.EscapeOutput ?>
 <?php endif; ?>
-		<p class="mfa-body-muted"><?php echo esc_html( number_format_i18n( $total ) ); ?> <?php echo esc_html( $is_restricted ? 'member' : 'record' ); ?><?php echo 1 === $total ? '' : 's'; ?></p>
+		<p class="mfa-body-muted"><?php echo esc_html( number_format_i18n( $total ) ); ?> <?php echo esc_html( $noun ); ?><?php echo 1 === $total ? '' : 's'; ?></p>
 
 		<form method="get" class="mfa-admin-member-filters">
 			<input type="text" name="member_search" value="<?php echo esc_attr( $search ); ?>" placeholder="Search name, phone, or email" class="mfa-admin-member-search">

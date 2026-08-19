@@ -4,10 +4,18 @@
    deliberately: a broad link rule inside a container is what caused the
    invisible-CTA and wrong-font-size bugs elsewhere in this project. */
 
+/* Inner content container. The page shell and the hero come from
+   global-v3.css now; this keeps the narrower reading width a long list of
+   places wants, and drops its own top padding because .mfa-stack already
+   supplies the gap below the hero. */
 .mfa-place {
   max-width: 1100px;
-  margin: 0 auto;
-  padding: var(--mfa-space-6, 24px) var(--mfa-space-5, 20px) var(--mfa-space-9, 48px);
+  /* Not the margin shorthand: this file loads after global-v3.css, so
+     `margin: 0 auto` would reset the margin-top .mfa-stack sets on it and
+     the gap below the hero would collapse to nothing. */
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0 var(--mfa-space-5) var(--mfa-space-9);
 }
 
 /* ---------- breadcrumb ---------- */
@@ -36,27 +44,8 @@
 
 /* ---------- heading ---------- */
 
-.mfa-place-head {
-  padding-bottom: var(--mfa-space-5, 20px);
-  border-bottom: 1px solid var(--mfa-border, #e7efed);
-  margin-bottom: var(--mfa-space-7, 32px);
-}
-.mfa-place-title {
-  color: var(--mfa-green-dark, #0d4d47);
-  font-size: clamp(1.6rem, 4vw, 2.3rem);
-  line-height: 1.2;
-  margin: 0 0 var(--mfa-space-3, 12px);
-  text-wrap: balance;
-}
-.mfa-place-counts {
-  margin: 0;
-  color: var(--mfa-muted, #5b6b66);
-  font-size: 15px;
-}
-.mfa-place-counts strong {
-  color: var(--mfa-ink, #12181f);
-  font-variant-numeric: tabular-nums;
-}
+/* .mfa-place-head/-title/-counts removed - the page head is now the
+   shared .mfa-hero from global-v3.css. */
 
 .mfa-place-intro {
   margin-bottom: var(--mfa-space-7, 32px);
@@ -260,7 +249,7 @@
 
 @media (max-width: 600px) {
   .mfa-place {
-    padding: var(--mfa-space-4, 16px) var(--mfa-space-4, 16px) var(--mfa-space-8, 40px);
+    padding: 0 var(--mfa-space-4) var(--mfa-space-8);
   }
   .mfa-place-section {
     margin-bottom: var(--mfa-space-7, 32px);

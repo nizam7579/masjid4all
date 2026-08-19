@@ -127,7 +127,20 @@ function mfa_place_hub_shortcode() {
 
 	ob_start();
 	?>
-	<div class="mfa-place">
+	<div class="mfa-shell mfa-stack">
+
+		<header class="mfa-hero mfa-hero--brand mfa-hero--bleed">
+			<div class="mfa-hero-inner">
+				<h1 class="mfa-hero-title">Mosques &amp; Halal Businesses in <?php echo esc_html( $title ); ?></h1>
+				<p class="mfa-hero-tagline">
+					<?php echo esc_html( number_format_i18n( $counts['mosque'] ) ); ?> mosques
+					&middot;
+					<?php echo esc_html( number_format_i18n( $counts['business'] ) ); ?> halal businesses
+				</p>
+			</div>
+		</header>
+
+		<div class="mfa-place">
 
 		<nav class="mfa-place-crumbs" aria-label="Breadcrumb">
 			<?php
@@ -140,15 +153,6 @@ function mfa_place_hub_shortcode() {
 			<?php endforeach; ?>
 			<span aria-current="page"><?php echo esc_html( $title ); ?></span>
 		</nav>
-
-		<header class="mfa-place-head">
-			<h1 class="mfa-place-title">Mosques &amp; Halal Businesses in <?php echo esc_html( $title ); ?></h1>
-			<p class="mfa-place-counts">
-				<strong><?php echo esc_html( number_format_i18n( $counts['mosque'] ) ); ?></strong> mosques
-				&middot;
-				<strong><?php echo esc_html( number_format_i18n( $counts['business'] ) ); ?></strong> halal businesses
-			</p>
-		</header>
 
 		<?php
 		$intro = get_post_field( 'post_content', $place_id );
@@ -236,6 +240,7 @@ function mfa_place_hub_shortcode() {
 			</p>
 		<?php endif; ?>
 
+	</div>
 	</div>
 
 	<?php echo mfa_place_json_ld( $place_id, $mosques['rows'] ); // phpcs:ignore WordPress.Security.EscapeOutput ?>

@@ -61,7 +61,7 @@ function mfa_needs_whatsapp_link( $user_id ) {
 		return false;
 	}
 
-	if ( ! is_email( $user->user_email ) || preg_match( '/@mfa\.com$/i', $user->user_email ) ) {
+	if ( mfa_is_placeholder_email( $user->user_email ) ) {
 		return false;
 	}
 
@@ -106,10 +106,12 @@ function mfa_whatsapp_nudge_find( $limit = 200 ) {
 		        AND s.meta_value IN ('member','premium')
 		 LEFT JOIN {$wpdb->usermeta} v ON v.user_id = u.ID AND v.meta_key = 'niz_whatsapp_verified'
 		 WHERE u.user_email NOT LIKE %s
+		   AND u.user_email NOT LIKE %s
 		   AND (v.meta_value IS NULL OR v.meta_value <> 'Yes')
 		 ORDER BY u.ID DESC
 		 LIMIT %d",
 		'%@mfa.com',
+		'%@noemail.com',
 		(int) $limit
 	) );
 

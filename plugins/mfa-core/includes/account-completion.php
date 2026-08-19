@@ -26,6 +26,37 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+
+/**
+ * Is this a placeholder address rather than one anyone can receive mail at?
+ *
+ * Two eras of phone-only signup produced these: <phone>@mfa.com from the
+ * current WhatsApp flow, and <phone>@noemail.com from an older one. Both
+ * have a numeric local part and neither exists. On production 18 of 29
+ * members carry one.
+ *
+ * This matters beyond tidiness: sending to them produces hard bounces,
+ * and the sending domain has no history at all yet (zero campaigns ever),
+ * so early bounces would damage deliverability for every real member
+ * afterwards. Anything that decides who gets emailed must exclude them.
+ */
+function mfa_is_placeholder_email( $email ) {
+	$email = trim( (string) $email );
+
+	if ( '' === $email || ! is_email( $email ) ) {
+		return true;
+	}
+
+	$domains = apply_filters( 'mfa_placeholder_email_domains', array( 'mfa.com', 'noemail.com' ) );
+
+	foreach ( $domains as $domain ) {
+		if ( preg_match( '/@' . preg_quote( $domain, '/' ) . '$/i', $email ) ) {
+			return true;
+		}
+	}
+
+	return false;
+}
 /**
  * Has this user chosen a password they know?
  *
@@ -48,7 +79,7 @@ function mfa_user_completion( $user_id ) {
 
 	// A <phone>@mfa.com placeholder is not a real address, so it cannot
 	// count as a verified email no matter what the flag says.
-	if ( $user && preg_match( '/@mfa\.com$/i', $user->user_email ) ) {
+	if ( $user && mfa_is_placeholder_email( $user->user_email ) ) {
 		$email_ok = false;
 	}
 

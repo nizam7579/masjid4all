@@ -86,7 +86,8 @@ class NWA_Shortcodes {
 						<?php foreach ( $messages as $m ) : ?>
 							<div class="nwa-message-bubble is-<?php echo esc_attr( $m->direction ); ?>">
 								<?php echo esc_html( $m->content ); ?>
-								<br><small><?php echo esc_html( $m->created_at ); ?> &middot; <?php echo esc_html( $m->msg_type ); ?></small>
+								<?php // Stored in GMT; shown in the site timezone so the thread reads in local time. ?>
+								<br><small><?php echo esc_html( get_date_from_gmt( $m->created_at, 'Y-m-d H:i:s' ) ); ?> &middot; <?php echo esc_html( $m->msg_type ); ?></small>
 							</div>
 						<?php endforeach; ?>
 					</div>

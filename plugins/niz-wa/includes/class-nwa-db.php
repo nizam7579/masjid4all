@@ -244,7 +244,13 @@ class NWA_DB {
 		$defaults = array(
 			'user_id' => null, 'conversation_id' => 0, 'wa_number' => '', 'msg_type' => 'text',
 			'content' => '', 'status' => 'sent', 'meta_message_id' => null, 'processed' => 1,
-			'created_at' => current_time( 'mysql' ),
+				// GMT, matching the inbound path. Inbound stores Meta's own unix
+			// timestamp via gmdate(), and touch_inbound() derives
+			// window_expires_at from it, which is_within_window() then compares
+			// against current_time('timestamp', true). The whole 24-hour window
+			// is therefore GMT; outbound was the one path writing local time,
+			// which put replies 8 hours ahead of the messages they answered.
+			'created_at' => current_time( 'mysql', true ),
 		);
 		$args              = wp_parse_args( $args, $defaults );
 		$args['direction'] = 'outbound';

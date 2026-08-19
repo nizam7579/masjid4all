@@ -39,7 +39,7 @@ class NWA_Sender {
 				'content'         => $text,
 				'meta_message_id' => $response['message_id'],
 			) );
-			NWA_DB::touch_outbound( $conversation->id, current_time( 'mysql' ) );
+			NWA_DB::touch_outbound( $conversation->id, current_time( 'mysql', true ) );
 		}
 
 		return $response;
@@ -73,7 +73,7 @@ class NWA_Sender {
 				'content'         => wp_json_encode( array( 'template' => $template_name, 'components' => $components ) ),
 				'meta_message_id' => $response['message_id'],
 			) );
-			NWA_DB::touch_outbound( $conversation->id, current_time( 'mysql' ) );
+			NWA_DB::touch_outbound( $conversation->id, current_time( 'mysql', true ) );
 		}
 
 		return $response;
@@ -129,7 +129,7 @@ class NWA_Sender {
 				'content'         => $body_text,
 				'meta_message_id' => $response['message_id'],
 			) );
-			NWA_DB::touch_outbound( $conversation->id, current_time( 'mysql' ) );
+			NWA_DB::touch_outbound( $conversation->id, current_time( 'mysql', true ) );
 		}
 
 		return $response;
@@ -188,7 +188,7 @@ class NWA_Sender {
 				'content'         => $body_text,
 				'meta_message_id' => $response['message_id'],
 			) );
-			NWA_DB::touch_outbound( $conversation->id, current_time( 'mysql' ) );
+			NWA_DB::touch_outbound( $conversation->id, current_time( 'mysql', true ) );
 		}
 
 		return $response;

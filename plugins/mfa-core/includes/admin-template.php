@@ -55,7 +55,11 @@ function mfa_is_admin_area( $post_id = 0 ) {
 function mfa_admin_page_hides_chrome( $post_id = 0 ) {
 	$post_id = $post_id ? (int) $post_id : get_queried_object_id();
 
-	$chromeless_ids = array( 9343, 217911 );
+	// 9343 (/admin/ root) used to be here - it now shows the same top nav
+	// as every other admin page, so the section menu is reachable from the
+	// dashboard too. 217911 (/admin/member/info/) stays chromeless: it is
+	// opened in a new tab for a quick look at one member.
+	$chromeless_ids = array( 217911 );
 	if ( in_array( $post_id, $chromeless_ids, true ) ) {
 		return true;
 	}

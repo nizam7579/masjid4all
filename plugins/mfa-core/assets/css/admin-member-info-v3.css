@@ -61,8 +61,11 @@
 /* ---------- Activity / Inquiry / WhatsApp table cells ---------- */
 
 .mfa-admin-member-info-wrap-cell {
-  white-space: normal;
+  white-space: pre-wrap;   /* keep the line breaks Sofia sends */
+  overflow-wrap: anywhere;  /* break long URLs and codes rather than overflow */
+  word-break: break-word;
   max-width: 480px;
+  min-width: 240px;
 }
 
 .mfa-admin-activity-type {

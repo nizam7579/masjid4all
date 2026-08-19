@@ -72,6 +72,10 @@ function mfa_admin_member_info_shortcode() {
 								<span class="mfa-body"><?php echo esc_html( $row['phone'] ? $row['phone'] : '—' ); ?></span>
 							</div>
 							<div class="mfa-admin-member-info-item">
+								<span class="mfa-label">Country</span>
+								<span class="mfa-body"><?php echo esc_html( ! empty( $row['country'] ) ? $row['country'] : '—' ); ?></span>
+							</div>
+							<div class="mfa-admin-member-info-item">
 								<span class="mfa-label">Status</span>
 								<span class="mfa-body">
 									<?php if ( ! empty( $row['status'] ) ) : ?>

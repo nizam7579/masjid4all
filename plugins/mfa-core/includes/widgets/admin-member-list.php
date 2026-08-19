@@ -51,6 +51,7 @@ function mfa_admin_member_list_shortcode( $atts = array() ) {
 	$search        = isset( $_GET['member_search'] ) ? sanitize_text_field( wp_unslash( $_GET['member_search'] ) ) : '';
 	$status_filter = isset( $_GET['status'] ) ? sanitize_text_field( wp_unslash( $_GET['status'] ) ) : '';
 	$rank_filter   = isset( $_GET['rank'] ) ? sanitize_text_field( wp_unslash( $_GET['rank'] ) ) : '';
+	$country_filter = isset( $_GET['mcountry'] ) ? sanitize_text_field( wp_unslash( $_GET['mcountry'] ) ) : '';
 	$paged         = isset( $_GET['paged'] ) ? max( 1, absint( $_GET['paged'] ) ) : 1;
 	$per_page      = 25;
 
@@ -78,6 +79,10 @@ function mfa_admin_member_list_shortcode( $atts = array() ) {
 	// it exists for.
 	$shows_prospects = ! $is_restricted || in_array( 'Prospect', $restrict, true );
 
+	// The Members view reaches past its status list to include prospects who
+	// have messaged Sofia. The Prospects view already lists them.
+	$includes_reached_out = $is_restricted && ! in_array( 'Prospect', $restrict, true );
+
 	// What one row is called, so the count line reads honestly on each view.
 	if ( $is_restricted && ! in_array( 'Prospect', $restrict, true ) ) {
 		$noun = 'member';
@@ -90,6 +95,14 @@ function mfa_admin_member_list_shortcode( $atts = array() ) {
 	// Rank values in this table are inconsistent (trailing spaces, emoji,
 	// values outside JetEngine's configured rank options) - build the
 	// filter from what's actually in the data, not a hardcoded list.
+	// Countries present in this view's own slice of the table.
+	$country_scope = $is_restricted
+		? $wpdb->prepare( 'status IN (' . implode( ',', array_fill( 0, count( $restrict ), '%s' ) ) . ')', $restrict )
+		: '1=1';
+	$country_options = $wpdb->get_col(
+		"SELECT DISTINCT country FROM {$cct_table} WHERE {$country_scope} AND country IS NOT NULL AND TRIM(country) != '' ORDER BY country ASC"
+	);
+
 	$rank_options = $wpdb->get_col( "SELECT DISTINCT rank FROM {$cct_table} WHERE rank IS NOT NULL AND TRIM(rank) != '' ORDER BY rank ASC" );
 
 	$where  = array( '1=1' );
@@ -108,10 +121,33 @@ function mfa_admin_member_list_shortcode( $atts = array() ) {
 		$params[] = $status_filter;
 	} elseif ( $is_restricted ) {
 		// No explicit filter chosen, so bound the table to the allowed set.
-		$where[] = 'status IN (' . implode( ',', array_fill( 0, count( $restrict ), '%s' ) ) . ')';
+		$status_in = 'status IN (' . implode( ',', array_fill( 0, count( $restrict ), '%s' ) ) . ')';
+
+		if ( $includes_reached_out ) {
+			// The Members view also shows prospects who actually reached out.
+			// Someone who messaged Sofia is a real lead, not a name on an
+			// imported list, and they are who the team follows up. Imported
+			// contacts are excluded by the lead_source meta the importer wrote
+			// (34,618 of them); a Sofia-created contact has none.
+			$reached_out = "( status = 'Prospect' AND user_id IN ("
+				. " SELECT c.user_id FROM {$wpdb->prefix}nwa_conversations c"
+				. " WHERE c.user_id > 0 AND c.user_id NOT IN ("
+				. " SELECT um.user_id FROM {$wpdb->usermeta} um WHERE um.meta_key = 'lead_source' AND um.meta_value LIKE 'directory:%'"
+				. " ) ) )";
+
+			$where[] = '( ' . $status_in . ' OR ' . $reached_out . ' )';
+		} else {
+			$where[] = $status_in;
+		}
+
 		foreach ( $restrict as $allowed_status ) {
 			$params[] = $allowed_status;
 		}
+	}
+
+	if ( '' !== $country_filter && in_array( $country_filter, $country_options, true ) ) {
+		$where[]  = 'country = %s';
+		$params[] = $country_filter;
 	}
 
 	if ( '' !== $rank_filter && in_array( $rank_filter, $rank_options, true ) ) {
@@ -128,7 +164,7 @@ function mfa_admin_member_list_shortcode( $atts = array() ) {
 	$paged       = min( $paged, $total_pages );
 	$offset      = ( $paged - 1 ) * $per_page;
 
-	$data_sql    = "SELECT _ID, user_id, name, status, rank, registered, cct_created FROM {$cct_table} WHERE {$where_sql} ORDER BY user_id DESC LIMIT %d OFFSET %d";
+	$data_sql    = "SELECT _ID, user_id, name, email, phone, country, status, rank, registered, cct_created FROM {$cct_table} WHERE {$where_sql} ORDER BY user_id DESC LIMIT %d OFFSET %d";
 	$data_params = array_merge( $params, array( $per_page, $offset ) );
 	$rows        = $wpdb->get_results( $wpdb->prepare( $data_sql, $data_params ), ARRAY_A );
 
@@ -157,16 +193,25 @@ function mfa_admin_member_list_shortcode( $atts = array() ) {
 				<?php endforeach; ?>
 			</select>
 
+			<select name="mcountry" class="mfa-admin-member-select">
+				<option value="">All countries</option>
+				<?php foreach ( $country_options as $country_option ) : ?>
+					<option value="<?php echo esc_attr( $country_option ); ?>" <?php selected( $country_filter, $country_option ); ?>><?php echo esc_html( $country_option ); ?></option>
+				<?php endforeach; ?>
+			</select>
+
+			<?php if ( ! $shows_prospects ) : ?>
 			<select name="rank" class="mfa-admin-member-select">
 				<option value="">All ranks</option>
 				<?php foreach ( $rank_options as $rank_option ) : ?>
 					<option value="<?php echo esc_attr( $rank_option ); ?>" <?php selected( $rank_filter, $rank_option ); ?>><?php echo esc_html( trim( $rank_option ) ); ?></option>
 				<?php endforeach; ?>
 			</select>
+			<?php endif; ?>
 
 			<button type="submit" class="mfa-btn mfa-btn-primary mfa-admin-member-filter-btn">Filter</button>
-			<?php if ( '' !== $search || '' !== $status_filter || '' !== $rank_filter ) : ?>
-				<a href="<?php echo esc_url( remove_query_arg( array( 'member_search', 'status', 'rank', 'paged' ) ) ); ?>" class="mfa-admin-member-clear">Clear</a>
+			<?php if ( '' !== $search || '' !== $status_filter || '' !== $rank_filter || '' !== $country_filter ) : ?>
+				<a href="<?php echo esc_url( remove_query_arg( array( 'member_search', 'status', 'rank', 'mcountry', 'paged' ) ) ); ?>" class="mfa-admin-member-clear">Clear</a>
 			<?php endif; ?>
 		</form>
 
@@ -175,19 +220,31 @@ function mfa_admin_member_list_shortcode( $atts = array() ) {
 				<thead>
 					<tr>
 						<th>Name</th>
+						<?php if ( $shows_prospects ) : ?>
+							<th>Email</th>
+							<th>Phone</th>
+						<?php endif; ?>
+						<th>Country</th>
 						<th>Status</th>
-						<th>Rank</th>
+						<?php if ( ! $shows_prospects ) : ?>
+							<th>Rank</th>
+						<?php endif; ?>
 						<th>Registered</th>
 						<th></th>
 					</tr>
 				</thead>
 				<tbody>
 					<?php if ( empty( $rows ) ) : ?>
-						<tr><td colspan="5" class="mfa-admin-member-empty">No members found.</td></tr>
+						<tr><td colspan="<?php echo $shows_prospects ? 7 : 6; ?>" class="mfa-admin-member-empty">Nothing found.</td></tr>
 					<?php else : ?>
 						<?php foreach ( $rows as $row ) : ?>
 							<tr>
 								<td data-label="Name"><?php echo esc_html( $row['name'] ? $row['name'] : '—' ); ?></td>
+								<?php if ( $shows_prospects ) : ?>
+									<td data-label="Email"><?php echo esc_html( ( ! empty( $row['email'] ) && ! ( function_exists( 'mfa_is_placeholder_email' ) && mfa_is_placeholder_email( $row['email'] ) ) ) ? $row['email'] : '—' ); ?></td>
+									<td data-label="Phone"><?php echo esc_html( ! empty( $row['phone'] ) ? $row['phone'] : '—' ); ?></td>
+								<?php endif; ?>
+								<td data-label="Country"><?php echo esc_html( ! empty( $row['country'] ) ? $row['country'] : '—' ); ?></td>
 								<td data-label="Status">
 									<?php if ( ! empty( $row['status'] ) ) : ?>
 										<span class="mfa-admin-status-badge mfa-admin-status-<?php echo esc_attr( sanitize_html_class( strtolower( str_replace( ' ', '-', $row['status'] ) ) ) ); ?>"><?php echo esc_html( $row['status'] ); ?></span>
@@ -195,7 +252,9 @@ function mfa_admin_member_list_shortcode( $atts = array() ) {
 										<span class="mfa-admin-status-badge mfa-admin-status-none">—</span>
 									<?php endif; ?>
 								</td>
-								<td data-label="Rank"><?php echo esc_html( trim( (string) $row['rank'] ) ? trim( (string) $row['rank'] ) : '—' ); ?></td>
+								<?php if ( ! $shows_prospects ) : ?>
+									<td data-label="Rank"><?php echo esc_html( trim( (string) $row['rank'] ) ? trim( (string) $row['rank'] ) : '—' ); ?></td>
+								<?php endif; ?>
 								<?php
 								// The registration date is the 'registered' column, not
 								// cct_created - cct_created is when the row was written,

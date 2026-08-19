@@ -19,7 +19,6 @@ function mfa_admin_nav_items() {
 		array( 'label' => 'Dashboard', 'url' => home_url( '/admin/' ),          'icon' => 'dashboard', 'section' => 'dashboard' ),
 		array( 'label' => 'Inquiry',   'url' => home_url( '/admin/inquiry/' ),  'icon' => 'mail',      'section' => 'inquiry' ),
 		array( 'label' => 'Members',   'url' => home_url( '/admin/member/' ),   'icon' => 'users',     'section' => 'member' ),
-		array( 'label' => 'Prospects', 'url' => home_url( '/admin/prospects/' ), 'icon' => 'users',     'section' => 'member' ),
 		array( 'label' => 'WhatsApp',  'url' => home_url( '/admin/whatsapp/' ), 'icon' => 'chat',      'section' => 'whatsapp' ),
 		array( 'label' => 'Mosque',    'url' => home_url( '/admin/mosque/' ),   'icon' => 'mosque',    'section' => 'mosque' ),
 		array( 'label' => 'Business',  'url' => home_url( '/admin/business/' ), 'icon' => 'briefcase', 'section' => 'business' ),
@@ -28,6 +27,8 @@ function mfa_admin_nav_items() {
 		array( 'label' => 'Blogs',          'url' => home_url( '/admin/blog/' ),      'icon' => 'edit',   'section' => 'blog' ),
 		array( 'label' => 'Reports',        'url' => home_url( '/admin/reports/' ),   'icon' => 'chart',  'section' => 'reports' ),
 		array( 'label' => 'Crawler',        'url' => home_url( '/admin/crawler/' ),   'icon' => 'radar',  'section' => 'crawler' ),
+		// Last on purpose: prospects are a working list, not a daily section.
+		array( 'label' => 'Prospects',      'url' => home_url( '/admin/prospects/' ), 'icon' => 'users',  'section' => 'member' ),
 	);
 }
 
@@ -80,16 +81,8 @@ function mfa_admin_nav_icon_svg( $icon ) {
 
 add_shortcode( 'mfa_admin_header', 'mfa_admin_header_shortcode' );
 function mfa_admin_header_shortcode() {
-	$is_logged_in = is_user_logged_in();
-	$initial      = 'M';
-	$display_name = '';
-
-	if ( $is_logged_in ) {
-		$user         = wp_get_current_user();
-		$display_name = $user->display_name ? $user->display_name : $user->user_login;
-		$initial      = strtoupper( mb_substr( $display_name, 0, 1 ) );
-	}
-
+	// No account cluster here any more - the header is menu items only.
+	// Logging out is done from /member/.
 	ob_start();
 	?>
 	<header class="mfa-admin-header">
@@ -106,14 +99,6 @@ function mfa_admin_header_shortcode() {
 					</a>
 				<?php endforeach; ?>
 			</nav>
-
-			<?php if ( $is_logged_in ) : ?>
-				<div class="mfa-admin-header-account">
-					<span class="mfa-admin-header-avatar" aria-hidden="true"><?php echo esc_html( $initial ); ?></span>
-					<span class="mfa-admin-header-name"><?php echo esc_html( $display_name ); ?></span>
-					<?php echo do_shortcode( '[niz_user_logout]' ); ?>
-				</div>
-			<?php endif; ?>
 		</div>
 	</header>
 	<?php

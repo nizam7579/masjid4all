@@ -254,37 +254,82 @@ working copy: `C:\projects\masjid4all`.
   breakpoints, class naming) before introducing new patterns.
 - Mobile-first: a large share of traffic (WhatsApp shares, prayer time lookups)
   is mobile. Test responsive behavior by default.
-- **Global CSS design-system pass — planned, not yet done.** Recurring bug
-  pattern worth fixing at the root: broad, catch-all selectors (e.g. a rule
+- **Global CSS design system — DONE 2026-08-19, and now the standing rule.**
+  The recurring bug pattern it was built to fix: broad, catch-all selectors (e.g. a rule
   like `.card a` meant for one kind of link) accidentally styling other
   elements that happen to be descendants, requiring several rounds of
   back-and-forth to track down (two real examples from this project: an
   invisible CTA button and a too-small button font, both caused by a plain
   `.mfa-impact-card a` rule outranking the button's own intended styling).
-  Direction: a shared `global.css` with CSS custom properties for the brand
-  palette, spacing scale, and type scale, referenced from every page-specific
-  file instead of repeating raw hex/px values — and prefer selectors scoped
-  to the specific element/class being styled over broad "any link/any child
-  inside this container" rules. Apply this as a deliberate pass over existing
-  CSS when asked, not silently on unrelated work.
+  The fix landed as `global-v3.css`: CSS custom properties for the brand
+  palette, spacing scale and type scale, referenced from every page-specific
+  file instead of repeating raw hex/px values — and selectors scoped to the
+  specific element/class being styled rather than broad "any link/any child
+  inside this container" rules. Every public page type now runs on it:
+  prayer-times, qibla-finder, the four directory pages, About, Contact,
+  Privacy, Terms, Quran (page and single), and the `/places/` hubs.
 
-  **Scope agreed 2026-08-19, still not started.** The trigger was that every
-  newly built page ends up fighting its own formatting. Two halves:
+  **`/places/` is the cautionary tale for finding stragglers.** It was missed
+  in the first sweep because it never used the legacy class names — the hubs
+  live entirely in their own `.mfa-place-*` namespace, so grepping for the old
+  classes found nothing. Check by *page type*, not by grepping for what the
+  converted pages happened to be called.
 
-  1. **One global stylesheet that seldom changes.** Today there is
-     `mfa-core/assets/css/global-v3.css` plus roughly thirty per-page sheets,
-     each redefining spacing, buttons and cards for itself — which is the
-     actual source of the per-page drift. The global sheet should own the
-     tokens and the shared components; a page sheet should only carry what is
-     genuinely unique to that page. When the global sheet does change, the
-     version is bumped in **one** place: `includes/widgets-enqueue.php`
+  The trigger was that every newly built page ended up fighting its own
+  formatting. Both halves of the plan are in place:
+
+  1. **`global-v3.css` is the one global stylesheet**, loaded on every page.
+     It owns the tokens *and* the canonical components — a page sheet carries
+     only what is genuinely unique to that page. Reach for one of these before
+     writing anything new; if none fits, add a variant to the global sheet
+     rather than a private rule in a page stylesheet:
+       - Layout: `.mfa-shell`, `.mfa-hero` (+ `--brand`, `--bleed`,
+         `.mfa-hero-inner`, `.mfa-hero-split`, `.mfa-hero-title`,
+         `.mfa-hero-tagline`), `.mfa-row` + `.mfa-row-main`/`.mfa-row-side`,
+         `.mfa-inner` (+ `--flush`)
+       - Utilities: `.mfa-stack` (vertical rhythm — the shell and hero carry no
+         margin of their own, the gaps live here), `.mfa-measure` (720px
+         *reading* width), `.mfa-section-label`
+       - Buttons: `.mfa-btn` + `--primary` (pill), `--secondary` (light
+         backgrounds), `--on-dark`, `--block`, `--ghost`, `--solid-dark`
+       - Cards: `.mfa-card` + `--tinted`, `--flush`, and `--tool`/`--tool-sm`
+         (a tool widget is sized to the widget, not to a line of text)
+       - Bands: `.mfa-band` + `--tinted`, `.mfa-band-title`, `.mfa-band-text`.
+         The CTA boxes are bands, not their own component.
+       - `.mfa-faq-list` — one definition, used by every page with an FAQ.
+     The version is bumped in **one** place: `includes/widgets-enqueue.php`
      (`$get_version()` and the `mfa-core-global` registration, with a
      LiteSpeed exclusion for the same file further down that file).
-  2. **An administrator-only `/ui/` page** — a pattern library listing the
-     sections, cards and buttons side by side under names (btn1, btn2, btn3,
-     card1, card2 …). Agree the set once, visually, then reuse those exact
-     classes everywhere instead of inventing a variant per page. Same rules as
-     any other page: one shortcode, and gated like the rest of `/admin/`.
+  2. **`/ui/` is live** — administrator-only, noindex, `[mfa_ui_library]`
+     (production page 317892). It shows the chosen set marked **chosen**, with
+     the rejected candidates kept beside them so the decision can be re-read.
+     Candidates live in `ui-library-v1.css`, never the global sheet, so a
+     reject can never become something a page depends on. Its audit section
+     counts the sprawl live from the CSS folder, so the numbers cannot rot.
+
+  **Asset loading — the standing architecture (2026-08-19).** One global
+  stylesheet everywhere, one module stylesheet per area, nothing else:
+  - `global-v3.css` + `site-chrome-v1.css` (and the matching
+    `site-chrome-v1.js`) on every public page. The chrome is header, mobile
+    menu, floating share and Sofia buttons, mobile footer nav — a *module*,
+    not global, because `/member/` and `/admin/` deliberately skip it and use
+    their own shells. Do not fold it into the global sheet.
+  - Everything else loads only for its own area, keyed in
+    `widgets-enqueue.php`.
+  Nine files were retired getting here, and a page went from 8–9 stylesheets
+  to 2–3. Adding a new sitewide stylesheet or script should be treated as a
+  design smell: it almost always belongs in global (if truly shared) or in a
+  module (if not).
+
+  Two traps worth knowing before touching this:
+  - **Bottom clearance for the fixed button stack** lives in
+    `site-chrome-v1.css`, keyed on `body:has(.mfa-footer-nav)` so it applies
+    only where that UI exists. Never set it again from a theme or page — the
+    theme's `footer-nav.css` once did, and being loaded later it silently won,
+    leaving mobile content under the buttons on every page.
+  - **The `margin` shorthand defeats `.mfa-stack`.** A page sheet loading after
+    the global one that sets `margin: 0 auto` resets the `margin-top` the stack
+    applies, and the gap collapses to nothing. Use `margin-left`/`margin-right`.
 
   **Cache-busting note, because it shaped the above.** A CSS fix was deployed
   twice in one day and reached nobody: LiteSpeed's "Remove Query Strings"

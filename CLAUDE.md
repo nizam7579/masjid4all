@@ -183,6 +183,45 @@ When working across the identity/user/MFA plugins, treat the consolidation as a
 refactor, not a rewrite: preserve existing hooks, option names, and DB schema where
 practical, and flag any breaking change to option/table names before making it.
 
+## Identity model — prospect vs member (agreed 2026-08-19)
+Everyone starts a **prospect**: imported contacts, and accounts auto-created the
+first time an unknown number messages Sofia. A prospect is a contact record, not
+a conversion. They become a **member** only by completing a registration via one
+of three routes — Sofia (WhatsApp), Google, or the web form — all of which funnel
+through `niz_user_complete_registration()` in `mfa-core/includes/identity-registration.php`.
+That function is the single chokepoint: it sets `user_status`, promotes the
+`jet_cct_member` row, **resets `user_registered` to the activation moment (in GMT
+— `wp_insert_user` writes GMT and the site is UTC+8)**, records
+`mfa_registration_route`, and fires `mfa_user_activated`. Its "already a member"
+guard makes all of that idempotent.
+
+- **Do not measure growth from `user_registered` on old rows.** The imports wrote
+  synthetic dates in bulk — every month May–Oct 2026 spans the same full ID range,
+  user ID 2 carries an October date, two months are in the future. `/admin/reports/`
+  still charts this and is internal-only by decision. The trustworthy view is the
+  `/admin/` signups panel, which counts `user_status` + the reset date.
+- **74,812 users have no `user_status` meta at all.** Any status gate must test for
+  an explicit `prospect`, never a missing value, or it locks them out.
+- **Three completion flags** decide what a member still owes:
+  `niz_email_verified`, `niz_whatsapp_verified`, `mfa_password_set` — read together
+  by `mfa_user_completion()`. Follow-ups key off *what is missing*, not which route
+  they came through, so one set of nudges serves all three.
+- **Two placeholder email domains exist**, `<phone>@mfa.com` and the older
+  `<phone>@noemail.com`. Use `mfa_is_placeholder_email()`; never hand-roll the check.
+  18 of 29 members carry one, so **most members are unreachable by email** — sending
+  to them hard-bounces on a domain with no sending history.
+- **Test accounts are excluded from campaigns via the explicit `mfa_test_account`
+  meta** (`mfa_user_is_test_account()`), never by matching a login or email pattern —
+  a pattern would eventually catch a real member and drop them from every follow-up
+  silently. They stay real members for UAT; never delete them.
+- **WhatsApp verification is already built** — `niz_wa_generate_verify_link()` plus
+  the `VERIFY-XXXX` handler at router priority 10, with the button on the member
+  dashboard at `#mfa-dash-whatsapp`. It must route through a `wa.me` link because
+  Sofia cannot message anyone outside the 24-hour window; a code cannot be sent out.
+- **The change-password flow no longer requires the current password** (user's
+  explicit decision, 2026-08-19) so Google and Sofia members — who never had one —
+  can set one. Compensating control is a notification email on every change; keep it.
+
 ## Security — Non-Negotiable
 - **No hardcoded credentials, API keys, or secrets in plugin code.** This was already
   cleaned up across all four `enaizi-*` plugins — do not reintroduce this pattern.
@@ -228,6 +267,37 @@ working copy: `C:\projects\masjid4all`.
   before it's considered done.
 - Don't activate/deactivate plugins or run destructive DB operations without
   confirming first.
+
+### Deploying files (learned the hard way, 2026-08-19)
+- `create-upload-link` **refuses PHP outside the sandbox**. Don't fight it, and
+  don't base64 whole files through the conversation — it burns context fast.
+  Upload **one bundle as `.txt`** and split it server-side with `execute-php`,
+  using `===MFAFILE:<path>:<bytes>===` / `===MFAEND===` delimiters. **Verify
+  every payload's byte count against its header before writing anything, and
+  abort the whole batch on a mismatch** — this has caught truncated transfers,
+  and it makes a batch all-or-nothing instead of half-applied.
+- **Always diff before overwriting.** The local repo is a periodic mirror, not
+  the source of truth, and is regularly behind. Compare production's
+  `md5(str_replace("\r",'',$c))` against `git show HEAD~N:<path> | tr -d '\r'`.
+  Strip CR on both sides — several server files are CRLF while git holds LF.
+  Use `wc -c`, never `$(...)`, which eats the trailing newline.
+- **Never push these whole to production** — apply anchored, single-line edits
+  against the server's own bytes instead:
+  - `mfa-core/mfa-core.php` — production's include list has **no** `knowledge-ai`
+    entries (staging-only).
+  - `mfa-core/includes/widgets/admin-shell.php` — production still reads
+    **"Knowledge Base"**, local says "Knowledge Hub".
+  - **all `enaizi-identity` files** — CRLF on the server and genuinely drifted
+    from the mirror.
+  Dry-run every anchor for uniqueness first, abort if a count isn't exactly 1,
+  then syntax-check server-side (`php -l` via `proc_open` works on this host).
+- A **Cloudflare 520 tells you nothing about whether the write landed** — check
+  state before retrying, never retry blind.
+- Bash eats `$var` inside double-quoted `node -e` scripts (`$atts`, `$phone`
+  silently vanish, once causing a PHP fatal). Use single-quoted node scripts or
+  a heredoc file. `/tmp/x` in Bash is `C:\tmp\x` to node — pass through
+  `cygpath -w`.
+
 
 ## Design / Frontend Work
 - Theme: **Kadence Pro currently**, but this is now a full phase-out, not
@@ -363,6 +433,18 @@ working copy: `C:\projects\masjid4all`.
   constants — constants always win over the form. OpenRouter is the preferred way
   to test multiple underlying models: one key, switch models by editing the Model
   field to an OpenRouter `provider/model` string (e.g. `anthropic/claude-3.5-sonnet`).
+- **All `wp_nwa_*` datetimes are GMT — do not write local time into them.**
+  This is load-bearing, not a style choice: `touch_inbound()` derives
+  `window_expires_at` from the inbound `created_at` via `gmdate()`, and
+  `is_within_window()` compares it against `current_time('timestamp', true)`,
+  so the entire 24-hour customer-service window is GMT. The site is UTC+8, so
+  a local timestamp here makes that window look 32 hours long and the sender
+  will attempt messages Meta rejects. Convert at display time only, with
+  `get_date_from_gmt()`.
+  Fixed 2026-08-19: outbound was the one path writing `current_time('mysql')`,
+  which put replies 8 hours after the messages they answered in the inbox —
+  and, worse, meant outbound rows never aged out of `get_recent_context()`'s
+  GMT cutoff, crowding recent inbound messages out of Sofia's AI context.
 - Use the existing `NWA_*` / `nwa_*` naming convention consistently — see the naming
   note above. Do not introduce `niz_wa_*`/`NizWa`.
 

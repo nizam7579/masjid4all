@@ -61,6 +61,12 @@ function mfa_needs_whatsapp_link( $user_id ) {
 		return false;
 	}
 
+	// Test accounts are real members and stay in use for UAT, so they are
+	// excluded from campaigns rather than deleted.
+	if ( mfa_user_is_test_account( $user_id ) ) {
+		return false;
+	}
+
 	if ( mfa_is_placeholder_email( $user->user_email ) ) {
 		return false;
 	}
@@ -105,9 +111,11 @@ function mfa_whatsapp_nudge_find( $limit = 200 ) {
 		 INNER JOIN {$wpdb->usermeta} s ON s.user_id = u.ID AND s.meta_key = 'user_status'
 		        AND s.meta_value IN ('member','premium')
 		 LEFT JOIN {$wpdb->usermeta} v ON v.user_id = u.ID AND v.meta_key = 'niz_whatsapp_verified'
+		 LEFT JOIN {$wpdb->usermeta} t ON t.user_id = u.ID AND t.meta_key = 'mfa_test_account'
 		 WHERE u.user_email NOT LIKE %s
 		   AND u.user_email NOT LIKE %s
 		   AND (v.meta_value IS NULL OR v.meta_value <> 'Yes')
+		   AND (t.meta_value IS NULL OR t.meta_value <> 'yes')
 		 ORDER BY u.ID DESC
 		 LIMIT %d",
 		'%@mfa.com',

@@ -57,6 +57,24 @@ function mfa_is_placeholder_email( $email ) {
 
 	return false;
 }
+
+/**
+ * Is this a test account that must stay out of campaigns?
+ *
+ * Flagged explicitly with the mfa_test_account meta rather than matched on
+ * an email or login pattern. Patterns look tempting - the UAT accounts are
+ * all uat_* - but they would quietly catch a real member whose name or
+ * address happens to match, and the failure mode is silent exclusion from
+ * every follow-up, which nobody would notice.
+ *
+ * These accounts are otherwise real members and are still in use for the
+ * UAT pass, so they are excluded from marketing only, never deleted.
+ */
+function mfa_user_is_test_account( $user_id ) {
+	$is_test = ( 'yes' === get_user_meta( (int) $user_id, 'mfa_test_account', true ) );
+
+	return (bool) apply_filters( 'mfa_user_is_test_account', $is_test, (int) $user_id );
+}
 /**
  * Has this user chosen a password they know?
  *

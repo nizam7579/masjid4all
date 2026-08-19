@@ -23,8 +23,8 @@ function mfa_quran_single_shortcode() {
 			<p class="mfa-quran-steps"><strong>Recite, Listen and Understand.</strong></p>
 		</header>
 
-		<div class="mfa-page-row">
-			<div class="mfa-page-col-content">
+		<div class="mfa-row">
+			<div class="mfa-row-main">
 				<?php echo do_shortcode( '[quran_surah_selector]' ); ?>
 				<?php echo do_shortcode( '[daily_quran]' ); ?>
 
@@ -33,7 +33,7 @@ function mfa_quran_single_shortcode() {
 				</article>
 			</div>
 
-			<div class="mfa-page-col-ad">
+			<div class="mfa-row-side">
 				<h3 class="mfa-quran-ad-heading">Recommended Products/Services</h3>
 				<?php echo do_shortcode( '[enaizi_ads count="4" layout="vertical"]' ); ?>
 			</div>

@@ -21,9 +21,11 @@ function mfa_about_page_shortcode() {
 	ob_start();
 	?>
 	<div class="mfa-brand-page">
-		<header class="mfa-tool-page-header">
-			<h1>About Us</h1>
-			<p class="mfa-tool-page-tagline">The company and mission behind Masjid4All.</p>
+		<header class="mfa-hero mfa-hero--brand mfa-hero--bleed">
+			<div class="mfa-hero-inner">
+				<h1 class="mfa-hero-title">About Us</h1>
+				<p class="mfa-hero-tagline">The company and mission behind Masjid4All.</p>
+			</div>
 		</header>
 
 		<div class="mfa-brand-page-body">
@@ -69,9 +71,11 @@ function mfa_contact_page_shortcode() {
 	ob_start();
 	?>
 	<div class="mfa-brand-page">
-		<header class="mfa-tool-page-header">
-			<h1>Contact Us</h1>
-			<p class="mfa-tool-page-tagline">We'd love to hear from you.</p>
+		<header class="mfa-hero mfa-hero--brand mfa-hero--bleed">
+			<div class="mfa-hero-inner">
+				<h1 class="mfa-hero-title">Contact Us</h1>
+				<p class="mfa-hero-tagline">We'd love to hear from you.</p>
+			</div>
 		</header>
 
 		<div class="mfa-brand-page-body">

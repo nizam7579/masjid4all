@@ -23,9 +23,11 @@ function mfa_privacy_page_shortcode() {
 	ob_start();
 	?>
 	<div class="mfa-legal-page">
-		<header class="mfa-tool-page-header">
-			<h1>Privacy Policy</h1>
-			<p class="mfa-tool-page-tagline">How Masjid4ALL collects, uses and protects your information.</p>
+		<header class="mfa-hero mfa-hero--brand mfa-hero--bleed">
+			<div class="mfa-hero-inner">
+				<h1 class="mfa-hero-title">Privacy Policy</h1>
+				<p class="mfa-hero-tagline">How Masjid4ALL collects, uses and protects your information.</p>
+			</div>
 		</header>
 
 		<div class="mfa-legal-page-body">
@@ -100,9 +102,11 @@ function mfa_terms_page_shortcode() {
 	ob_start();
 	?>
 	<div class="mfa-legal-page">
-		<header class="mfa-tool-page-header">
-			<h1>Terms of Service</h1>
-			<p class="mfa-tool-page-tagline">The terms that govern your use of Masjid4ALL.</p>
+		<header class="mfa-hero mfa-hero--brand mfa-hero--bleed">
+			<div class="mfa-hero-inner">
+				<h1 class="mfa-hero-title">Terms of Service</h1>
+				<p class="mfa-hero-tagline">The terms that govern your use of Masjid4ALL.</p>
+			</div>
 		</header>
 
 		<div class="mfa-legal-page-body">

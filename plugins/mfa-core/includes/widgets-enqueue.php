@@ -235,15 +235,8 @@ function mfa_core_enqueue_widget_assets() {
 		$chrome_css = MFA_CORE_PATH . 'assets/css/site-chrome-v1.css';
 		wp_enqueue_style( 'mfa-core-site-chrome', MFA_CORE_URL . 'assets/css/site-chrome-v1.css', array( 'mfa-core-global' ), $get_version( $chrome_css ) );
 
-		// JS is still per-behaviour; merging it is a separate step.
-		$header_js_path = MFA_CORE_PATH . 'assets/js/header-v3.js';
-		wp_enqueue_script( 'mfa-core-header', MFA_CORE_URL . 'assets/js/header-v3.js', array(), $get_version( $header_js_path ), true );
-
-		$share_btn_js = MFA_CORE_PATH . 'assets/js/share-button-v13.js';
-		wp_enqueue_script( 'mfa-core-share-button', MFA_CORE_URL . 'assets/js/share-button-v13.js', array(), $get_version( $share_btn_js ), true );
-
-		$sofia_btn_js = MFA_CORE_PATH . 'assets/js/sofia-button-v1.js';
-		wp_enqueue_script( 'mfa-core-sofia-button', MFA_CORE_URL . 'assets/js/sofia-button-v1.js', array(), $get_version( $sofia_btn_js ), true );
+		$chrome_js = MFA_CORE_PATH . 'assets/js/site-chrome-v1.js';
+		wp_enqueue_script( 'mfa-core-site-chrome', MFA_CORE_URL . 'assets/js/site-chrome-v1.js', array(), $get_version( $chrome_js ), true );
 	} else {
 		$member_shell_css = MFA_CORE_PATH . 'assets/css/member-shell-v1.css';
 		wp_enqueue_style( 'mfa-core-member-shell', MFA_CORE_URL . 'assets/css/member-shell-v1.css', array( 'mfa-core-global' ), $get_version( $member_shell_css ) );
@@ -266,10 +259,10 @@ function mfa_core_enqueue_widget_assets() {
 	// they need its stylesheet + toggle JS - which the public-chrome block
 	// above intentionally skips for the member area.
 	if ( $is_member_area && ! is_user_logged_in() ) {
-		$chrome_css     = MFA_CORE_PATH . 'assets/css/site-chrome-v1.css';
-		$header_js_path = MFA_CORE_PATH . 'assets/js/header-v3.js';
+		$chrome_css = MFA_CORE_PATH . 'assets/css/site-chrome-v1.css';
+		$chrome_js  = MFA_CORE_PATH . 'assets/js/site-chrome-v1.js';
 		wp_enqueue_style( 'mfa-core-site-chrome', MFA_CORE_URL . 'assets/css/site-chrome-v1.css', array( 'mfa-core-global' ), $get_version( $chrome_css ) );
-		wp_enqueue_script( 'mfa-core-header', MFA_CORE_URL . 'assets/js/header-v3.js', array(), $get_version( $header_js_path ), true );
+		wp_enqueue_script( 'mfa-core-site-chrome', MFA_CORE_URL . 'assets/js/site-chrome-v1.js', array(), $get_version( $chrome_js ), true );
 	}
 
 	// /places/* geographic hubs. Keyed on the post type rather than

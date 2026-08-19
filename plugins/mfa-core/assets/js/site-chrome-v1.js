@@ -1,3 +1,79 @@
+/* mfa-core site-chrome.js — behaviour for the public site shell.
+
+   Merged from header-v3.js, share-button-v13.js and sofia-button-v1.js on
+   2026-08-19, in their original enqueue order. They were three requests on
+   every public page and always travelled together, matching site-chrome-v1.css.
+
+   Safe to concatenate: each was already self-contained - two IIFEs and a
+   DOMContentLoaded callback - with no top-level declarations, so nothing here
+   shares scope with anything else. Keep it that way when editing: wrap any
+   addition rather than introducing a top-level name. */
+
+/* ===================== header: mobile menu + active links ===================== */
+// header.js - [mfa_site_header] mobile menu toggle + active-page
+// highlighting, same pattern as the footer's is-active-footer-item
+// (see share-button.js) - detecting "which page am I on" needs the
+// actual browser URL, not anything available at PHP render time.
+(function () {
+  function highlightActiveLinks() {
+    var path = window.location.pathname.replace(/\/+$/, '') || '/';
+    var links = document.querySelectorAll('.mfa-header-nav-link, .mfa-header-mobile-link');
+    links.forEach(function (link) {
+      var hrefAttr = link.getAttribute('href');
+      if (hrefAttr === null) return; // the "Tools" trigger is a <button>, not a link
+      var href = hrefAttr.replace(/\/+$/, '') || '/';
+      if (href === path) {
+        link.classList.add('is-active');
+      }
+    });
+  }
+
+  function initMobileMenu() {
+    var burger = document.getElementById('mfa-header-burger');
+    var moreTrigger = document.getElementById('mfa-header-more-trigger');
+    var closeBtn = document.getElementById('mfa-header-mobile-close');
+    var menu = document.getElementById('mfa-header-mobile-menu');
+    var overlay = document.getElementById('mfa-header-mobile-overlay');
+    if (!menu || (!burger && !moreTrigger)) return;
+
+    function openMenu() {
+      menu.classList.add('is-open');
+      if (overlay) overlay.classList.add('is-open');
+      document.body.classList.add('mfa-header-menu-open');
+      menu.setAttribute('aria-hidden', 'false');
+      menu.removeAttribute('inert');
+      if (burger) burger.setAttribute('aria-expanded', 'true');
+    }
+
+    function closeMenu() {
+      menu.classList.remove('is-open');
+      if (overlay) overlay.classList.remove('is-open');
+      document.body.classList.remove('mfa-header-menu-open');
+      menu.setAttribute('aria-hidden', 'true');
+      menu.setAttribute('inert', '');
+      if (burger) burger.setAttribute('aria-expanded', 'false');
+    }
+
+    if (burger) burger.addEventListener('click', openMenu);
+    if (moreTrigger) moreTrigger.addEventListener('click', openMenu);
+    if (closeBtn) closeBtn.addEventListener('click', closeMenu);
+    if (overlay) overlay.addEventListener('click', closeMenu);
+  }
+
+  function init() {
+    highlightActiveLinks();
+    initMobileMenu();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+
+
+/* ===================== share button + footer nav ===================== */
 // assets/js/share-button.js - floating footer share button, plus footer
 // nav-bar icon cleanup and active-page highlighting (added later - the
 // footer element has a pre-existing bug where Kadence's own per-block
@@ -129,3 +205,38 @@
     init();
   }
 })();
+
+
+/* ===================== Sofia button ===================== */
+document.addEventListener('DOMContentLoaded', function () {
+	var trigger = document.getElementById('mfa-sofia-btn');
+	var modal = document.getElementById('mfa-sofia-modal');
+	var overlay = document.getElementById('mfa-sofia-overlay');
+	var closeBtn = document.getElementById('mfa-sofia-modal-close');
+	if (!trigger || !modal || !overlay) return;
+
+	function openModal() {
+		modal.classList.add('is-open');
+		overlay.classList.add('is-open');
+		modal.setAttribute('aria-hidden', 'false');
+	}
+	function closeModal() {
+		modal.classList.remove('is-open');
+		overlay.classList.remove('is-open');
+		modal.setAttribute('aria-hidden', 'true');
+	}
+
+	trigger.addEventListener('click', function () {
+		if (modal.classList.contains('is-open')) {
+			closeModal();
+		} else {
+			openModal();
+		}
+	});
+	if (closeBtn) closeBtn.addEventListener('click', closeModal);
+	overlay.addEventListener('click', closeModal);
+	document.addEventListener('keydown', function (e) {
+		if (e.key === 'Escape' && modal.classList.contains('is-open')) closeModal();
+	});
+});
+

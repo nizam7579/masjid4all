@@ -25,9 +25,16 @@
   --mfa-muted: #5b6b66;       /* secondary/muted body text */
   --mfa-label: #9aa5a2;       /* uppercase labels, least emphasis */
   --mfa-white: #ffffff;
-  --mfa-gold: #a97d2f;        /* Barakah points / rank accent only - not a
-                                  general-purpose accent, keep it scoped to
-                                  the points/rank UI (member dashboard). */
+  /* Barakah points / rank accent only - not a general-purpose accent, keep
+     it scoped to the points/rank UI (member dashboard). One value on purpose:
+     a dark-scheme override to #d9ac5f used to sit further down this file, but
+     nothing else on the site responds to prefers-color-scheme, and the two
+     [data-theme] rules beside it could never match because nothing sets that
+     attribute. The only effect was that a visitor whose OS was in dark mode
+     got a lighter gold on the same white surfaces - every use of this token
+     is text, a border, or a color-mix with white - which reduced contrast
+     rather than improving it. */
+  --mfa-gold: #a97d2f;
 
   /* ---------- Spacing scale (8px-based) ---------- */
   --mfa-space-1: 4px;
@@ -66,14 +73,6 @@
   --z-modal: 4000;
   --z-toast: 5000;
 }
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --mfa-gold: #d9ac5f;
-  }
-}
-:root[data-theme="dark"] { --mfa-gold: #d9ac5f; }
-:root[data-theme="light"] { --mfa-gold: #a97d2f; }
 
 /* ---------- Containers ---------- */
 

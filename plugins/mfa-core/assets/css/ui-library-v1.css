@@ -88,6 +88,9 @@
 .mfa-ui-specimen-body > .mfa-ui-band,
 .mfa-ui-specimen-body > .mfa-ui-frame,
 .mfa-ui-specimen-body > .mfa-ui-row,
+.mfa-ui-specimen-body > .mfa-ui-field,
+.mfa-ui-specimen-body > .mfa-ui-notice,
+.mfa-ui-specimen-body > .mfa-ui-empty,
 .mfa-ui-specimen-body > .mfa-band {
   flex: 1 1 100%;
   margin: 0;
@@ -365,4 +368,110 @@
 @media (max-width: 600px) {
   .mfa-ui-inner { padding: var(--mfa-space-4); }
   .mfa-ui-hero-inner { padding: var(--mfa-space-7) var(--mfa-space-4); }
+}
+
+/* ---------- Form candidates ----------
+   Grounded in what the plugin already does, not invented: sixteen stylesheets
+   style form controls, the admin list filter (border, radius-sm, teal focus)
+   is repeated across roughly eight admin pages, and there are eight
+   near-identical *-empty classes and three *-error ones.
+
+   So only the input offers a real choice - bordered as today, or filled. The
+   rest is shown once, as the proposed canonical version, because there is
+   nothing meaningful to choose between. */
+
+.mfa-ui-field { margin-bottom: var(--mfa-space-5); max-width: 420px; }
+
+.mfa-ui-label {
+  display: block;
+  margin-bottom: var(--mfa-space-2);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--mfa-ink);
+}
+
+/* input1 — bordered on white. What the admin filters already use. */
+.mfa-ui-input,
+.mfa-ui-select,
+.mfa-ui-textarea {
+  width: 100%;
+  padding: 10px var(--mfa-space-4);
+  border: 1px solid var(--mfa-border);
+  border-radius: var(--mfa-radius-sm);
+  background: var(--mfa-white);
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--mfa-ink);
+}
+
+.mfa-ui-textarea { min-height: 88px; resize: vertical; }
+
+.mfa-ui-input:focus,
+.mfa-ui-select:focus,
+.mfa-ui-textarea:focus {
+  outline: none;
+  border-color: var(--mfa-teal);
+  /* A visible ring as well as a colour change - border colour alone is not a
+     sufficient focus indicator for anyone who cannot distinguish the two. */
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--mfa-teal) 22%, transparent);
+}
+
+.mfa-ui-input[disabled],
+.mfa-ui-select[disabled],
+.mfa-ui-textarea[disabled] {
+  background: var(--mfa-mint-bg);
+  color: var(--mfa-muted);
+  cursor: not-allowed;
+}
+
+/* input2 — filled, no border until focus. */
+.mfa-ui-input--filled {
+  border-color: transparent;
+  background: var(--mfa-mint-bg);
+}
+
+.mfa-ui-input--filled:focus { background: var(--mfa-white); }
+
+/* Invalid control + its message. */
+.mfa-ui-input.is-invalid { border-color: var(--mfa-danger); }
+
+.mfa-ui-input.is-invalid:focus {
+  border-color: var(--mfa-danger);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--mfa-danger) 18%, transparent);
+}
+
+.mfa-ui-field-hint,
+.mfa-ui-field-error {
+  margin: var(--mfa-space-2) 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.mfa-ui-field-hint { color: var(--mfa-muted); }
+.mfa-ui-field-error { color: var(--mfa-danger); font-weight: 700; }
+
+/* Notices. Replaces the three hand-rolled *-error blocks, which each
+   hardcoded the same two hex values. */
+.mfa-ui-notice {
+  padding: var(--mfa-space-3) var(--mfa-space-4);
+  border-radius: var(--mfa-radius-sm);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.mfa-ui-notice--error { background: var(--mfa-danger-bg); color: var(--mfa-danger); }
+.mfa-ui-notice--success { background: var(--mfa-mint-bg); color: var(--mfa-green-dark); }
+.mfa-ui-notice--info {
+  background: var(--mfa-white);
+  border: 1px solid var(--mfa-border);
+  color: var(--mfa-ink);
+}
+
+/* Empty state. There are eight of these in the plugin today, one per admin
+   list, all saying the same thing in the same way. */
+.mfa-ui-empty {
+  padding: var(--mfa-space-8);
+  text-align: center;
+  color: var(--mfa-muted);
+  font-size: 14px;
 }

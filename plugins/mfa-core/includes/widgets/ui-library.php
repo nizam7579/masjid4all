@@ -50,6 +50,7 @@ function mfa_ui_library_shortcode() {
 		echo mfa_ui_section_layout();  // phpcs:ignore WordPress.Security.EscapeOutput
 		echo mfa_ui_section_buttons(); // phpcs:ignore WordPress.Security.EscapeOutput
 		echo mfa_ui_section_cards();   // phpcs:ignore WordPress.Security.EscapeOutput
+		echo mfa_ui_section_forms();   // phpcs:ignore WordPress.Security.EscapeOutput
 		echo mfa_ui_section_bands();   // phpcs:ignore WordPress.Security.EscapeOutput
 		?>
 	</div>
@@ -153,6 +154,8 @@ function mfa_ui_section_colour() {
 		'--mfa-mint-bg'    => 'Light card / section background',
 		'--mfa-border'     => 'Card and divider borders',
 		'--mfa-gold'       => 'Barakah points and rank only',
+		'--mfa-danger'     => 'Error text',
+		'--mfa-danger-bg'  => 'Error surface',
 	);
 
 	$out = '<div class="mfa-ui-swatches">';
@@ -354,6 +357,85 @@ function mfa_ui_section_layout() {
 		'layout',
 		'Layout',
 		'The skeleton every page is assembled from. <code>row1</code> stacks at 900px, the documented tablet breakpoint. Pick <code>inner1</code> or <code>inner2</code> per section rather than site-wide - a table or map wants the flush one, body copy wants the padded one.',
+		$out
+	);
+}
+
+/**
+ * Form controls, feedback and empty states.
+ *
+ * Only the input offers a genuine choice - the admin filters already agree on
+ * bordered/radius-sm/teal-focus, so a second option is worth seeing but a
+ * third would be invented. Everything below it is shown once because there is
+ * nothing to choose: it exists to replace the eight near-identical *-empty
+ * classes and three *-error blocks currently scattered across the plugin,
+ * each hardcoding the same two hex values.
+ */
+function mfa_ui_section_forms() {
+	$out = mfa_ui_specimen(
+		'input1',
+		'Bordered on white - what the admin filters already use',
+		'<div class="mfa-ui-field">'
+		. '<label class="mfa-ui-label" for="mfa-ui-d1">Mosque name</label>'
+		. '<input class="mfa-ui-input" id="mfa-ui-d1" type="text" placeholder="Masjid Al-Hidayah">'
+		. '<p class="mfa-ui-field-hint">Shown publicly on the listing.</p>'
+		. '</div>'
+	);
+
+	$out .= mfa_ui_specimen(
+		'input2',
+		'Filled, border only on focus',
+		'<div class="mfa-ui-field">'
+		. '<label class="mfa-ui-label" for="mfa-ui-d2">Mosque name</label>'
+		. '<input class="mfa-ui-input mfa-ui-input--filled" id="mfa-ui-d2" type="text" placeholder="Masjid Al-Hidayah">'
+		. '</div>'
+	);
+
+	$out .= mfa_ui_specimen(
+		'controls',
+		'Select, textarea and the disabled state',
+		'<div class="mfa-ui-field">'
+		. '<label class="mfa-ui-label" for="mfa-ui-d3">Status</label>'
+		. '<select class="mfa-ui-select" id="mfa-ui-d3"><option>New</option><option>Approved</option><option>Rejected</option></select>'
+		. '</div>'
+		. '<div class="mfa-ui-field">'
+		. '<label class="mfa-ui-label" for="mfa-ui-d4">Introduction</label>'
+		. '<textarea class="mfa-ui-textarea" id="mfa-ui-d4" placeholder="A short description..."></textarea>'
+		. '</div>'
+		. '<div class="mfa-ui-field">'
+		. '<label class="mfa-ui-label" for="mfa-ui-d5">Reference (read-only)</label>'
+		. '<input class="mfa-ui-input" id="mfa-ui-d5" type="text" value="MFA-2026-0184" disabled>'
+		. '</div>'
+	);
+
+	$out .= mfa_ui_specimen(
+		'validation',
+		'An invalid control and its message',
+		'<div class="mfa-ui-field">'
+		. '<label class="mfa-ui-label" for="mfa-ui-d6">Email</label>'
+		. '<input class="mfa-ui-input is-invalid" id="mfa-ui-d6" type="email" value="not-an-email" aria-invalid="true" aria-describedby="mfa-ui-d6-err">'
+		. '<p class="mfa-ui-field-error" id="mfa-ui-d6-err">Enter a valid email address.</p>'
+		. '</div>'
+	);
+
+	$out .= mfa_ui_specimen(
+		'notices',
+		'Replaces the hand-rolled error blocks',
+		'<div class="mfa-ui-notice mfa-ui-notice--error">Sorry, something went wrong saving your message.</div>'
+		. '<div class="mfa-ui-notice mfa-ui-notice--success">Sent. Our team will get back to you soon, In sha Allah.</div>'
+		. '<div class="mfa-ui-notice mfa-ui-notice--info">Only administrators can run the import.</div>'
+	);
+
+	$out .= mfa_ui_specimen(
+		'empty',
+		'One empty state, replacing eight',
+		'<div class="mfa-ui-empty">No mosques match that search. Try a different name or clear the filters.</div>'
+	);
+
+	return mfa_ui_block(
+		'forms',
+		'Forms, feedback and empty states',
+		'Sixteen stylesheets style form controls today, and there are <strong>eight near-identical <code>*-empty</code> classes</strong> and three <code>*-error</code> blocks, each hardcoding the same two hex values. Adding these needed two new tokens - <code>--mfa-danger</code> and <code>--mfa-danger-bg</code> - because the palette had no error colour at all. Success reuses the brand greens rather than inventing a second green. Pick <code>input1</code> or <code>input2</code>; the rest is proposed as-is.',
 		$out
 	);
 }

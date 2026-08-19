@@ -25,6 +25,12 @@
   --mfa-muted: #5b6b66;       /* secondary/muted body text */
   --mfa-label: #9aa5a2;       /* uppercase labels, least emphasis */
   --mfa-white: #ffffff;
+
+  /* Feedback. Added with the form components: the palette had no error colour,
+     so every notice hardcoded #fdecec/#8a1c1c for itself. Success deliberately
+     reuses the brand greens rather than inventing a second green. */
+  --mfa-danger: #8a1c1c;      /* error text */
+  --mfa-danger-bg: #fdecec;   /* error surface */
   /* Barakah points / rank accent only - not a general-purpose accent, keep
      it scoped to the points/rank UI (member dashboard). One value on purpose:
      a dark-scheme override to #d9ac5f used to sit further down this file, but

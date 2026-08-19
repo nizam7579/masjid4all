@@ -115,6 +115,17 @@ function niz_user_complete_registration( $user_id, $args = array() ) {
 		mfa_award_points( $user_id, 'Welcome Bonus', 50 );
 	}
 
+	/**
+	 * A member just completed registration, by any route.
+	 *
+	 * Fired once - the 'already a member' guard above returns early on a
+	 * re-call - so listeners can treat it as the activation moment.
+	 *
+	 * @param int   $user_id
+	 * @param array $args    Includes 'route' (whatsapp|google|web).
+	 */
+	do_action( 'mfa_user_activated', $user_id, $args );
+
 	return true;
 }
 

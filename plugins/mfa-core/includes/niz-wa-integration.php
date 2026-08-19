@@ -1106,10 +1106,72 @@ function niz_wa_dir_another_buttons() {
  * Sends a flow-completion message together with the "Add Another …" buttons.
  * Use this instead of nwa_send_message() at any terminal point of the flow.
  */
+/**
+ * Closes a directory action: confirmation, then the most useful next step.
+ *
+ * For a member that is "add another listing?". For everyone else it is the
+ * email, and that difference is the whole point of this function.
+ *
+ * A contact who adds a listing over WhatsApp is a prospect with a
+ * <phone>@mfa.com placeholder address, so no email can ever reach them,
+ * and Sofia cannot message them once WhatsApp's 24-hour window closes -
+ * niz-wa has no approved templates. The moment right after they have
+ * successfully added something is the only reliable chance to become able
+ * to contact them again, and it is also when they are most willing: they
+ * have just got something out of us.
+ *
+ * Real case that prompted this (2026-08-18): "Iqra wa Rattel Institute"
+ * added a website, was thanked, and the window shut the next day with no
+ * email, no account and no way to follow up.
+ *
+ * The ask reuses niz_wa_account_start(), which already handles email ->
+ * 6-digit verification -> account creation or merge, and finishes by
+ * sending a magic-login link. Nothing new is invented here.
+ *
+ * Asking replaces the "add another?" prompt rather than following it: two
+ * questions in one message get one answer, and the account flow claims the
+ * conversation at priority 15, which would swallow a button tap meant for
+ * the directory flow.
+ */
 function niz_wa_dir_send_done( $user_id, $wa_number, $message ) {
+	if ( niz_wa_dir_should_ask_for_email( $user_id ) ) {
+		nwa_send_message( $user_id, $wa_number, $message );
+
+		update_user_meta( $user_id, 'niz_wa_dir_register_asked', current_time( 'mysql', true ) );
+
+		niz_wa_account_start( $user_id );
+		return;
+	}
+
 	nwa_send_buttons( $user_id, $wa_number,
 		$message . "\n\nWould you like to add another listing to Masjid4All?",
 		niz_wa_dir_another_buttons() );
+}
+
+/**
+ * Ask only when it would achieve something, and not repeatedly.
+ *
+ * Skipped for members (we already have their email), for anyone who
+ * already has a real address on file, and for 7 days after a previous ask
+ * - someone adding three listings in a row should be asked once, not three
+ * times, and someone who ignored it last week should not be met with the
+ * same question every visit.
+ */
+function niz_wa_dir_should_ask_for_email( $user_id ) {
+	if ( ! $user_id || niz_wa_is_member( $user_id ) ) {
+		return false;
+	}
+
+	if ( '' !== niz_wa_contact_known_email( $user_id ) ) {
+		return false;
+	}
+
+	$asked = get_user_meta( $user_id, 'niz_wa_dir_register_asked', true );
+	if ( $asked && ( time() - strtotime( $asked . ' UTC' ) ) < 7 * DAY_IN_SECONDS ) {
+		return false;
+	}
+
+	return true;
 }
 
 /**

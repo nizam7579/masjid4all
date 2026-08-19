@@ -288,11 +288,6 @@ function mfa_core_enqueue_widget_assets() {
 		wp_enqueue_script( 'mfa-core-place-hub', MFA_CORE_URL . 'assets/js/place-hub-v1.js', array(), $get_version( $place_js ), true );
 	}
 
-	// Reusable content/ad two-column layout utility — sitewide, not tied
-	// to a specific page or shortcode. See page-layout-v2.css for usage.
-	$page_layout_css = MFA_CORE_PATH . 'assets/css/page-layout-v2.css';
-	wp_enqueue_style( 'mfa-core-page-layout', MFA_CORE_URL . 'assets/css/page-layout-v2.css', array(), $get_version( $page_layout_css ) );
-
 	// [mfa_coming_soon] badge — sitewide, since it's used inside Theme
 	// Builder template content (Review/Claim tabs) that has_shortcode()
 	// can't see from the front-end post being viewed.
@@ -330,12 +325,6 @@ function mfa_core_enqueue_widget_assets() {
 		wp_enqueue_style( 'mfa-core-quran-page', MFA_CORE_URL . 'assets/css/quran-page-v8.css', array(), $get_version( $css ) );
 	}
 
-	$is_tool_page = $post && in_array( $post->post_name, array( 'prayer-times', 'qibla-finder', 'masjid', 'business', 'web', 'knowledge-hub' ), true );
-	if ( $is_tool_page ) {
-		$css = MFA_CORE_PATH . 'assets/css/tool-page-v9.css';
-		wp_enqueue_style( 'mfa-core-tool-page', MFA_CORE_URL . 'assets/css/tool-page-v9.css', array(), $get_version( $css ) );
-	}
-
 	// Sofia-assist popup (.mfa-assist-* component): the "Add Your X" CTAs on the
 	// mosque/business/website directory pages, and the "Register/Log in with
 	// Sofia" popups on the member + forgot-password pages.
@@ -352,8 +341,6 @@ function mfa_core_enqueue_widget_assets() {
 
 	$is_brand_page = $post && in_array( $post->post_name, array( 'about-us', 'contact-us' ), true );
 	if ( $is_brand_page ) {
-		$header_css = MFA_CORE_PATH . 'assets/css/tool-page-v9.css';
-		wp_enqueue_style( 'mfa-core-tool-page', MFA_CORE_URL . 'assets/css/tool-page-v9.css', array(), $get_version( $header_css ) );
 		$css = MFA_CORE_PATH . 'assets/css/brand-page-v5.css';
 		wp_enqueue_style( 'mfa-core-brand-page', MFA_CORE_URL . 'assets/css/brand-page-v5.css', array(), $get_version( $css ) );
 	}
@@ -382,8 +369,6 @@ function mfa_core_enqueue_widget_assets() {
 
 	$is_legal_page = $post && in_array( $post->post_name, array( 'privacy-policy', 'terms-of-service' ), true );
 	if ( $is_legal_page ) {
-		$header_css = MFA_CORE_PATH . 'assets/css/tool-page-v9.css';
-		wp_enqueue_style( 'mfa-core-tool-page', MFA_CORE_URL . 'assets/css/tool-page-v9.css', array(), $get_version( $header_css ) );
 		$css = MFA_CORE_PATH . 'assets/css/legal-page-v3.css';
 		wp_enqueue_style( 'mfa-core-legal-page', MFA_CORE_URL . 'assets/css/legal-page-v3.css', array(), $get_version( $css ) );
 	}
@@ -482,9 +467,7 @@ function mfa_core_litespeed_css_excludes( $excludes ) {
 	// file, absent from the served combined bundle) - same class of bug
 	// documented elsewhere in this project for other files.
 	$excludes[] = 'mfa-core/assets/css/member-logged-out-v5.css';
-	$excludes[] = 'mfa-core/assets/css/page-layout-v2.css';
 	$excludes[] = 'mfa-core/assets/css/quran-page-v8.css';
-	$excludes[] = 'mfa-core/assets/css/tool-page-v9.css';
 	$excludes[] = 'mfa-core/assets/css/brand-page-v5.css';
 	$excludes[] = 'mfa-core/assets/css/legal-page-v3.css';
 	$excludes[] = 'mfa-core/assets/css/share-button-v15.css';

@@ -239,18 +239,4 @@
 .mfa-testimonial-card p.mfa-attr { font-size: 13px; font-weight: 700; color: var(--mfa-teal-dark); margin: 0; }
 
 /* ---------- FAQ (core/details) ---------- */
-.mfa-faq-list details {
-  border-bottom: 1px solid var(--mfa-border);
-  padding: 18px 0;
-}
-.mfa-faq-list summary {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--mfa-ink);
-  cursor: pointer;
-  list-style: none;
-}
-.mfa-faq-list summary::-webkit-details-marker { display: none; }
-.mfa-faq-list summary::after { content: '+'; float: right; font-weight: 400; color: var(--mfa-teal); }
-.mfa-faq-list details[open] summary::after { content: '−'; }
-.mfa-faq-list details p { font-size: 14.5px; color: #56655f; line-height: 1.65; margin: 10px 0 0; }
+/* FAQ list moved to global-v3.css - one definition, used here too. */

@@ -446,6 +446,29 @@ function mfa_core_enqueue_widget_assets() {
 	}
 }
 
+
+/**
+ * Keep the ad tracker out of LiteSpeed's JS delay/defer pipeline.
+ *
+ * LiteSpeed rewrites optimised scripts to type="litespeed/javascript" and
+ * holds execution until the visitor interacts with the page. For most
+ * scripts that is exactly what you want. For this one it is fatal: a
+ * viewable impression is meant to be recorded when an ad has been on
+ * screen for a second, which routinely happens before any click, key or
+ * real scroll event. Delayed, the tracker would systematically undercount
+ * precisely the passive visitors it exists to measure - verified on
+ * staging, where the code was present in the combined bundle but never
+ * executed and the counter stayed at zero.
+ *
+ * Excluded from combine as well, so the file keeps its own URL and the
+ * exclusion cannot be undone by it being folded into a shared bundle.
+ */
+add_filter( 'litespeed_optimize_js_excludes', 'mfa_core_litespeed_js_excludes' );
+add_filter( 'litespeed_optm_js_defer_exc', 'mfa_core_litespeed_js_excludes' );
+function mfa_core_litespeed_js_excludes( $excludes ) {
+	$excludes[] = 'mfa-core/assets/js/ads-v2.js';
+	return $excludes;
+}
 add_filter( 'litespeed_optimize_css_excludes', 'mfa_core_litespeed_css_excludes' );
 function mfa_core_litespeed_css_excludes( $excludes ) {
 	$excludes[] = 'mfa-core/assets/css/prayer-times-v3.css';

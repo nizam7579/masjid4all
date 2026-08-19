@@ -32,7 +32,7 @@ function mfa_wallet_table() {
 // enaizi-ads plugin created, so existing rows/wallets carry over as-is.
 // dbDelta() is idempotent, so this is a safe no-op once the tables match.
 // ---------------------------------------------------------------------
-define( 'MFA_ADS_TABLE_VERSION', '1.0' );
+define( 'MFA_ADS_TABLE_VERSION', '1.1' );
 
 add_action( 'plugins_loaded', 'mfa_ads_maybe_create_tables' );
 function mfa_ads_maybe_create_tables() {
@@ -56,6 +56,7 @@ function mfa_ads_maybe_create_tables() {
 		lng DECIMAL(10,6),
 		radius INT DEFAULT 10,
 		impressions BIGINT DEFAULT 0,
+		viewable BIGINT DEFAULT 0,
 		clicks BIGINT DEFAULT 0,
 		base_price DECIMAL(10,2) DEFAULT 0.20,
 		dynamic_price DECIMAL(10,2) DEFAULT 0.20,
@@ -111,17 +112,47 @@ function mfa_ads_get_ads( $count = 2 ) {
 	global $wpdb;
 
 	$rows = $wpdb->get_results( 'SELECT * FROM ' . mfa_ads_table() . ' WHERE status = 1', ARRAY_A );
-
-	$pool = array();
-	foreach ( $rows as $r ) {
-		$score = mfa_ads_score( $r );
-		for ( $i = 0; $i < $score; $i++ ) {
-			$pool[] = $r;
-		}
+	if ( empty( $rows ) ) {
+		return array();
 	}
 
-	shuffle( $pool );
-	return array_slice( $pool, 0, $count );
+	// Weighted selection WITHOUT replacement.
+	//
+	// The previous version pushed `score` copies of every ad into one pool,
+	// shuffled it and sliced $count off the front, so the same ad could fill
+	// two or three of the four slots in a single column - visible to any
+	// advertiser looking at their own placement. Each pass here picks one ad
+	// and removes it from the pool, so a column never repeats an advertiser.
+	$count  = min( (int) $count, count( $rows ) );
+	$picked = array();
+
+	while ( count( $picked ) < $count && ! empty( $rows ) ) {
+		$weights = array();
+		$total   = 0.0;
+		foreach ( $rows as $k => $r ) {
+			$w             = max( 0.0001, (float) mfa_ads_score( $r ) );
+			$weights[ $k ] = $w;
+			$total        += $w;
+		}
+
+		// Scaled to integers so mt_rand() can do the pick without float edge
+		// cases at the boundaries.
+		$target = mt_rand( 1, max( 1, (int) round( $total * 1000 ) ) );
+		$acc    = 0;
+		$chosen = array_key_first( $rows );
+		foreach ( $weights as $k => $w ) {
+			$acc += (int) round( $w * 1000 );
+			if ( $acc >= $target ) {
+				$chosen = $k;
+				break;
+			}
+		}
+
+		$picked[] = $rows[ $chosen ];
+		unset( $rows[ $chosen ] );
+	}
+
+	return $picked;
 }
 
 function mfa_ads_update_balance( $user, $amount ) {
@@ -178,6 +209,10 @@ function mfa_ads_shortcode( $atts ) {
 	if ( empty( $ads ) && '' === $promo ) {
 		return '';
 	}
+
+	// Registered in mfa_ads_register_assets(); enqueued here so the tracker
+	// ships exactly where an ad renders.
+	wp_enqueue_script( 'mfa-core-ads' );
 
 	ob_start();
 	?>
@@ -280,6 +315,58 @@ function mfa_ads_click() {
 	wp_send_json_success();
 }
 
+
+// ---------------------------------------------------------------------
+// Viewable-impression AJAX.
+//
+// The `impressions` column counts server-side RENDERS - every time the
+// shortcode outputs an ad, including requests from bots and ads that are
+// never scrolled into view. That is a "served" count, not a seen one, and
+// measuring click-through against it understates real performance by a
+// wide margin.
+//
+// `viewable` is the honest denominator: the browser reports an ad only
+// once it has been at least 50% visible for a continuous second (the
+// usual display-advertising definition). Because it needs a real browser
+// running IntersectionObserver, it also excludes most crawler traffic for
+// free. Both columns are kept so the served-vs-viewable ratio stays
+// visible - that ratio is itself the useful signal.
+//
+// No nonce, deliberately: these pages are served from LiteSpeed's page
+// cache, so an embedded nonce would be stale for most visitors. That
+// matches the existing click endpoint. Both counters are therefore
+// inflatable by anyone who can POST - worth solving before ad spend is
+// ever tied to them, but out of scope here and no ad is billed today.
+// The batch is capped so one request cannot amplify far.
+// ---------------------------------------------------------------------
+add_action( 'wp_ajax_enaizi_impression', 'mfa_ads_impression' );
+add_action( 'wp_ajax_nopriv_enaizi_impression', 'mfa_ads_impression' );
+function mfa_ads_impression() {
+	global $wpdb;
+
+	$raw = isset( $_POST['ids'] ) ? sanitize_text_field( wp_unslash( $_POST['ids'] ) ) : '';
+	if ( '' === $raw ) {
+		wp_send_json_error();
+	}
+
+	$ids = array_map( 'intval', explode( ',', $raw ) );
+	$ids = array_values( array_unique( array_filter( $ids ) ) );
+	$ids = array_slice( $ids, 0, 12 );
+
+	if ( empty( $ids ) ) {
+		wp_send_json_error();
+	}
+
+	// Every value is an int by construction, so this interpolation is safe;
+	// $wpdb->prepare() has no placeholder for a variable-length IN list.
+	$in = implode( ',', $ids );
+
+	$wpdb->query(
+		'UPDATE ' . mfa_ads_table() . " SET viewable = viewable + 1 WHERE id IN ({$in}) AND status = 1"
+	);
+
+	wp_send_json_success( count( $ids ) );
+}
 // ---------------------------------------------------------------------
 // wp-admin: "Ads" top-level menu -> Create Ad + Approvals. Same layout as
 // the original enaizi-ads plugin, with sanitization + nonces added (the
@@ -371,24 +458,31 @@ function mfa_ads_approvals_page() {
 	</div>
 	<?php
 }
-
 // ---------------------------------------------------------------------
-// Click-tracking JS - only enqueued on the post types [enaizi_ads]
-// actually renders on (mosque/business/web singles, via
-// directory-single.php's sidebar config). has_shortcode() can't see it
-// there since it's injected from PHP config, not literal post_content -
-// same reasoning as the directory-single/modal block in
-// widgets-enqueue.php.
+// Script registration.
+//
+// Registered globally, enqueued from mfa_ads_shortcode() itself, so the
+// tracker loads exactly where an ad actually renders and nowhere else.
+//
+// This replaces a post-type check ( masjid / business / web ) which meant
+// the click tracker loaded on the three single-listing templates ONLY.
+// Ads render in eleven places - the four directory pages, single mosque/
+// business/web, /quran/ and single surah, /prayer-times/ and
+// /qibla-finder/ - so impressions were being counted everywhere while
+// clicks were counted in three of them. Any click-through figure taken
+// before 2026-08-19 is therefore an undercount, not a real CTR, and the
+// two are not comparable across that date.
 // ---------------------------------------------------------------------
-add_action( 'wp_enqueue_scripts', 'mfa_ads_enqueue_assets' );
-function mfa_ads_enqueue_assets() {
-	$post = get_post();
-	if ( ! $post || ! in_array( $post->post_type, array( 'masjid', 'business', 'web' ), true ) ) {
-		return;
-	}
-
-	$js = MFA_CORE_PATH . 'assets/js/ads-v1.js';
-	wp_enqueue_script( 'mfa-core-ads', MFA_CORE_URL . 'assets/js/ads-v1.js', array(), file_exists( $js ) ? filemtime( $js ) : MFA_CORE_VERSION, true );
+add_action( 'wp_enqueue_scripts', 'mfa_ads_register_assets' );
+function mfa_ads_register_assets() {
+	$js = MFA_CORE_PATH . 'assets/js/ads-v2.js';
+	wp_register_script(
+		'mfa-core-ads',
+		MFA_CORE_URL . 'assets/js/ads-v2.js',
+		array(),
+		file_exists( $js ) ? filemtime( $js ) : MFA_CORE_VERSION,
+		true
+	);
 	wp_localize_script( 'mfa-core-ads', 'mfaAdsAjax', array(
 		'url' => admin_url( 'admin-ajax.php' ),
 	) );

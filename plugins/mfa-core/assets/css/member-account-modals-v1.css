@@ -1,6 +1,6 @@
 /* mfa-core member-account-modals.css - Edit Profile / Change Password
    popups (member-account-modals.php). Same overlay/aria-hidden pattern as
-   sofia-button-v1.css, but a centered form dialog instead of a corner
+   site-chrome-v1.css, but a centered form dialog instead of a corner
    chat bubble, and using the shared --z-modal token (this page has no
    competing floating widgets, unlike the public site). */
 

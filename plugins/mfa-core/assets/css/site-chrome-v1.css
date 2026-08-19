@@ -1,3 +1,22 @@
+/* mfa-core site-chrome.css — the public site shell: header and mobile menu,
+   the floating share and Sofia buttons, and the mobile footer nav.
+
+   Merged from header-v11.css, share-button-v15.css and sofia-button-v1.css on
+   2026-08-19, concatenated in their original enqueue order so the cascade is
+   unchanged. They were three separate requests on every public page and always
+   travelled together.
+
+   NOT loaded in /member/ or /admin/ - those areas have their own shell and
+   deliberately skip the public chrome. That is why this is a separate file
+   rather than part of global-v3.css: global is for everything, this is the
+   public module.
+
+   Bottom clearance is keyed on body:has(.mfa-footer-nav) rather than a body
+   class, so it applies only where the fixed UI it is clearing actually
+   exists - logged-out /member/ gets the header from this file but has no
+   footer nav, and must not gain 220px of empty space. */
+
+/* ===================== header ===================== */
 /* header.css - [mfa_site_header], replaces the Kadence Theme Builder
    "Header" element. Plain HTML/CSS, no Kadence. Fixed to the top of the
    viewport, matching the original's fixed_above_header hook. */
@@ -355,3 +374,321 @@ body.wp-theme-kadence, body.mfa-site { padding-top: 64px !important; }
 .mfa-header-mobile-overlay.is-open { opacity: 1; pointer-events: auto; }
 
 body.mfa-header-menu-open { overflow: hidden; }
+
+
+/* ===================== floating buttons + footer nav ===================== */
+/* mfa-core share-button.css - floating footer share button + footer nav
+   bar fixes. */
+
+/* Pulled out of the flex-column footer stack and pinned directly to the
+   viewport, at the same right inset (17px) as Kadence's own pre-existing
+   "scroll to top" button (#kt-scroll-up), so it aligns on the same right
+   edge regardless of the fragile footer layout below.
+
+   Both `bottom` and `right` are static values (not JS-computed) - this
+   used to track #kt-scroll-up's live position so it could stack above
+   it, but that made the button visibly jump/move during scroll instead
+   of staying put. A fixed position is what "stay put" requires: no
+   runtime recalculation, so nothing to visibly shift.
+
+   Stacks in the middle of a 3-button column now that Sofia is back
+   (sofia-button-v1.css): scroll-up (bottom:160px/210px, native Kadence,
+   see Customizer scroll_up_bottom_offset) > share (here) > sofia
+   (bottom:24px/90px, share's old position). Each step up is +64px
+   (button height 40px + ~24px gap). Mobile gets its own `bottom`
+   override to clear the fixed footer nav bar (~63px tall plus
+   safe-area inset) - see the "Footer nav bar" section below. */
+.mfa-share-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 100px;
+  border: 2px solid #edf2f7;
+  box-shadow: 0 0 14px 0 rgba(0, 0, 0, 0.2);
+  background: #25988b;
+  color: #ffffff;
+  cursor: pointer;
+  padding: 0;
+  position: fixed !important;
+  /* Centers this 40px button on #kt-scroll-up's horizontal center.
+     Scroll-up is 25.59px wide at a fixed right:17px (independent of
+     viewport width), so its center sits 17 + 25.59/2 = 29.8px from the
+     right edge; offsetting this 40px-wide button by 29.8 - 40/2 = 9.8px
+     lands its own center at the same point. */
+  right: 9.8px;
+  bottom: 88px !important;
+  top: auto !important;
+  margin: 0 !important;
+  z-index: 100000;
+}
+@media (max-width: 782px) {
+  .mfa-share-btn { bottom: calc(154px + env(safe-area-inset-bottom, 0px)) !important; }
+}
+.mfa-share-btn svg {
+  width: 20px;
+  height: 20px;
+}
+.mfa-share-btn:hover {
+  background: #1f7d72;
+}
+
+.mfa-share-toast {
+  position: fixed;
+  right: 20px;
+  bottom: 154px; /* stays ~26px above the share button - see its new bottom:88px above */
+  background: #12181f;
+  color: #f4faf9;
+  font-size: 13px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 999999;
+}
+.mfa-share-toast.is-visible {
+  opacity: 1;
+}
+
+/* ---------- Sitewide bottom clearance ---------- */
+/* The footer nav bar (mobile only, see below) and the sofia/share/
+   scroll-up button stack are all position:fixed, so none of them reserve
+   layout space - without this, every page's last bit of content sits
+   underneath them once scrolled to the bottom (confirmed on the homepage
+   FAQ and the masjid directory's ad column). Same body-padding technique
+   as the fixed header (see header-v6.css), and the same
+   body.wp-theme-kadence-qualified selector - a bare `body {}` rule gets
+   silently dropped by LiteSpeed's CSS processing (confirmed elsewhere in
+   this project). Sitewide here (not per-template) since the button stack
+   is sitewide too - a previous per-template version of this only lived in
+   tool-page-v7.css and missed the homepage and single-post templates.
+
+   Measured in a browser 2026-08-19, after the Kadence scroll-up went with
+   the theme it belonged to. Desktop: share button tops out 170px above the
+   fold, so 200px. Mobile: share 194px, sofia 130px, footer nav 51px, so
+   220px leaves a little under 30px below the topmost button.
+
+   The theme's footer-nav.css used to set 64px here too and, loading later,
+   won - leaving mobile content under the button stack on every page. It now
+   defers to this file. */
+html body:has(.mfa-footer-nav) {
+  padding-bottom: 200px;
+}
+@media (max-width: 782px) {
+  html body:has(.mfa-footer-nav) {
+    padding-bottom: 220px;
+  }
+}
+
+/* ---------- Footer nav bar ---------- */
+/* Root cause of everything below: the Kadence Theme Builder "Footer Menu"
+   fixed element (post 83) doesn't run do_blocks() on its content, so any
+   block requiring PHP-side dynamic processing silently fails - missing
+   per-block generated CSS (icon sizing, background, text size, centering),
+   and the kadence/rowlayout block's own wrapper never renders at all.
+   Everything in this section works around that directly. */
+
+.kadence-column83_641fa4-f4 .kt-svg-icon-wrap svg {
+  width: 20px;
+  height: 20px;
+}
+
+.kadence-column83_641fa4-f4 > .kt-inside-inner-col {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap;
+  align-items: center;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+.kadence-column83_641fa4-f4 > .kt-inside-inner-col > .wp-block-kadence-column {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.kadence-column83_641fa4-f4 .kt-inside-inner-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+@media (min-width: 783px) {
+  .kadence-column83_641fa4-f4 {
+    display: none !important;
+  }
+}
+
+/* Only 5 real destinations now that the site's main navigation covers
+   what the old "Menu" trigger used to open - hide it and let the
+   remaining 5 items (flex: 1 1 0 above) share the width equally. */
+.pemicu-menu-utama {
+  display: none !important;
+}
+
+/* Dark background (was fully transparent), flush to the true bottom of
+   the screen including safe-area insets on notched/gesture-nav phones. */
+.kadence-column83_641fa4-f4 {
+  background: linear-gradient(180deg, #0d4d47 0%, #0a3832 100%) !important;
+  padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+}
+
+/* Labels were rendering at the browser's default h2 size (~20px) since
+   their generated font-size CSS never applied either. Also recolor for
+   contrast against the new dark background. */
+.kadence-column83_641fa4-f4 h2 {
+  font-size: 10.5px !important;
+  color: #cfe3e0 !important;
+  margin: 0 !important;
+  text-align: center !important;
+}
+.kadence-column83_641fa4-f4 svg {
+  color: #cfe3e0;
+}
+
+/* Highlights whichever item matches the current page (set via JS in
+   share-button.js, since detecting "which page am I on" needs the
+   actual browser URL, not anything available at PHP render time for
+   this cached, sitewide footer element). */
+.kadence-column83_641fa4-f4 .is-active-footer-item h2 {
+  color: #5cfce8 !important;
+  font-weight: 700 !important;
+}
+.kadence-column83_641fa4-f4 .is-active-footer-item svg {
+  color: #5cfce8;
+}
+
+
+/* ===================== Sofia button ===================== */
+/* mfa-core sofia-button.css - floating WhatsApp chat-launcher button +
+   popup. Stacks directly above the share button (see share-button-v14.css)
+   which itself stacks above Kadence's native #kt-scroll-up ("scroll to
+   top") button - all three share the same right-edge center so they read
+   as one column: scroll-up (top) > share (middle) > sofia (bottom).
+   #kt-scroll-up sits at bottom:160px/right:17px desktop, bottom:210px
+   mobile (Customizer: scroll_up_bottom_offset/scroll_up_side_offset). */
+
+.mfa-sofia-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 100px;
+  border: 2px solid #edf2f7;
+  box-shadow: 0 0 14px 0 rgba(0, 0, 0, 0.2);
+  background: #25988b;
+  overflow: hidden;
+  cursor: pointer;
+  padding: 0;
+  position: fixed !important;
+  right: 9.8px; /* centers on #kt-scroll-up's horizontal center - see share-button-v14.css */
+  bottom: 24px !important;
+  top: auto !important;
+  margin: 0 !important;
+  z-index: 100000;
+}
+@media (max-width: 782px) {
+  .mfa-sofia-btn { bottom: calc(90px + env(safe-area-inset-bottom, 0px)) !important; }
+}
+.mfa-sofia-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mfa-sofia-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 100000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.mfa-sofia-overlay.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.mfa-sofia-modal {
+  position: fixed;
+  right: 12px;
+  bottom: 80px;
+  width: min(300px, calc(100vw - 24px));
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+  padding: 28px 20px 20px;
+  z-index: 100001;
+  text-align: center;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(12px);
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+}
+@media (max-width: 782px) {
+  .mfa-sofia-modal { bottom: calc(146px + env(safe-area-inset-bottom, 0px)); }
+}
+.mfa-sofia-modal.is-open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.mfa-sofia-modal-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: #f4faf9;
+  color: #12181f;
+  cursor: pointer;
+  padding: 0;
+}
+.mfa-sofia-modal-close svg {
+  width: 16px;
+  height: 16px;
+}
+
+.mfa-sofia-modal-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #edf2f7;
+  margin: 0 auto 14px;
+  display: block;
+}
+.mfa-sofia-modal-text {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #33475b;
+  margin: 0 0 18px;
+}
+.mfa-sofia-modal-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 24px;
+  border-radius: 999px;
+  background: #25988b;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 14px;
+  text-decoration: none;
+  box-shadow: 0 8px 18px -6px rgba(37, 152, 139, 0.5);
+  transition: filter 0.15s ease;
+}
+.mfa-sofia-modal-cta:hover {
+  filter: brightness(1.08);
+  color: #ffffff;
+}
+

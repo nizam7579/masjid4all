@@ -306,7 +306,7 @@
 /* container1 - the outermost wrapper. Centres up to the desktop max width and
    carries nothing else: no margin, no padding. Bottom clearance for the fixed
    button stack is NOT here; it is applied sitewide to body in
-   share-button-v15.css, so adding it again would double it. */
+   site-chrome-v1.css, so adding it again would double it. */
 .mfa-ui-container {
   max-width: var(--mfa-container-max);
   margin: 0 auto;

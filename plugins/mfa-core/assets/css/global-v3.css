@@ -158,7 +158,7 @@
    padding except where a block exists to provide it.
 
    Bottom clearance for the fixed button stack is NOT here - it is applied
-   sitewide to body in share-button-v15.css, and repeating it doubles the gap. */
+   sitewide to body in site-chrome-v1.css, and repeating it doubles the gap. */
 
 .mfa-shell {
   max-width: var(--mfa-container-max);
@@ -472,4 +472,22 @@
   font-size: 14.5px;
   line-height: 1.65;
   color: var(--mfa-muted);
+}
+
+/* ---------- Coming-soon badge ----------
+   Folded in from coming-soon-v1.css. Small, shared, and it was loaded on every
+   page anyway - the stated reason being Kadence Theme Builder content that
+   has_shortcode() could not see, which stopped applying when Kadence went. */
+
+.mfa-coming-soon-notice {
+  display: inline-block;
+  background: #fff4e5;
+  border: 1px solid #f0b849;
+  color: #6b4a05;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 8px 16px;
+  margin: 0 0 16px;
+  font-family: Lato, sans-serif;
 }

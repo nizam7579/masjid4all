@@ -12,7 +12,7 @@
      and because the theme loads after the plugin a 64px rule here silently
      won over the plugin figure that accounts for the whole stack. The plugin
      owns the floating buttons, so it owns the clearance:
-     mfa-core/assets/css/share-button-v15.css. */
+     mfa-core/assets/css/site-chrome-v1.css. */
 
   .mfa-footer-nav {
     position: fixed;

@@ -228,25 +228,21 @@ function mfa_core_enqueue_widget_assets() {
 	}
 
 	if ( ! $is_member_area && ! $is_admin_area ) {
-		// Sitewide header — same reasoning as the floating share button below:
-		// not tied to any specific page's post_content.
-		$header_css_path = MFA_CORE_PATH . 'assets/css/header-v11.css';
-		$header_js_path  = MFA_CORE_PATH . 'assets/js/header-v3.js';
-		wp_enqueue_style( 'mfa-core-header', MFA_CORE_URL . 'assets/css/header-v11.css', array(), $get_version( $header_css_path ) );
+		// Public site chrome — header, mobile menu, floating share and Sofia
+		// buttons, mobile footer nav. One stylesheet: they were three requests
+		// on every public page and always travelled together. Not loaded in
+		// /member/ or /admin/, which have their own shell.
+		$chrome_css = MFA_CORE_PATH . 'assets/css/site-chrome-v1.css';
+		wp_enqueue_style( 'mfa-core-site-chrome', MFA_CORE_URL . 'assets/css/site-chrome-v1.css', array( 'mfa-core-global' ), $get_version( $chrome_css ) );
+
+		// JS is still per-behaviour; merging it is a separate step.
+		$header_js_path = MFA_CORE_PATH . 'assets/js/header-v3.js';
 		wp_enqueue_script( 'mfa-core-header', MFA_CORE_URL . 'assets/js/header-v3.js', array(), $get_version( $header_js_path ), true );
 
-		// Floating footer share button — sitewide, since the Kadence Theme
-		// Builder footer isn't part of any specific page's post_content.
-		$share_btn_css = MFA_CORE_PATH . 'assets/css/share-button-v15.css';
-		$share_btn_js  = MFA_CORE_PATH . 'assets/js/share-button-v13.js';
-		wp_enqueue_style( 'mfa-core-share-button', MFA_CORE_URL . 'assets/css/share-button-v15.css', array(), $get_version( $share_btn_css ) );
+		$share_btn_js = MFA_CORE_PATH . 'assets/js/share-button-v13.js';
 		wp_enqueue_script( 'mfa-core-share-button', MFA_CORE_URL . 'assets/js/share-button-v13.js', array(), $get_version( $share_btn_js ), true );
 
-		// Floating "Sofia" WhatsApp chat button — sitewide, same reasoning as
-		// the share button above (embedded in post 83 alongside it).
-		$sofia_btn_css = MFA_CORE_PATH . 'assets/css/sofia-button-v1.css';
-		$sofia_btn_js  = MFA_CORE_PATH . 'assets/js/sofia-button-v1.js';
-		wp_enqueue_style( 'mfa-core-sofia-button', MFA_CORE_URL . 'assets/css/sofia-button-v1.css', array(), $get_version( $sofia_btn_css ) );
+		$sofia_btn_js = MFA_CORE_PATH . 'assets/js/sofia-button-v1.js';
 		wp_enqueue_script( 'mfa-core-sofia-button', MFA_CORE_URL . 'assets/js/sofia-button-v1.js', array(), $get_version( $sofia_btn_js ), true );
 	} else {
 		$member_shell_css = MFA_CORE_PATH . 'assets/css/member-shell-v1.css';
@@ -270,9 +266,9 @@ function mfa_core_enqueue_widget_assets() {
 	// they need its stylesheet + toggle JS - which the public-chrome block
 	// above intentionally skips for the member area.
 	if ( $is_member_area && ! is_user_logged_in() ) {
-		$header_css_path = MFA_CORE_PATH . 'assets/css/header-v11.css';
-		$header_js_path  = MFA_CORE_PATH . 'assets/js/header-v3.js';
-		wp_enqueue_style( 'mfa-core-header', MFA_CORE_URL . 'assets/css/header-v11.css', array(), $get_version( $header_css_path ) );
+		$chrome_css     = MFA_CORE_PATH . 'assets/css/site-chrome-v1.css';
+		$header_js_path = MFA_CORE_PATH . 'assets/js/header-v3.js';
+		wp_enqueue_style( 'mfa-core-site-chrome', MFA_CORE_URL . 'assets/css/site-chrome-v1.css', array( 'mfa-core-global' ), $get_version( $chrome_css ) );
 		wp_enqueue_script( 'mfa-core-header', MFA_CORE_URL . 'assets/js/header-v3.js', array(), $get_version( $header_js_path ), true );
 	}
 
@@ -287,12 +283,6 @@ function mfa_core_enqueue_widget_assets() {
 		$place_js = MFA_CORE_PATH . 'assets/js/place-hub-v1.js';
 		wp_enqueue_script( 'mfa-core-place-hub', MFA_CORE_URL . 'assets/js/place-hub-v1.js', array(), $get_version( $place_js ), true );
 	}
-
-	// [mfa_coming_soon] badge — sitewide, since it's used inside Theme
-	// Builder template content (Review/Claim tabs) that has_shortcode()
-	// can't see from the front-end post being viewed.
-	$coming_soon_css = MFA_CORE_PATH . 'assets/css/coming-soon-v1.css';
-	wp_enqueue_style( 'mfa-core-coming-soon', MFA_CORE_URL . 'assets/css/coming-soon-v1.css', array(), $get_version( $coming_soon_css ) );
 
 	// Auth / confirmation utility pages: return-to-member button + payment
 	// status message (see includes/widgets/auth-pages.php).
@@ -470,14 +460,11 @@ function mfa_core_litespeed_css_excludes( $excludes ) {
 	$excludes[] = 'mfa-core/assets/css/quran-page-v8.css';
 	$excludes[] = 'mfa-core/assets/css/brand-page-v5.css';
 	$excludes[] = 'mfa-core/assets/css/legal-page-v3.css';
-	$excludes[] = 'mfa-core/assets/css/share-button-v15.css';
-	$excludes[] = 'mfa-core/assets/css/sofia-button-v1.css';
+	$excludes[] = 'mfa-core/assets/css/site-chrome-v1.css';
 	$excludes[] = 'mfa-core/assets/css/business-single-v5.css';
 	$excludes[] = 'mfa-core/assets/css/mosque-single-v3.css';
 	$excludes[] = 'mfa-core/assets/css/website-single-v2.css';
-	$excludes[] = 'mfa-core/assets/css/coming-soon-v1.css';
 	$excludes[] = 'mfa-core/assets/css/knowledge-single-v1.css';
-	$excludes[] = 'mfa-core/assets/css/header-v11.css';
 	$excludes[] = 'mfa-core/assets/css/member-shell-v1.css';
 	$excludes[] = 'mfa-core/assets/css/member-dashboard-v1.css';
 	$excludes[] = 'mfa-core/assets/css/member-account-modals-v1.css';

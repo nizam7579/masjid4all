@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 // (the marketing / login panel) get the full public site header instead, so
 // they still have the main nav and Tools menu to explore the site. The
 // [mfa_site_header] is position:fixed and relies on the .mfa-site body class
-// above for its top padding (see header-v11.css).
+// above for its top padding (see site-chrome-v1.css).
 if ( is_user_logged_in() ) {
 	echo do_shortcode( '[mfa_member_header]' );
 } else {

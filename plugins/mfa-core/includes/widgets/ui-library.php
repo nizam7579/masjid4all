@@ -316,7 +316,7 @@ function mfa_ui_section_layout() {
 		'container1',
 		'Outermost wrapper - centres to the max width, nothing else',
 		'<div class="mfa-ui-frame mfa-ui-container" data-label="container1">'
-		. '<div class="mfa-ui-fill">No margin, no padding. Bottom clearance for the floating buttons is already applied sitewide to <code>body</code> in share-button-v15.css, so it must not be repeated here or it doubles.</div>'
+		. '<div class="mfa-ui-fill">No margin, no padding. Bottom clearance for the floating buttons is already applied sitewide to <code>body</code> in site-chrome-v1.css, so it must not be repeated here or it doubles.</div>'
 		. '</div>'
 	);
 

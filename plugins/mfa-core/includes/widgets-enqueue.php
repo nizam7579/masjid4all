@@ -127,6 +127,18 @@ function mfa_core_enqueue_widget_assets() {
 			}
 		}
 
+		// /admin/whatsapp/ - the niz-wa inbox renders mfa-core's member action bar
+		// (Send WhatsApp / Send Template) under the profile column, so it needs the
+		// same modal CSS/JS. Registered under the same handles, so loading on both
+		// pages cannot double-enqueue.
+		if ( $post && 'whatsapp' === $post->post_name ) {
+			$mact_css = MFA_CORE_PATH . 'assets/css/admin-member-actions-v2.css';
+			wp_enqueue_style( 'mfa-core-admin-member-actions', MFA_CORE_URL . 'assets/css/admin-member-actions-v2.css', array( 'mfa-core-global', 'mfa-core-admin-shell' ), $get_version( $mact_css ) );
+			$mact_js = MFA_CORE_PATH . 'assets/js/admin-member-actions-v2.js';
+			wp_enqueue_script( 'mfa-core-admin-member-actions', MFA_CORE_URL . 'assets/js/admin-member-actions-v2.js', array(), $get_version( $mact_js ), true );
+			wp_localize_script( 'mfa-core-admin-member-actions', 'mfaMemberActions', array( 'url' => admin_url( 'admin-ajax.php' ) ) );
+		}
+
 		// /admin/member/info/ - child of the Members page, reuses its
 		// .mfa-admin-status-* badge classes plus its own small layout CSS.
 		if ( $post && 'info' === $post->post_name && 217771 === (int) $post->post_parent ) {

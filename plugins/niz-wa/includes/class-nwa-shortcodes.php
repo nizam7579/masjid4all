@@ -105,8 +105,14 @@ class NWA_Shortcodes {
 		<div class="nwa-inbox">
 			<div class="nwa-inbox-list">
 				<?php foreach ( $conversations as $c ) : ?>
+					<?php
+					// Marked from the row we already have - get_conversations() selects
+					// everything, so this costs no extra query. window_expires_at is GMT.
+					$c_open = NWA_DB::is_within_window( $c );
+					?>
 					<a href="<?php echo esc_url( add_query_arg( 'nwa_user_id', $c->user_id ) ); ?>"
-						class="nwa-inbox-list-item<?php echo ( $active && $active->id === $c->id ) ? ' is-active' : ''; ?>">
+						class="nwa-inbox-list-item<?php echo ( $active && $active->id === $c->id ) ? ' is-active' : ''; ?><?php echo $c_open ? ' is-open' : ''; ?>">
+						<?php if ( $c_open ) : ?><span class="nwa-inbox-open-tick" title="Inside the 24-hour window - you can reply freely" aria-label="Inside the 24-hour window">&#10003;</span><?php endif; ?>
 						<strong><?php echo esc_html( $c->contact_name ?: $c->wa_number ); ?></strong>
 						<?php if ( $c->unread_count > 0 ) : ?><span class="nwa-inbox-unread-badge"><?php echo (int) $c->unread_count; ?></span><?php endif; ?>
 						<br><small><?php echo esc_html( $c->wa_number ); ?></small>
@@ -163,14 +169,7 @@ class NWA_Shortcodes {
 						<?php endforeach; ?>
 					</div>
 
-					<?php if ( $within_window ) : ?>
-						<form method="post" class="nwa-reply-form">
-							<?php wp_nonce_field( 'nwa_reply', 'nwa_reply_nonce' ); ?>
-							<input type="hidden" name="nwa_active_user_id" value="<?php echo esc_attr( $selected_id ); ?>">
-							<textarea name="nwa_reply_text" rows="2" placeholder="Type a reply..."></textarea>
-							<p><button type="submit" class="nwa-btn nwa-btn-primary">Send</button></p>
-						</form>
-					<?php else : ?>
+					<?php if ( ! $within_window ) : ?>
 						<div class="nwa-notice nwa-notice-warning">
 							24-hour window closed<?php
 							// window_expires_at is GMT (see CLAUDE.md) - converted for
@@ -180,7 +179,28 @@ class NWA_Shortcodes {
 							}
 							?> &mdash; free-text replies aren't allowed. Send an approved template instead.
 						</div>
+					<?php endif; ?>
 
+					<?php
+					// Shown even when the window is shut - disabled rather than
+					// hidden, so it is visible WHY a reply cannot be typed instead
+					// of the box silently not being there.
+					?>
+					<form method="post" class="nwa-reply-form<?php echo $within_window ? '' : ' is-disabled'; ?>">
+						<?php wp_nonce_field( 'nwa_reply', 'nwa_reply_nonce' ); ?>
+						<input type="hidden" name="nwa_active_user_id" value="<?php echo esc_attr( $selected_id ); ?>">
+						<textarea name="nwa_reply_text" rows="2"
+							placeholder="<?php echo esc_attr( $within_window ? 'Type a reply...' : 'Window closed - use Send Template instead' ); ?>"
+							<?php disabled( ! $within_window ); ?>></textarea>
+						<p><button type="submit" class="nwa-btn nwa-btn-primary" <?php disabled( ! $within_window ); ?>>Send</button></p>
+					</form>
+
+					<?php
+					// The inline template picker is only a fallback now: mfa-core's
+					// action bar below the profile supersedes it. Kept for the case
+					// where niz-wa runs without mfa-core, which is a supported setup.
+					if ( ! $within_window && ! function_exists( 'mfa_admin_member_actions_render' ) ) :
+						?>
 						<form method="post" class="nwa-template-form">
 							<?php wp_nonce_field( 'nwa_template', 'nwa_template_nonce' ); ?>
 							<input type="hidden" name="nwa_active_user_id" value="<?php echo esc_attr( $selected_id ); ?>">
@@ -224,6 +244,27 @@ class NWA_Shortcodes {
 						</div>
 					<?php else : ?>
 						<p class="nwa-inbox-empty">No profile info stored for this contact yet.</p>
+					<?php endif; ?>
+
+					<?php
+					// mfa-core's own action bar, limited to the two sending actions.
+					// Send WhatsApp disables itself outside the 24-hour window and
+					// Send Template stays available, so the window rule is enforced
+					// in one place rather than restated here.
+					if ( function_exists( 'mfa_admin_member_actions_render' ) ) :
+						global $wpdb;
+						$member_row = $wpdb->get_row(
+							$wpdb->prepare( "SELECT * FROM {$wpdb->prefix}jet_cct_member WHERE user_id = %d", $selected_id ),
+							ARRAY_A
+						);
+						?>
+						<div class="nwa-inbox-actions">
+							<h3>Send</h3>
+							<?php
+							// phpcs:ignore WordPress.Security.EscapeOutput - returns built markup.
+							echo mfa_admin_member_actions_render( $member_row ? $member_row : array(), $selected_id, array( 'whatsapp', 'template' ) );
+							?>
+						</div>
 					<?php endif; ?>
 				</div>
 			<?php endif; ?>

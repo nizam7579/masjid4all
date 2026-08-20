@@ -355,7 +355,12 @@ function mfa_admin_member_contact_state( $user_id ) {
  * @param array $row     jet_cct_member row.
  * @param int   $user_id
  */
-function mfa_admin_member_actions_render( $row, $user_id ) {
+/**
+ * @param array $only Optional whitelist of actions to show - 'edit', 'email',
+ *                    'whatsapp', 'template'. Empty means all of them. The
+ *                    WhatsApp inbox renders just the two sending actions.
+ */
+function mfa_admin_member_actions_render( $row, $user_id, $only = array() ) {
 	if ( ! mfa_admin_member_can_act() ) {
 		return '';
 	}
@@ -368,9 +373,15 @@ function mfa_admin_member_actions_render( $row, $user_id ) {
 		? mfa_admin_member_status_options()
 		: array( 'Prospect', 'Member' );
 
-	$countries = $wpdb->get_col(
-		"SELECT DISTINCT country FROM {$wpdb->prefix}jet_cct_member WHERE country IS NOT NULL AND TRIM(country) != '' ORDER BY country ASC"
-	);
+	$only  = array_filter( (array) $only );
+	$show  = function ( $action ) use ( $only ) {
+		return ! $only || in_array( $action, $only, true );
+	};
+
+	// Only needed by the edit modal, so only queried when that is rendered.
+	$countries = $show( 'edit' )
+		? $wpdb->get_col( "SELECT DISTINCT country FROM {$wpdb->prefix}jet_cct_member WHERE country IS NOT NULL AND TRIM(country) != '' ORDER BY country ASC" )
+		: array();
 
 	$uid   = (int) $user_id;
 	$nonce = wp_create_nonce( 'mfa_admin_member_action_' . $uid );
@@ -387,16 +398,17 @@ function mfa_admin_member_actions_render( $row, $user_id ) {
 	<?php endif; ?>
 
 	<div class="mfa-admin-member-actions-bar" data-user="<?php echo $uid; ?>" data-nonce="<?php echo esc_attr( $nonce ); ?>">
-		<button type="button" class="mfa-btn mfa-btn-secondary mfa-mact-btn" data-mact-open="mfa-mact-edit-<?php echo $uid; ?>">Update Info</button>
-		<button type="button" class="mfa-btn mfa-btn-secondary mfa-mact-btn" data-mact-open="mfa-mact-email-<?php echo $uid; ?>" <?php disabled( ! $state['can_email'] ); ?> title="<?php echo esc_attr( $state['email_reason'] ); ?>">Send Email</button>
-		<button type="button" class="mfa-btn mfa-btn-secondary mfa-mact-btn" data-mact-open="mfa-mact-wa-<?php echo $uid; ?>" <?php disabled( ! $state['can_whatsapp'] ); ?> title="<?php echo esc_attr( $state['wa_reason'] ); ?>">Send WhatsApp</button>
-		<button type="button" class="mfa-btn mfa-btn-secondary mfa-mact-btn" data-mact-open="mfa-mact-tpl-<?php echo $uid; ?>" <?php disabled( ! $state['can_template'] ); ?> title="<?php echo esc_attr( $state['template_reason'] ); ?>">Send Template</button>
+		<?php if ( $show( 'edit' ) ) : ?><button type="button" class="mfa-btn mfa-btn-secondary mfa-mact-btn" data-mact-open="mfa-mact-edit-<?php echo $uid; ?>">Update Info</button><?php endif; ?>
+		<?php if ( $show( 'email' ) ) : ?><button type="button" class="mfa-btn mfa-btn-secondary mfa-mact-btn" data-mact-open="mfa-mact-email-<?php echo $uid; ?>" <?php disabled( ! $state['can_email'] ); ?> title="<?php echo esc_attr( $state['email_reason'] ); ?>">Send Email</button><?php endif; ?>
+		<?php if ( $show( 'whatsapp' ) ) : ?><button type="button" class="mfa-btn mfa-btn-secondary mfa-mact-btn" data-mact-open="mfa-mact-wa-<?php echo $uid; ?>" <?php disabled( ! $state['can_whatsapp'] ); ?> title="<?php echo esc_attr( $state['wa_reason'] ); ?>">Send WhatsApp</button><?php endif; ?>
+		<?php if ( $show( 'template' ) ) : ?><button type="button" class="mfa-btn mfa-btn-secondary mfa-mact-btn" data-mact-open="mfa-mact-tpl-<?php echo $uid; ?>" <?php disabled( ! $state['can_template'] ); ?> title="<?php echo esc_attr( $state['template_reason'] ); ?>">Send Template</button><?php endif; ?>
 	</div>
 
 	<?php if ( '' !== $state['wa_reason'] ) : ?>
 		<p class="mfa-admin-member-actions-note"><?php echo esc_html( $state['wa_reason'] ); ?></p>
 	<?php endif; ?>
 
+	<?php if ( $show( 'edit' ) ) : ?>
 	<div class="mfa-mact-overlay" id="mfa-mact-edit-<?php echo $uid; ?>" role="dialog" aria-modal="true" aria-hidden="true">
 		<div class="mfa-mact-modal">
 			<button type="button" class="mfa-mact-close" data-mact-close aria-label="Close">&times;</button>
@@ -439,6 +451,9 @@ function mfa_admin_member_actions_render( $row, $user_id ) {
 		</div>
 	</div>
 
+	<?php endif; ?>
+
+	<?php if ( $show( 'email' ) ) : ?>
 	<div class="mfa-mact-overlay" id="mfa-mact-email-<?php echo $uid; ?>" role="dialog" aria-modal="true" aria-hidden="true">
 		<div class="mfa-mact-modal">
 			<button type="button" class="mfa-mact-close" data-mact-close aria-label="Close">&times;</button>
@@ -476,6 +491,9 @@ function mfa_admin_member_actions_render( $row, $user_id ) {
 		</div>
 	</div>
 
+	<?php endif; ?>
+
+	<?php if ( $show( 'whatsapp' ) ) : ?>
 	<div class="mfa-mact-overlay" id="mfa-mact-wa-<?php echo $uid; ?>" role="dialog" aria-modal="true" aria-hidden="true">
 		<div class="mfa-mact-modal">
 			<button type="button" class="mfa-mact-close" data-mact-close aria-label="Close">&times;</button>
@@ -509,6 +527,9 @@ function mfa_admin_member_actions_render( $row, $user_id ) {
 		</div>
 	</div>
 
+	<?php endif; ?>
+
+	<?php if ( $show( 'template' ) ) : ?>
 	<div class="mfa-mact-overlay" id="mfa-mact-tpl-<?php echo $uid; ?>" role="dialog" aria-modal="true" aria-hidden="true">
 		<div class="mfa-mact-modal">
 			<button type="button" class="mfa-mact-close" data-mact-close aria-label="Close">&times;</button>
@@ -528,6 +549,7 @@ function mfa_admin_member_actions_render( $row, $user_id ) {
 			</form>
 		</div>
 	</div>
+	<?php endif; ?>
 	<?php
 	return ob_get_clean();
 }

@@ -301,3 +301,36 @@
   font-size: 13px;
   text-decoration: none;
 }
+
+/* Conversations still inside the 24-hour window. The tick carries the meaning;
+   the tint is a secondary cue, since colour alone is not an accessible signal. */
+.nwa-inbox-list-item.is-open {
+  background: #f6fbf6;
+  border-left: 3px solid #2e7d32;
+  padding-left: 11px;
+}
+.nwa-inbox-list-item.is-open.is-active {
+  background: #eef6ee;
+}
+.nwa-inbox-open-tick {
+  color: #2e7d32;
+  font-weight: 700;
+  margin-right: 5px;
+}
+
+/* Reply box outside the window: present but inert, so the reason is visible
+   rather than the control simply being absent. */
+.nwa-reply-form.is-disabled textarea,
+.nwa-reply-form.is-disabled .nwa-btn {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.nwa-inbox-actions {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #eee;
+}
+.nwa-inbox-actions h3 {
+  margin: 0 0 8px;
+}

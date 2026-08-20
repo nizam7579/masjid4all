@@ -392,9 +392,19 @@ function mfa_place_listing_where( $place_id, $table_alias = '' ) {
 	// it stays visible where it matters. Re-running the backfills picks it up.
 	$ancestors = get_post_ancestors( $place_id );
 
+	// RAW post_title, never get_the_title(): that runs wptexturize, which turns
+	// a straight apostrophe into a curly one. "Johor Darul Ta'zim" became
+	// "Johor Darul Ta&#8217;zim", stopped matching the CCT's own spelling, and
+	// the hub silently reported zero against 31 real rows. An equality match
+	// must compare the stored string, not a display-formatted one.
+	$title_of = function ( $id ) {
+		$post = get_post( $id );
+		return $post ? $post->post_title : '';
+	};
+
 	if ( 1 === count( $ancestors ) ) {
 		$sql   .= " AND {$p}state = %s";
-		$args[] = get_the_title( $place_id );
+		$args[] = $title_of( $place_id );
 
 		return array( 'sql' => $sql, 'args' => $args );
 	}
@@ -414,8 +424,8 @@ function mfa_place_listing_where( $place_id, $table_alias = '' ) {
 	// across the 16 Malaysian states.
 	if ( 2 === count( $ancestors ) ) {
 		$sql   .= " AND {$p}state = %s AND {$p}city = %s";
-		$args[] = get_the_title( $ancestors[0] );
-		$args[] = get_the_title( $place_id );
+		$args[] = $title_of( $ancestors[0] );
+		$args[] = $title_of( $place_id );
 
 		return array( 'sql' => $sql, 'args' => $args );
 	}

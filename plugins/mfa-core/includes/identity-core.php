@@ -317,3 +317,91 @@ function niz_user_reset_password($phone) {
     }
     return true;
 }
+
+/**
+ * Deleting a WordPress user used to leave its records behind.
+ *
+ * wp_delete_user() removes the user and its meta and nothing else, so the
+ * jet_cct_member row, the Barakah ledger and the WhatsApp conversation all
+ * survived pointing at an ID that no longer resolved. The damage was quiet
+ * rather than loud: an orphaned member row sat in the Prospects list forever
+ * and could never be followed up, and 105 ledger rows worth 8,120 points
+ * inflated every total that summed the ledger without joining to wp_users
+ * (audited and cleaned 2026-08-20).
+ *
+ * Hooked on `delete_user`, which fires BEFORE the row goes, so the phone
+ * number is still readable - that is the only way to find a surviving twin,
+ * since duplicates are created by the same number arriving twice.
+ *
+ * A twin gets everything reassigned. With no twin, the member row and ledger
+ * are removed (nobody can reach or spend them), but the WhatsApp history is
+ * deliberately LEFT and logged instead: deleting a person's message history
+ * as a side effect of deleting an account is not a decision a hook should
+ * make silently.
+ */
+add_action( 'delete_user', 'mfa_cleanup_records_for_deleted_user', 10, 1 );
+
+function mfa_cleanup_records_for_deleted_user( $user_id ) {
+	global $wpdb;
+
+	$user_id = (int) $user_id;
+	if ( $user_id <= 0 ) {
+		return;
+	}
+
+	$member  = $wpdb->prefix . 'jet_cct_member';
+	$barakah = $wpdb->prefix . 'jet_cct_barakah';
+	$convs   = $wpdb->prefix . 'nwa_conversations';
+	$msgs    = $wpdb->prefix . 'nwa_messages';
+
+	// Read the phone while the meta still exists, and fall back to the CCT
+	// row, which survives deletion and sometimes holds it when the meta does
+	// not.
+	$phone = preg_replace( '/\D+/', '', (string) get_user_meta( $user_id, 'user_phone', true ) );
+	if ( '' === $phone ) {
+		$phone = preg_replace( '/\D+/', '', (string) $wpdb->get_var( $wpdb->prepare( "SELECT phone FROM {$member} WHERE user_id = %d", $user_id ) ) );
+	}
+
+	$twin = 0;
+	if ( '' !== $phone ) {
+		$candidates = $wpdb->get_col( $wpdb->prepare(
+			"SELECT user_id FROM {$wpdb->usermeta} WHERE meta_key = 'user_phone' AND meta_value = %s",
+			$phone
+		) );
+		foreach ( $candidates as $candidate ) {
+			$candidate = (int) $candidate;
+			if ( $candidate !== $user_id && get_userdata( $candidate ) ) {
+				$twin = $candidate;
+				break;
+			}
+		}
+	}
+
+	if ( $twin ) {
+		// A duplicate of somebody who still exists: move everything across
+		// rather than destroying earns and history that belong to a real
+		// person. Barakah is deduped on (user_id, description), so drop any
+		// row the twin already has before moving the rest.
+		$wpdb->query( $wpdb->prepare(
+			"DELETE x FROM {$barakah} x INNER JOIN {$barakah} y ON y.user_id = %d AND y.description = x.description WHERE x.user_id = %d",
+			$twin,
+			$user_id
+		) );
+		$wpdb->update( $barakah, array( 'user_id' => $twin ), array( 'user_id' => $user_id ) );
+		$wpdb->update( $convs, array( 'user_id' => $twin ), array( 'user_id' => $user_id ) );
+		$wpdb->update( $msgs, array( 'user_id' => $twin ), array( 'user_id' => $user_id ) );
+		$wpdb->delete( $member, array( 'user_id' => $user_id ) );
+
+		error_log( "mfa_cleanup_records_for_deleted_user: user {$user_id} merged into twin {$twin} (phone {$phone})" );
+
+		return;
+	}
+
+	$wpdb->delete( $member, array( 'user_id' => $user_id ) );
+	$wpdb->delete( $barakah, array( 'user_id' => $user_id ) );
+
+	$left = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$convs} WHERE user_id = %d", $user_id ) );
+	if ( $left ) {
+		error_log( "mfa_cleanup_records_for_deleted_user: user {$user_id} deleted with no twin; {$left} WhatsApp conversation(s) left in place for review" );
+	}
+}

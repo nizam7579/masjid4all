@@ -158,18 +158,25 @@ function mfa_overview_members() {
 }
 
 /**
- * Directory counts off listing_status, plus the claim count where the
- * table has a claim concept.
+ * Directory counts off listing_status.
  *
- * @param string $table  CCT suffix: mosque | business | web.
- * @param string $claim  Column that means "somebody claimed this", or ''.
+ * listing_status is one lifecycle, not several columns:
+ *
+ *   New -> (content generated) Pending | Approved | Rejected | Error
+ *       -> Deleted, by an admin reviewing a Rejected or Error record
+ *
+ * plus the states an owner drives - Verified (claimed) and Premium
+ * (subscribed) for business and website, and Active for a mosque whose
+ * community has at least one member.
+ *
+ * @param string $table CCT suffix: mosque | business | web.
  */
-function mfa_overview_listing( $table, $claim = '' ) {
-	return mfa_overview_cached( 'listing_' . $table, function () use ( $table, $claim ) {
+function mfa_overview_listing( $table ) {
+	return mfa_overview_cached( 'listing_' . $table, function () use ( $table ) {
 		global $wpdb;
 
 		$cct    = $wpdb->prefix . 'jet_cct_' . $table;
-		$counts = array( 'buckets' => array(), 'total' => 0, 'claimed' => null );
+		$counts = array( 'buckets' => array(), 'total' => 0 );
 
 		$rows = $wpdb->get_results( "SELECT listing_status AS s, COUNT(*) AS n FROM {$cct} GROUP BY listing_status", ARRAY_A );
 
@@ -181,15 +188,28 @@ function mfa_overview_listing( $table, $claim = '' ) {
 			$counts['total']            += $n;
 		}
 
-		if ( $claim ) {
-			$counts['claimed'] = (int) $wpdb->get_var(
-				"SELECT COUNT(*) FROM {$cct}
-				 WHERE {$claim} IS NOT NULL AND {$claim} <> '' AND {$claim} <> '0'
-				   AND {$claim} <> '0000-00-00 00:00:00'"
-			);
-		}
-
 		return $counts;
+	} );
+}
+
+/**
+ * Mosques whose community has at least one member.
+ *
+ * The lifecycle says such a mosque is Active, but nothing in the codebase
+ * ever writes that status - so the condition and the status can disagree,
+ * and only this tells you by how much.
+ */
+function mfa_overview_mosque_with_members() {
+	return mfa_overview_cached( 'mosque_members', function () {
+		global $wpdb;
+
+		$cct = $wpdb->prefix . 'jet_cct_mosque';
+
+		return (int) $wpdb->get_var(
+			"SELECT COUNT(*) FROM {$cct}
+			 WHERE member_count IS NOT NULL AND member_count <> ''
+			   AND CAST(member_count AS UNSIGNED) > 0"
+		);
 	} );
 }
 
@@ -359,14 +379,15 @@ function mfa_overview_row( $label, $value, $url = '', $note = '' ) {
 	return '<div class="mfa-ov-row">' . $lbl . $num . '</div>';
 }
 
-/** A card of rows with a total underneath. */
-function mfa_overview_card( $title, $rows_html, $total, $total_url = '' ) {
+/** A card of rows with a total underneath, and an optional caveat line. */
+function mfa_overview_card( $title, $rows_html, $total, $total_url = '', $flag = '' ) {
 	$total_row = mfa_overview_row( 'Total', $total, $total_url );
 
 	return '<div class="mfa-ov-card">'
 		. '<h3 class="mfa-ov-card-title">' . esc_html( $title ) . '</h3>'
 		. '<div class="mfa-ov-rows">' . $rows_html . '</div>'
 		. '<div class="mfa-ov-total">' . $total_row . '</div>'
+		. ( $flag ? '<p class="mfa-ov-flag">' . esc_html( $flag ) . '</p>' : '' )
 		. '</div>';
 }
 
@@ -383,8 +404,8 @@ function mfa_admin_signups_shortcode() {
 
 	$people   = mfa_overview_members();
 	$mosque   = mfa_overview_listing( 'mosque' );
-	$business = mfa_overview_listing( 'business', 'owner_id' );
-	$website  = mfa_overview_listing( 'web', 'claimed_at' );
+	$business = mfa_overview_listing( 'business' );
+	$website  = mfa_overview_listing( 'web' );
 	$arrival  = mfa_overview_arrival();
 	$leads    = mfa_signup_lead_counts();
 	$follow   = mfa_overview_followup();
@@ -393,40 +414,50 @@ function mfa_admin_signups_shortcode() {
 	$member_url   = home_url( '/admin/member/' );
 	$prospect_url = home_url( '/admin/prospects/' );
 
-	// The buckets each directory is expected to report, in reading order.
-	// Anything the data holds that isn't listed still gets shown (see below),
-	// so a new status value can't silently vanish from the dashboard.
-	$listing_order = array( 'New', 'Pending', 'Approved', 'Rejected', 'Updated', 'Error', 'Unset' );
-
-	$render_listing = function ( $stats, $section, $claim_label ) use ( $listing_order ) {
+	/**
+	 * Renders one directory card's rows.
+	 *
+	 * The bucket list comes from the same function the list page builds its
+	 * filter dropdown from, so the dashboard and the list can never offer
+	 * different states. Every state in the lifecycle is shown even when it
+	 * holds nothing - a status reading 0 is information ("no owner has
+	 * claimed a business yet"), whereas a missing row just looks like the
+	 * dashboard forgot about it. Anything in the data that ISN'T in the
+	 * canonical list is still shown, so a stray value can't hide.
+	 */
+	$render_listing = function ( $stats, $section, $order ) {
 		$base = home_url( '/admin/' . $section . '/' );
 		$html = '';
 
-		$seen = array();
-		foreach ( $listing_order as $bucket ) {
-			if ( ! isset( $stats['buckets'][ $bucket ] ) ) {
-				continue;
-			}
-			$seen[] = $bucket;
-			$url    = ( 'Unset' === $bucket ) ? '' : add_query_arg( 'status', $bucket, $base );
-			$html  .= mfa_overview_row( $bucket, $stats['buckets'][ $bucket ], $url );
+		foreach ( $order as $bucket ) {
+			$n     = isset( $stats['buckets'][ $bucket ] ) ? $stats['buckets'][ $bucket ] : 0;
+			$html .= mfa_overview_row( $bucket, $n, $n ? add_query_arg( 'status', $bucket, $base ) : '' );
 		}
 
-		// Any status value we didn't anticipate, rather than dropping it.
 		foreach ( $stats['buckets'] as $bucket => $n ) {
-			if ( ! in_array( $bucket, $seen, true ) ) {
-				$html .= mfa_overview_row( $bucket, $n, add_query_arg( 'status', $bucket, $base ) );
+			if ( ! in_array( $bucket, $order, true ) ) {
+				$note  = ( 'Unset' === $bucket ) ? 'not in the lifecycle' : 'unexpected status';
+				$url   = ( 'Unset' === $bucket ) ? '' : add_query_arg( 'status', $bucket, $base );
+				$html .= mfa_overview_row( $bucket, $n, $url, $note );
 			}
 		}
-
-		if ( null !== $stats['claimed'] ) {
-			$html .= mfa_overview_row( $claim_label, $stats['claimed'], '', 'has an owner' );
-		}
-
-		$html .= mfa_overview_row( 'Premium', 0, '', 'not launched' );
 
 		return $html;
 	};
+
+	$mosque_order   = function_exists( 'mfa_admin_mosque_status_options' ) ? mfa_admin_mosque_status_options() : array();
+	$business_order = function_exists( 'mfa_admin_business_status_options' ) ? mfa_admin_business_status_options() : array();
+	$website_order  = function_exists( 'mfa_admin_website_status_options' ) ? mfa_admin_website_status_options() : array();
+
+	$with_members = mfa_overview_mosque_with_members();
+	$active_now   = isset( $mosque['buckets']['Active'] ) ? $mosque['buckets']['Active'] : 0;
+	$mosque_flag  = ( $with_members > $active_now )
+		? sprintf(
+			/* translators: %d: number of mosques with at least one member. */
+			'%d have a member but are not marked Active.',
+			$with_members - $active_now
+		)
+		: '';
 
 	ob_start();
 	?>
@@ -445,9 +476,9 @@ function mfa_admin_signups_shortcode() {
 			}
 			echo mfa_overview_card( 'Members', $people_rows, $people['total'] ); // phpcs:ignore WordPress.Security.EscapeOutput
 
-			echo mfa_overview_card( 'Mosque', $render_listing( $mosque, 'mosque', 'Claimed' ), $mosque['total'], home_url( '/admin/mosque/' ) ); // phpcs:ignore WordPress.Security.EscapeOutput
-			echo mfa_overview_card( 'Business', $render_listing( $business, 'business', 'Claimed' ), $business['total'], home_url( '/admin/business/' ) ); // phpcs:ignore WordPress.Security.EscapeOutput
-			echo mfa_overview_card( 'Website', $render_listing( $website, 'website', 'Claimed' ), $website['total'], home_url( '/admin/website/' ) ); // phpcs:ignore WordPress.Security.EscapeOutput
+			echo mfa_overview_card( 'Mosque', $render_listing( $mosque, 'mosque', $mosque_order ), $mosque['total'], home_url( '/admin/mosque/' ), $mosque_flag ); // phpcs:ignore WordPress.Security.EscapeOutput
+			echo mfa_overview_card( 'Business', $render_listing( $business, 'business', $business_order ), $business['total'], home_url( '/admin/business/' ) ); // phpcs:ignore WordPress.Security.EscapeOutput
+			echo mfa_overview_card( 'Website', $render_listing( $website, 'website', $website_order ), $website['total'], home_url( '/admin/website/' ) ); // phpcs:ignore WordPress.Security.EscapeOutput
 			?>
 		</div>
 

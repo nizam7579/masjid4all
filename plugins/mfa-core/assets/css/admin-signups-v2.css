@@ -218,3 +218,14 @@ a.mfa-signups-stat:focus-visible {
     font-size: 24px;
   }
 }
+
+/* A caveat printed under a card's total - e.g. mosques that meet the
+   "Active" condition but were never promoted to that status. */
+.mfa-ov-flag {
+  margin: var(--mfa-space-3) 0 0;
+  padding-top: var(--mfa-space-3);
+  border-top: 1px dashed var(--mfa-border);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--mfa-muted);
+}

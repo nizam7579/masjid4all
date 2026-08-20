@@ -28,6 +28,15 @@ if ( ! defined( 'ABSPATH' ) ) {
  * GET-based filtering, NOT 's' for search (WP's reserved search query var).
  */
 
+/**
+ * The canonical listing_status lifecycle for a website, in reading order.
+ * Same set and same reasoning as the business one - see
+ * mfa_admin_business_status_options().
+ */
+function mfa_admin_website_status_options() {
+	return array( 'New', 'Pending', 'Approved', 'Verified', 'Premium', 'Rejected', 'Error', 'Deleted' );
+}
+
 add_shortcode( 'mfa_admin_website_list', 'mfa_admin_website_list_shortcode' );
 function mfa_admin_website_list_shortcode() {
 	if ( function_exists( 'mfa_admin_require_section_access' ) ) {

@@ -21,6 +21,17 @@ if ( ! defined( 'ABSPATH' ) ) {
  * search query var - see admin-member-list.php's comment on this).
  */
 
+/**
+ * The canonical listing_status lifecycle for a business, in reading order.
+ *
+ * Shared with the dashboard Overview so the two cannot drift: New -> (content
+ * generated) Pending/Approved/Rejected/Error -> Deleted by an admin, plus the
+ * two owner-driven states, Verified (claimed) and Premium (subscribed).
+ */
+function mfa_admin_business_status_options() {
+	return array( 'New', 'Pending', 'Approved', 'Verified', 'Premium', 'Rejected', 'Error', 'Deleted' );
+}
+
 add_shortcode( 'mfa_admin_business_list', 'mfa_admin_business_list_shortcode' );
 function mfa_admin_business_list_shortcode() {
 	if ( function_exists( 'mfa_admin_require_section_access' ) ) {
@@ -42,7 +53,7 @@ function mfa_admin_business_list_shortcode() {
 	// Fixed managed status set so every status is selectable even when none
 	// exist in the data yet (New/Pending/Approved/Verified/Premium/Rejected/
 	// Error/Deleted).
-	$status_options  = array( 'New', 'Pending', 'Approved', 'Verified', 'Premium', 'Rejected', 'Error', 'Deleted' );
+	$status_options  = mfa_admin_business_status_options();
 	$country_options = $wpdb->get_col( "SELECT DISTINCT country FROM {$cct_table} WHERE country IS NOT NULL AND TRIM(country) != '' ORDER BY country ASC" );
 
 	$where  = array( '1=1' );

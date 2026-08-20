@@ -235,3 +235,33 @@ function mfa_lockdown_wp_admin_for_author() {
 	wp_safe_redirect( admin_url( 'edit.php?post_type=' . MFA_ADMIN_KNOWLEDGE_PT ) );
 	exit;
 }
+
+/**
+ * Who sees the dashboard's counts, as opposed to just its navigation.
+ *
+ * Three tiers, because the roles do different jobs:
+ *
+ *  - Administrator / Editor: everything.
+ *  - Helpline: the Needs follow-up tiles only. Following up IS the role, and
+ *    those five numbers are the queue; the Overview, arrival routes and lead
+ *    counts are management reporting they have no action to take on.
+ *  - Author: neither. Their remit is the Knowledge Hub, so the dashboard is
+ *    only a way through to it.
+ *
+ * Unknown roles get nothing, which is the safe default - /admin/ access is
+ * gated separately, so anyone reaching this page is already staff.
+ */
+function mfa_admin_dashboard_shows_metrics( $user = null ) {
+	$roles = (array) ( $user ? $user : wp_get_current_user() )->roles;
+
+	return in_array( 'administrator', $roles, true ) || in_array( 'editor', $roles, true );
+}
+
+function mfa_admin_dashboard_shows_followup( $user = null ) {
+	$roles = (array) ( $user ? $user : wp_get_current_user() )->roles;
+
+	// 'nwa_helpline' by string for the same reason as
+	// mfa_user_can_access_admin_section(): role membership is plain usermeta,
+	// so this must not hard-depend on niz-wa being active.
+	return mfa_admin_dashboard_shows_metrics( $user ) || in_array( 'nwa_helpline', $roles, true );
+}

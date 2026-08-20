@@ -459,11 +459,25 @@ function mfa_admin_signups_shortcode() {
 	$business_order = function_exists( 'mfa_admin_business_status_options' ) ? mfa_admin_business_status_options() : array();
 	$website_order  = function_exists( 'mfa_admin_website_status_options' ) ? mfa_admin_website_status_options() : array();
 
+	// With neither block to show - Author - render nothing at all rather than
+	// an empty <section>, which would leave a gap above the page content.
+	if ( function_exists( 'mfa_admin_dashboard_shows_followup' )
+		&& ! mfa_admin_dashboard_shows_followup()
+		&& ! mfa_admin_dashboard_shows_metrics() ) {
+		return '';
+	}
+
 	ob_start();
 	?>
 	<section class="mfa-signups">
 
-		<?php // First on the page: this is the only part of the dashboard with anything to act on today. ?>
+		<?php
+		// First on the page: the only part of the dashboard with anything to act
+		// on today, and the only part Helpline sees - following up is the role.
+		// Author sees neither this nor the counts below; their remit is the
+		// Knowledge Hub, so the dashboard is just a way through to it.
+		if ( ! function_exists( 'mfa_admin_dashboard_shows_followup' ) || mfa_admin_dashboard_shows_followup() ) :
+			?>
 		<h2 class="mfa-ov-title">Needs follow-up</h2>
 		<div class="mfa-signups-stats mfa-signups-stats--followup">
 			<div class="mfa-signups-stat<?php echo $follow['open_window'] ? ' mfa-signups-stat--urgent' : ''; ?>">
@@ -488,6 +502,14 @@ function mfa_admin_signups_shortcode() {
 			</a>
 		</div>
 
+		<?php endif; ?>
+
+		<?php
+		// Management reporting: Overview, arrival routes and lead counts. Nothing
+		// here is actionable by Helpline or Author, so only Editors and above see
+		// it.
+		if ( ! function_exists( 'mfa_admin_dashboard_shows_metrics' ) || mfa_admin_dashboard_shows_metrics() ) :
+			?>
 		<h2 class="mfa-ov-title">Overview</h2>
 		<div class="mfa-ov-grid">
 			<?php
@@ -548,6 +570,8 @@ function mfa_admin_signups_shortcode() {
 				<?php endforeach; ?>
 			</div>
 		<?php endif; ?>
+
+		<?php endif; // metrics ?>
 
 	</section>
 	<?php

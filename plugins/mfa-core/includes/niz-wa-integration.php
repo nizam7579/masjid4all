@@ -276,7 +276,7 @@ function niz_wa_action_verify_email( $user_id, $context ) {
 	}
 
 	if ( 'yes' === strtolower( (string) get_user_meta( $user_id, 'niz_email_verified', true ) ) ) {
-		return "Your email *{$user->user_email}* is already verified. ✅";
+		return "✅ Your email is already verified:\n*{$user->user_email}*";
 	}
 
 	if ( ! class_exists( 'Niz_Email_Verification' ) ) {
@@ -290,7 +290,7 @@ function niz_wa_action_verify_email( $user_id, $context ) {
 		return "I couldn't send the verification email just now. Please try again shortly.";
 	}
 
-	return "📧 I've sent a verification link to *{$user->user_email}*.\n\nOpen your inbox and tap the link to confirm the address is yours. The link is valid for 24 hours.";
+	return "📧 I've sent a verification link to:\n*{$user->user_email}*\n\nOpen your inbox and tap the link to confirm the address is yours. The link is valid for 24 hours.";
 }
 
 /**
@@ -2354,6 +2354,27 @@ function niz_wa_flow_strings( $lang ) {
 			"I'd love to pass your message to our team. Please use our contact form:" => "Me encantaría pasar tu mensaje a nuestro equipo. Usa nuestro formulario de contacto:",
 			"Message *contact* anytime to reach our team." => "Escribe *contact* cuando quieras para contactar con nuestro equipo.",
 			"You can add your mosque, business, or website to the Masjid4All directory for free. Please try again in a moment." => "Puedes añadir tu mezquita, negocio o sitio web al directorio de Masjid4All gratis. Inténtalo de nuevo en un momento.",
+			// --- Admin-sent invitations and the verify-email replies ---
+			"You're listed as a contact, but your account isn't active yet." => "Estás en nuestra lista como contacto, pero tu cuenta aún no está activa.",
+			"Activating takes a minute — I'll confirm your *name* and *email*, and then you can save mosques, earn Barakah points and manage your own listings." => "Activarla lleva un minuto — confirmaré tu *nombre* y tu *correo*, y luego podrás guardar mezquitas, ganar puntos Barakah y gestionar tus propias fichas.",
+			"Tap *Register* below to start."             => "Toca *Register* abajo para empezar.",
+			"Your email address isn't verified yet, so we can't send you updates or help you reset a password." => "Tu correo aún no está verificado, así que no podemos enviarte novedades ni ayudarte a restablecer la contraseña.",
+			"Tap *Verify Email* below and I'll send a verification link straight to it." => "Toca *Verify Email* abajo y te enviaré un enlace de verificación directamente.",
+			"✅ Your email is already verified:"         => "✅ Tu correo ya está verificado:",
+			"📧 I've sent a verification link to:"       => "📧 He enviado un enlace de verificación a:",
+			"Open your inbox and tap the link to confirm the address is yours. The link is valid for 24 hours." => "Abre tu bandeja de entrada y toca el enlace para confirmar que la dirección es tuya. El enlace es válido 24 horas.",
+			"I couldn't send the verification email just now. Please try again shortly." => "No pude enviar el correo de verificación ahora mismo. Inténtalo de nuevo en un momento.",
+			"Sorry, I can't send that right now. Please try again shortly." => "Lo siento, no puedo enviar eso ahora mismo. Inténtalo de nuevo en un momento.",
+			"Do you know a mosque, halal business or Islamic website that isn't listed yet?" => "¿Conoces alguna mezquita, negocio halal o web islámica que aún no esté en el directorio?",
+			"Adding one is free and takes a minute — I'll ask for a Google Maps link (or the web address) and do the rest." => "Añadirla es gratis y lleva un minuto — te pediré un enlace de Google Maps (o la dirección web) y yo me encargo del resto.",
+			"Pick one below to start."                   => "Elige una opción abajo para empezar.",
+			"*Founding Member* is for the people who back us from the start. ⭐" => "*Founding Member* es para quienes nos apoyan desde el principio. ⭐",
+			"The plan: a one-time joining fee, lifetime Premium access, the full amount returned to you as Platform Credit, and permanent Founding Member status." => "El plan: una cuota de entrada única, acceso Premium de por vida, el importe íntegro devuelto como Crédito de Plataforma, y estatus permanente de Founding Member.",
+			"It's *not on sale yet* — we're building the waitlist now, and you'd be told first when it opens. No payment, no commitment." => "*Todavía no está a la venta* — estamos creando la lista de espera ahora, y serías de los primeros en saberlo cuando abra. Sin pago, sin compromiso.",
+			"Tap *Founding Member* to join the waitlist." => "Toca *Founding Member* para unirte a la lista de espera.",
+			"Shall I add you? Reply *YES* to join, or *NO* to skip." => "¿Te apunto? Responde *YES* para unirte, o *NO* para omitir.",
+			"Reply *YES* to continue, or *NO* to skip."  => "Responde *YES* para continuar, o *NO* para omitir.",
+			"Reply *YES* to continue, or *NO* if you'd rather not." => "Responde *YES* para continuar, o *NO* si prefieres no hacerlo.",
 		),
 		"ms" => array(
 			"📍 *Add Mosque*"                                     => "📍 *Tambah Masjid*",
@@ -2461,6 +2482,27 @@ function niz_wa_flow_strings( $lang ) {
 			"I'd love to pass your message to our team. Please use our contact form:" => "Saya ingin menyampaikan mesej anda kepada pasukan kami. Sila gunakan borang hubungi kami:",
 			"Message *contact* anytime to reach our team." => "Hantar *contact* bila-bila masa untuk menghubungi pasukan kami.",
 			"You can add your mosque, business, or website to the Masjid4All directory for free. Please try again in a moment." => "Anda boleh menambah masjid, perniagaan atau laman web anda ke direktori Masjid4All secara percuma. Sila cuba lagi sebentar.",
+			// --- Admin-sent invitations and the verify-email replies ---
+			"You're listed as a contact, but your account isn't active yet." => "Anda tersenarai sebagai kenalan, tetapi akaun anda belum aktif.",
+			"Activating takes a minute — I'll confirm your *name* and *email*, and then you can save mosques, earn Barakah points and manage your own listings." => "Pengaktifan mengambil masa seminit — saya akan sahkan *nama* dan *emel* anda, dan selepas itu anda boleh menyimpan masjid, mengumpul mata Barakah dan menguruskan penyenaraian anda sendiri.",
+			"Tap *Register* below to start."             => "Tekan *Register* di bawah untuk mula.",
+			"Your email address isn't verified yet, so we can't send you updates or help you reset a password." => "Alamat emel anda belum disahkan, jadi kami tidak dapat menghantar kemas kini atau membantu anda menetapkan semula kata laluan.",
+			"Tap *Verify Email* below and I'll send a verification link straight to it." => "Tekan *Verify Email* di bawah dan saya akan hantar pautan pengesahan terus ke alamat itu.",
+			"✅ Your email is already verified:"         => "✅ Emel anda sudah disahkan:",
+			"📧 I've sent a verification link to:"       => "📧 Saya telah hantar pautan pengesahan ke:",
+			"Open your inbox and tap the link to confirm the address is yours. The link is valid for 24 hours." => "Buka peti masuk anda dan tekan pautan itu untuk mengesahkan alamat tersebut milik anda. Pautan ini sah selama 24 jam.",
+			"I couldn't send the verification email just now. Please try again shortly." => "Saya tidak dapat menghantar emel pengesahan sebentar tadi. Sila cuba lagi sebentar.",
+			"Sorry, I can't send that right now. Please try again shortly." => "Maaf, saya tidak dapat menghantarnya sekarang. Sila cuba lagi sebentar.",
+			"Do you know a mosque, halal business or Islamic website that isn't listed yet?" => "Adakah anda tahu masjid, perniagaan halal atau laman web Islam yang belum tersenarai?",
+			"Adding one is free and takes a minute — I'll ask for a Google Maps link (or the web address) and do the rest." => "Menambahnya adalah percuma dan mengambil masa seminit — saya akan minta pautan Google Maps (atau alamat web) dan saya uruskan selebihnya.",
+			"Pick one below to start."                   => "Pilih satu di bawah untuk mula.",
+			"*Founding Member* is for the people who back us from the start. ⭐" => "*Founding Member* adalah untuk mereka yang menyokong kami dari awal. ⭐",
+			"The plan: a one-time joining fee, lifetime Premium access, the full amount returned to you as Platform Credit, and permanent Founding Member status." => "Rancangannya: yuran penyertaan sekali sahaja, akses Premium seumur hidup, jumlah penuh dikembalikan kepada anda sebagai Kredit Platform, dan status Founding Member kekal.",
+			"It's *not on sale yet* — we're building the waitlist now, and you'd be told first when it opens. No payment, no commitment." => "*Ia belum dijual lagi* — kami sedang membina senarai menunggu sekarang, dan anda antara yang pertama diberitahu apabila ia dibuka. Tiada bayaran, tiada komitmen.",
+			"Tap *Founding Member* to join the waitlist." => "Tekan *Founding Member* untuk menyertai senarai menunggu.",
+			"Shall I add you? Reply *YES* to join, or *NO* to skip." => "Mahu saya tambah anda? Balas *YES* untuk menyertai, atau *NO* untuk melangkau.",
+			"Reply *YES* to continue, or *NO* to skip."  => "Balas *YES* untuk teruskan, atau *NO* untuk melangkau.",
+			"Reply *YES* to continue, or *NO* if you'd rather not." => "Balas *YES* untuk teruskan, atau *NO* jika anda tidak mahu.",
 		),
 	);
 

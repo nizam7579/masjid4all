@@ -162,7 +162,7 @@ function mfa_admin_member_messages( $channel ) {
 				'label' => 'Activate Account',
 				// Only offered for a prospect: a member has nothing to activate.
 				'when'  => 'prospect',
-				'body'  => "Assalamualaikum {{name}} 👋\n\nYou're on {{site}} as a contact, but your account isn't active yet.\n\nActivating takes a minute — I'll confirm your *name* and *email*, and then you can save mosques, earn Barakah points and manage your own listings.\n\nTap *Register* below to start.",
+				'body'  => "Assalamualaikum {{name}} 👋\n\nYou're listed as a contact, but your account isn't active yet.\n\nActivating takes a minute — I'll confirm your *name* and *email*, and then you can save mosques, earn Barakah points and manage your own listings.\n\nTap *Register* below to start.",
 				// Titles are ROUTING KEYWORDS, not labels: a tap sends the title
 				// back as the message and it is matched whole-string against
 				// wp_nwa_actions. 'Register' -> register, 'Not now' -> not_now.
@@ -199,7 +199,7 @@ Tap *Verify Email* below and I'll send a verification link straight to it.",
 			),
 			'invite_directory' => array(
 				'label' => 'Invite to Add Mosque/Business/Website',
-				'body'  => "Assalamualaikum {{name}} 👋\n\nDo you know a mosque, halal business or Islamic website that isn't on {{site}} yet?\n\nAdding one is free and takes a minute — I'll ask for a Google Maps link (or the web address) and do the rest.\n\nPick one below to start.",
+				'body'  => "Assalamualaikum {{name}} 👋\n\nDo you know a mosque, halal business or Islamic website that isn't listed yet?\n\nAdding one is free and takes a minute — I'll ask for a Google Maps link (or the web address) and do the rest.\n\nPick one below to start.",
 				// Three buttons is WhatsApp's hard maximum, so there is no room
 				// for a "Not now" here. Titles are routing keywords - all three
 				// resolve to the directory action.
@@ -217,7 +217,7 @@ Tap *Verify Email* below and I'll send a verification link straight to it.",
 				// Terms deliberately mirror the waitlist flow's own intro
 				// (mfa_lead_types()['founding_member']['intro']) so the offer
 				// cannot drift between the invitation and the thing invited to.
-				'body'  => "Assalamualaikum {{name}},\n\n*Founding Member* is for the people who back {{site}} from the start. ⭐\n\nThe plan: a one-time joining fee, lifetime Premium access, the full amount returned to you as Platform Credit, and permanent Founding Member status.\n\nIt's *not on sale yet* — we're building the waitlist now, and you'd be told first when it opens. No payment, no commitment.\n\nTap *Founding Member* to join the waitlist.",
+				'body'  => "Assalamualaikum {{name}},\n\n*Founding Member* is for the people who back us from the start. ⭐\n\nThe plan: a one-time joining fee, lifetime Premium access, the full amount returned to you as Platform Credit, and permanent Founding Member status.\n\nIt's *not on sale yet* — we're building the waitlist now, and you'd be told first when it opens. No payment, no commitment.\n\nTap *Founding Member* to join the waitlist.",
 				'buttons' => array(
 					array( 'id' => 'inv_founding', 'title' => 'Founding Member' ),
 					array( 'id' => 'inv_fnot_now', 'title' => 'Not now' ),

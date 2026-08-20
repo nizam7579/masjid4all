@@ -595,6 +595,11 @@ function mfa_claim_business_listing_shortcode() {
             );
             
             if ( $inserted ) {
+                // Promote an Approved listing to Verified now it has an owner.
+                if ( $inserted && function_exists( 'mfa_listing_sync_verified' ) ) {
+                    mfa_listing_sync_verified( $post_id, 'business' );
+                }
+
                 return '<div style="background-color: #d4edda; color: #155724; padding: 20px; border-left: 4px solid #28a745; border-radius: 4px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
                             <strong style="font-size: 16px;">🎉 Listing Successfully Claimed!</strong><br><br>
                             You are now verified as the manager of this business.<br><br>
@@ -679,6 +684,15 @@ function niz_member_claimed_listings_shortcode() {
             );
 
             if ( $deleted ) {
+                // Ownership drove the Verified status, so removing it must
+                // put the listing back to Approved. The post type is not
+                // known here; sync_verified() reports "missing" for the
+                // table that does not hold this row, so trying both is safe.
+                if ( $deleted && function_exists( 'mfa_listing_sync_verified' ) ) {
+                    mfa_listing_sync_verified( $unclaim_post_id, 'business' );
+                    mfa_listing_sync_verified( $unclaim_post_id, 'web' );
+                }
+
                 $output .= '<div style="background-color: #d4edda; color: #155724; padding: 12px 15px; border-left: 4px solid #28a745; border-radius: 4px; margin-bottom: 20px;">
                                 ✅ Listing successfully unclaimed and removed from your account.
                             </div>';
@@ -867,6 +881,13 @@ function business_update_content( $post_id ) {
             $desc = 'Add Business : ' . $name;
             niz_user_add_points($author_id, $desc, 10);
         }
+    }
+
+    // A listing claimed while it was still New could not be promoted then -
+    // that would drop it out of the generation queue. Now generation has run,
+    // bring it in line with its ownership.
+    if ( function_exists( 'mfa_listing_sync_verified' ) ) {
+        mfa_listing_sync_verified( $post_id, 'business' );
     }
     
     // 8. Return Success

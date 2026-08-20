@@ -495,6 +495,12 @@ error_log('CURRENT CCT RECORD: ' . print_r($current_record,true));
             niz_user_add_points($author_id, $desc, 10);
         }
     }
+
+    // Same catch-up as business.php - see listing-status.php on why a New
+    // listing cannot be promoted at claim time.
+    if ( function_exists( 'mfa_listing_sync_verified' ) ) {
+        mfa_listing_sync_verified( $post_id, 'web' );
+    }
     
 
     // 8. Return Success

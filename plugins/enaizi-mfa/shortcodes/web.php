@@ -426,6 +426,11 @@ function mfa_claim_web_listing_shortcode() {
             );
 
             if ( $inserted ) {
+                // Promote an Approved listing to Verified now it has an owner.
+                if ( $inserted && function_exists( 'mfa_listing_sync_verified' ) ) {
+                    mfa_listing_sync_verified( $post_id, 'web' );
+                }
+
                 $manage_url = '/member/business/?id=' . $post_id;
                 return '<div style="background-color: #d4edda; color: #155724; padding: 20px; border-left: 4px solid #28a745; border-radius: 4px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
                             <strong style="font-size: 16px;">🎉 Listing Successfully Claimed!</strong><br><br>

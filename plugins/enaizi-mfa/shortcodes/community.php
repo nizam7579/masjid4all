@@ -303,5 +303,11 @@ function pewarisan_handle_mosque_join_request() {
         array( '%d' )
     );
 
+    // community_status above owns the activation threshold; this just brings
+    // listing_status into line with it, so the two can never disagree.
+    if ( function_exists( 'mfa_mosque_sync_active' ) ) {
+        mfa_mosque_sync_active( $cct_mosque_id );
+    }
+
     wp_send_json_success( array( 'message' => 'Welcome to the community! Successfully joined.' ) );
 }

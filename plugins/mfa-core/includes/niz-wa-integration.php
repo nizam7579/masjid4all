@@ -1294,7 +1294,17 @@ function niz_wa_web_do_claim( $post_id, $user_id, $post_type = 'web' ) {
 		'cct_created' => current_time( 'mysql' ),
 	), array( '%s', '%d', '%d', '%s' ) );
 
-	return $wpdb->insert_id ? 'claimed' : 'error';
+	if ( ! $wpdb->insert_id ) {
+		return 'error';
+	}
+
+	// An Approved listing becomes Verified now it has an owner. A New or
+	// Pending one is deliberately left alone - see listing-status.php.
+	if ( function_exists( 'mfa_listing_sync_verified' ) ) {
+		mfa_listing_sync_verified( $post_id, $post_type );
+	}
+
+	return 'claimed';
 }
 
 /**

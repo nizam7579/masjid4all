@@ -95,6 +95,22 @@ function mfa_admin_member_message_applies( $when, $user_id ) {
 		return ! in_array( $status, array( 'member', 'premium' ), true );
 	}
 
+	if ( 'not_on_waitlist' === $when ) {
+		$leads = get_user_meta( $user_id, 'mfa_sofia_leads', true );
+		$entry = is_array( $leads ) && isset( $leads['founding_member'] ) ? $leads['founding_member'] : null;
+
+		if ( ! $entry ) {
+			return true;
+		}
+
+		// mfa_sofia_leads holds two different things under one key: a SIGNAL
+		// (interest shown, carries 'count', no email) and a CAPTURE (they
+		// finished the flow). Only a capture means they are actually on the
+		// list, so somebody who once asked and never finished still gets
+		// invited - which is the whole point of inviting them.
+		return isset( $entry['count'] );
+	}
+
 	if ( 'email_unverified' === $when ) {
 		$user = get_userdata( (int) $user_id );
 		if ( ! $user ) {
@@ -181,6 +197,32 @@ Tap *Verify Email* below and I'll send a verification link straight to it.",
 				'label' => 'Nudge to complete profile',
 				'body'  => "Assalamualaikum {{name}},\n\nYour {{site}} profile is still incomplete — finishing it takes a minute and earns you Barakah points:\n" . home_url( '/member/' ),
 			),
+			'invite_directory' => array(
+				'label' => 'Invite to Add Mosque/Business/Website',
+				'body'  => "Assalamualaikum {{name}} 👋\n\nDo you know a mosque, halal business or Islamic website that isn't on {{site}} yet?\n\nAdding one is free and takes a minute — I'll ask for a Google Maps link (or the web address) and do the rest.\n\nPick one below to start.",
+				// Three buttons is WhatsApp's hard maximum, so there is no room
+				// for a "Not now" here. Titles are routing keywords - all three
+				// resolve to the directory action.
+				'buttons' => array(
+					array( 'id' => 'inv_mosque',   'title' => 'Add Mosque' ),
+					array( 'id' => 'inv_business', 'title' => 'Add Business' ),
+					array( 'id' => 'inv_website',  'title' => 'Add Website' ),
+				),
+			),
+			'invite_founding' => array(
+				'label' => 'Invite to Founding Member waitlist',
+				// Hidden once they are actually on the list - see the
+				// 'not_on_waitlist' rule for why a mere signal does not count.
+				'when'  => 'not_on_waitlist',
+				// Terms deliberately mirror the waitlist flow's own intro
+				// (mfa_lead_types()['founding_member']['intro']) so the offer
+				// cannot drift between the invitation and the thing invited to.
+				'body'  => "Assalamualaikum {{name}},\n\n*Founding Member* is for the people who back {{site}} from the start. ⭐\n\nThe plan: a one-time joining fee, lifetime Premium access, the full amount returned to you as Platform Credit, and permanent Founding Member status.\n\nIt's *not on sale yet* — we're building the waitlist now, and you'd be told first when it opens. No payment, no commitment.\n\nTap *Founding Member* to join the waitlist.",
+				'buttons' => array(
+					array( 'id' => 'inv_founding', 'title' => 'Founding Member' ),
+					array( 'id' => 'inv_fnot_now', 'title' => 'Not now' ),
+				),
+			),
 			'check_in' => array(
 				'label' => 'Friendly check-in',
 				'body'  => "Assalamualaikum {{name}},\n\nJust checking in from {{site}} — is there anything we can help you with?",
@@ -190,8 +232,23 @@ Tap *Verify Email* below and I'll send a verification link straight to it.",
 
 	$channel  = ( 'email' === $channel ) ? 'email' : 'whatsapp';
 	$messages = apply_filters( 'mfa_admin_member_messages', $messages, $channel );
+	$list     = isset( $messages[ $channel ] ) ? $messages[ $channel ] : array();
 
-	return isset( $messages[ $channel ] ) ? $messages[ $channel ] : array();
+	// Dropdown order for staff: the ones that move a member forward first,
+	// then the general-purpose notes. Done here rather than by shuffling the
+	// array literal so a filter can add entries without having to know where
+	// to put them - anything unlisted keeps its own position, after these.
+	$first = array( 'activate_account', 'verify_email', 'invite_directory', 'invite_founding' );
+	$head  = array();
+
+	foreach ( $first as $key ) {
+		if ( isset( $list[ $key ] ) ) {
+			$head[ $key ] = $list[ $key ];
+			unset( $list[ $key ] );
+		}
+	}
+
+	return $head + $list;
 }
 
 /** Fills the two placeholders the prepared messages use. */

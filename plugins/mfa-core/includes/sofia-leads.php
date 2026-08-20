@@ -58,7 +58,7 @@ function mfa_lead_types() {
 			'intro'        => "*Founding Member* — for the people who back Masjid4All from the start. ⭐\n\n"
 				. "The plan: a one-time joining fee, lifetime Premium access, the full amount returned to you as Platform Credit, and permanent Founding Member status.\n\n"
 				. "It's *not on sale yet* — I'm building the waitlist now, and you'll be the first told when it opens. No payment, no commitment.\n\n"
-				. "Shall I add you? Reply *YES* to join, or *STOP* to skip.",
+				. "Shall I add you? Reply *YES* to join, or *NO* to skip.",
 			'done'         => "You're on the Founding Member waitlist. ⭐\n\nI'll message you the moment it opens — you'll get first access before it's announced publicly.",
 		),
 		'advertise'       => array(
@@ -337,7 +337,7 @@ function mfa_lead_start( $user_id, $type ) {
 		$text = $cfg['intro'];
 		if ( ! empty( $cfg['buttons'] ) ) {
 			// Buttons unavailable - spell out the typed equivalent.
-			$text .= "\n\nReply *YES* to continue, or *STOP* to skip.";
+			$text .= "\n\nReply *YES* to continue, or *NO* to skip.";
 		}
 		nwa_send_message( $user_id, $conversation->wa_number, $text );
 	}
@@ -697,7 +697,7 @@ function mfa_lead_route( $override, $user_id, $wa_number, $message_text, $conver
 		if ( ! $said_yes ) {
 			$prompt = ! empty( $cfg['buttons'] )
 				? "Just tap *{$cfg['buttons']['yes']}* or *{$cfg['buttons']['no']}* above — or type *cancel*."
-				: "Reply *YES* to continue, or *STOP* if you'd rather not.";
+				: "Reply *YES* to continue, or *NO* if you'd rather not.";
 			nwa_send_message( $user_id, $wa_number, $prompt );
 			return '';
 		}

@@ -113,6 +113,65 @@ function mfa_lead_type( $key ) {
 	return isset( $types[ $key ] ) ? $types[ $key ] : null;
 }
 
+/**
+ * Records that someone USED a feature, as opposed to submitting details to us.
+ *
+ * The capture types above ask for a name and an email and hand the lead to
+ * FluentCRM. Some things we want to measure have neither: the travel prayer
+ * planner is a service someone uses inside a WhatsApp conversation, and
+ * interrupting it to collect an email would damage the very thing being
+ * measured. A type registered with 'signal' => true is counted but never
+ * captured - mfa_lead_route() only ever runs for a type already set as the
+ * conversation's pending action, so a signal type can never enter the
+ * question-and-answer flow.
+ *
+ * Writes to the same mfa_sofia_leads user meta the dashboard counts, so a
+ * signal tile appears beside the capture tiles with no dashboard edit. The
+ * dashboard counts USERS, while 'count' here tracks repeat use - someone
+ * planning a four-leg journey is one interested person, not four.
+ *
+ * @param int    $user_id WP user behind the WhatsApp conversation.
+ * @param string $type    Lead type key, registered with 'signal' => true.
+ * @param string $detail  Optional one-line description of this use.
+ */
+function mfa_lead_record_signal( $user_id, $type, $detail = '' ) {
+	$user_id = (int) $user_id;
+	$cfg     = mfa_lead_type( $type );
+
+	if ( $user_id <= 0 || ! $cfg ) {
+		return false;
+	}
+
+	$existing = get_user_meta( $user_id, 'mfa_sofia_leads', true );
+	$existing = is_array( $existing ) ? $existing : array();
+
+	$prior = isset( $existing[ $type ]['count'] ) ? (int) $existing[ $type ]['count'] : 0;
+
+	$existing[ $type ] = array(
+		'name'   => '',
+		'email'  => '',
+		'detail' => sanitize_text_field( $detail ),
+		'phone'  => '',
+		'count'  => $prior + 1,
+		'time'   => current_time( 'mysql' ),
+	);
+
+	update_user_meta( $user_id, 'mfa_sofia_leads', $existing );
+
+	// Only the first use goes on the activity timeline. A traveller planning
+	// leg after leg would otherwise bury everything else on their record.
+	if ( 0 === $prior && function_exists( 'mfa_log_activity' ) ) {
+		mfa_log_activity(
+			$user_id,
+			'sofia_lead',
+			$cfg['label'] . ' used via Sofia',
+			array( 'lead_type' => $type, 'detail' => $detail )
+		);
+	}
+
+	return true;
+}
+
 /* ---------------- FluentCRM capture ---------------- */
 
 /**

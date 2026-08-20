@@ -18,6 +18,26 @@ if ( ! defined( 'ABSPATH' ) ) {
  * without touching the planner.
  */
 
+/**
+ * Registers the planner as a measurable interest signal.
+ *
+ * Declared here rather than inside mfa_lead_types() so the planner owns its
+ * own tracking, and via the filter so registering it cannot disturb the two
+ * capture flows. 'signal' => true means it is counted but never captured:
+ * there is no wa_keyword, no fields and no CTA, so none of the lead
+ * machinery can enter it - see mfa_lead_record_signal().
+ */
+add_filter( 'mfa_lead_types', 'mfa_travel_register_lead_type' );
+function mfa_travel_register_lead_type( $types ) {
+	$types['travel_planner'] = array(
+		'label'  => 'Solat for travellers',
+		'emoji'  => '✈️',
+		'signal' => true,
+	);
+
+	return $types;
+}
+
 /** The business number behind Sofia, matching the other deep links on the site. */
 function mfa_travel_wa_number() {
 	return apply_filters( 'mfa_travel_wa_number', '60189897579' );
@@ -229,6 +249,13 @@ function niz_wa_travel_route( $override, $user_id, $wa_number, $message_text, $c
 		}
 
 		nwa_send_message( $user_id, $wa_number, mfa_travel_format_reply( $plan ) );
+
+		// Counted only once a plan has actually been produced and sent.
+		// Starting the flow is curiosity; receiving a plan is use, and use is
+		// what the dashboard's Interest panel is meant to measure.
+		if ( function_exists( 'mfa_lead_record_signal' ) ) {
+			mfa_lead_record_signal( $user_id, 'travel_planner', $ctx['from'] . ' to ' . $ctx['to'] );
+		}
 
 		// Keep the session open for a connecting flight. Planning each leg in
 		// turn beats asking for a whole itinerary up front: the traveller

@@ -313,6 +313,32 @@ function mfa_place_city_candidates( $country, $state, $floor ) {
 			continue; // Ambiguous bare name - see this function's docblock.
 		}
 
+		// A city hub must not be named after a state.
+		//
+		// Malaysia's `city` column frequently holds the STATE name, left there
+		// as a parser fallback: 15 of its 203 candidates were things like
+		// "Johor" under Johor or "Sabah" under Sabah, carrying 328, 177 and
+		// 162 records apiece. Each would have published
+		// /places/malaysia/johor/johor/ - a hub duplicating its own parent and
+		// competing with it for the same query.
+		//
+		// EXACT comparison, never a prefix: "Johor Bahru" is a real city and a
+		// prefix test on "johor" would have killed it, along with 84 mosques.
+		if ( 0 === strcasecmp( trim( $row['city'] ), $state ) ) {
+			continue;
+		}
+
+		// And a city whose name resolves to a DIFFERENT state is mis-tagged
+		// data, not a place: "Kuala Lumpur" filed under Selangor (41 records)
+		// would have competed with the real Kuala Lumpur hub. Resolving to the
+		// OWN parent is fine and expected - that is how "Johor Bahru" stays.
+		if ( function_exists( 'mfa_normalize_state_name' ) ) {
+			$as_state = mfa_normalize_state_name( $country, $row['city'] );
+			if ( '' !== $as_state && 0 !== strcasecmp( $as_state, $state ) ) {
+				continue;
+			}
+		}
+
 		$out[ $row['city'] ] = array(
 			'mosque'   => (int) $row['mosque'],
 			'business' => (int) $row['business'],

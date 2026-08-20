@@ -34,6 +34,7 @@ $mfa_core_includes = array(
 	'includes/phone-extract.php',
 	'includes/seo-index-control.php',
 	'includes/seo-location-backfill.php',
+	'includes/schema-directory.php',
 	'includes/travel-prayer.php',
 	'includes/travel-prayer-sofia.php',
 	'includes/sofia-leads.php',

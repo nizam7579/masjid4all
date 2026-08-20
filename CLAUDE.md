@@ -585,6 +585,34 @@ their actual status as of the 2026-08-04 cutover:
   beat `directory` and answered every "claim business" with "Sorry, something
   went wrong on our end" until 2026-08-20. After any action work, re-check
   that every enabled action's `callback_function` actually exists.
+- **Admin-sent button messages** — `/admin/member/info/` → Send WhatsApp can
+  send interactive messages, so a member is activated or verifies an email
+  inside WhatsApp rather than being sent to `/member/`. Options: Free-form,
+  Activate Account, Verify Email, Invite to Add Mosque/Business/Website,
+  Invite to Founding Member waitlist.
+
+  **Buttons come from the server-side catalogue keyed by the posted preset,
+  never from the request.** A tap sends the button's *title* back as the
+  message and that title is matched against `wp_nwa_actions`, so a client
+  able to name its own buttons could route a member into any flow. Three
+  buttons is WhatsApp's hard cap.
+
+  **The `when` rule is re-checked in the AJAX handler, not only at render** —
+  an admin page left open goes stale and would otherwise tell somebody who
+  verified ten minutes ago that their email is unverified. Same reason the
+  24-hour window is re-validated on send. Each rule is deliberately not the
+  obvious test: `prospect` means **not yet a member** (~74,800 accounts have
+  no `user_status` at all and are exactly who needs activating) and is
+  **case-insensitive** (production has one `Prospect`, staging more);
+  `email_unverified` **excludes a placeholder address**, which has nothing at
+  the other end; `not_on_waitlist` distinguishes a **signal** (interest,
+  carries `count`) from a **capture** (finished the flow), so somebody who
+  once asked and never finished still gets invited.
+- **Account flow starts with a NAME step.** `niz_wa_account_known_name()`
+  rejects generated names (`user_353…`, the bare number) so nobody is asked
+  to confirm a phone number as their name. Only `display_name` is written —
+  the `jet_cct_member` row is promoted by `niz_user_complete_registration()`
+  at the end, so writing it early desyncs if they abandon halfway.
 - **Flow language (English / Spanish / Malay)** — 2026-08-20. Scripted flow
   copy answers in the writer's language across all five flows (directory,
   account, travel, leads, contact): 96 phrases per language, identical key
@@ -607,6 +635,16 @@ their actual status as of the 2026-08-04 cutover:
   There is an assertion that every command token in a key survives into both
   translations — run it after editing the table. Adding a language is a word
   list plus a map entry; nothing else changes.
+
+  **Two authoring rules, both learned from a key silently failing to match:**
+  never put `{{site}}` (or any placeholder) inside a translatable sentence —
+  it expands to the real site name, so keys containing "Masjid4All" matched
+  on production and failed on staging, where it is
+  "staging.masjid4all.com"; and a dynamic value must sit on its own line
+  rather than mid-clause, since "Your email *{$addr}* is already verified"
+  cannot be keyed at all. **Verify by rendering each message and looking for
+  lines that come through unchanged** — counting keys would have passed while
+  three sentences shipped in English.
 - **Directory place links** — a Google Maps link is accepted **even after the
   flow's 30-minute TTL has expired**, because fetching a link out of Maps
   routinely takes longer; with no live session it goes straight to

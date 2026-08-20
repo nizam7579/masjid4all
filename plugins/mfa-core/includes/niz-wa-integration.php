@@ -934,12 +934,31 @@ function niz_wa_directory_route( $override, $user_id, $wa_number, $message_text,
 	}
 
 	// get_active_pending_action() auto-clears the session once its TTL passes.
-	if ( 'directory_flow' !== NWA_DB::get_active_pending_action( $conversation ) ) {
+	$pending = NWA_DB::get_active_pending_action( $conversation );
+	if ( 'directory_flow' !== $pending ) {
 		// Not mid-flow — but catch the "Add Another …" completion buttons.
 		$another = niz_wa_dir_detect_another( $message_text );
 		if ( '' !== $another ) {
 			return niz_wa_dir_start_branch( $user_id, $wa_number, $conversation, $another );
 		}
+
+		// A Google Maps link with no live session is almost always someone
+		// finishing an Add-Mosque flow that has since expired - fetching a
+		// link out of Google Maps easily outlasts the 30-minute TTL. Treat it
+		// as a submission rather than handing an address to the AI, which can
+		// do nothing useful with it.
+		//
+		// Guarded on NO pending action at all, not merely "no directory
+		// flow": this route runs at priority 20, ahead of the travel (22),
+		// leads (23) and contact (25) flows, so a looser check would steal a
+		// Maps link from one of those while it was legitimately waiting for
+		// an answer.
+		if ( null === $pending && niz_wa_dir_looks_like_maps_link( $message_text ) ) {
+			// Empty type: they never said "mosque" or "business", so the place
+			// itself decides which directory it belongs in.
+			return niz_wa_place_add_from_link( $user_id, $wa_number, $conversation, '', trim( (string) $message_text ) );
+		}
+
 		return $override;
 	}
 
@@ -1143,7 +1162,13 @@ function niz_wa_dir_detect_choice( $text ) {
 }
 
 function niz_wa_dir_stop_hint() {
-	return "\n\n_Or type *stop* to cancel._";
+	// Intentionally empty. `stop` is the global unsubscribe keyword, so
+	// telling people to type it to cancel a form would opt them out of every
+	// template the moment the flow's TTL had passed. It still cancels a live
+	// flow for anyone who types it out of habit - we simply no longer
+	// instruct them to. Kept as a function so the call sites, and the reason,
+	// stay visible.
+	return '';
 }
 
 /**
@@ -1273,6 +1298,24 @@ function niz_wa_dir_looks_like_link( $text ) {
 		return true;
 	}
 	return (bool) preg_match( '#[a-z0-9.\-]+\.[a-z]{2,}(/|$|\s)#i', $text );
+}
+
+/**
+ * Cheap, network-free test for a Google Maps place link.
+ *
+ * Deliberately separate from niz_wa_dir_looks_like_link(): that one accepts
+ * any URL-ish text, which is right mid-flow where the user was just asked
+ * for a link. Out of flow we need to be sure before spending a
+ * niz_wa_maps_resolve() lookup on an unsolicited message, so this matches
+ * only Google's own Maps hosts.
+ */
+function niz_wa_dir_looks_like_maps_link( $text ) {
+	$t = strtolower( (string) $text );
+
+	return (bool) preg_match(
+		'#(maps[.]app[.]goo[.]gl/|goo[.]gl/maps/|maps[.]google[.][a-z.]{2,6}/|google[.][a-z.]{2,6}/maps)#',
+		$t
+	);
 }
 
 /**
@@ -1755,7 +1798,10 @@ function niz_wa_place_add_from_link( $user_id, $wa_number, $conversation, $type,
 	// in the business directory. If that differs from what the user asked,
 	// suggest the correct one instead of adding it to the wrong directory.
 	$target   = niz_wa_looks_like_mosque( $place ) ? 'mosque' : 'business';
-	$mismatch = ( $target !== $type );
+	// An empty $type means the link arrived unprompted, so there is nothing
+	// to contradict - "this looks like a business, not a mosque" would be
+	// nonsense when they never named a type.
+	$mismatch = ( '' !== $type && $target !== $type );
 
 	// Already in the (correct) directory?
 	$existing = niz_wa_place_find_existing( $target, $place['placeId'] );

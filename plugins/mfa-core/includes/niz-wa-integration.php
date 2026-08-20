@@ -257,11 +257,45 @@ function niz_wa_sofia_menu( $user_id, $wa_number ) {
  * the router's own send. The menu failing (outside the 24-hour window, say)
  * is not worth surfacing: the answer has already gone.
  */
+/**
+ * A prospect gets a nudge to activate, appended to an informational reply.
+ *
+ * Rate-limited rather than sent on every tap: somebody who taps Prayer Times
+ * then Find a Mosque within a minute should not be asked twice. The gap is
+ * deliberately LONGER than the magic link's 20-minute life, so a nudge never
+ * arrives while an earlier, still-valid link is sitting unread - each nudge
+ * carries a link that is actually usable.
+ *
+ * Members get nothing back, so this silently disappears the moment it has
+ * done its job.
+ */
+function niz_wa_activation_nudge( $user_id ) {
+	if ( niz_wa_is_member( $user_id ) ) {
+		return '';
+	}
+
+	$gap  = (int) apply_filters( 'niz_wa_activation_nudge_gap', 30 * MINUTE_IN_SECONDS );
+	$last = (int) get_user_meta( $user_id, 'niz_wa_activation_nudge_at', true );
+
+	if ( $last && ( time() - $last ) < $gap ) {
+		return '';
+	}
+
+	update_user_meta( $user_id, 'niz_wa_activation_nudge_at', time() );
+
+	return "\n\n———\n*Activate your free account* to save mosques, earn Barakah points and manage your own listings.\n\nTap to activate and sign in — no password needed:\n"
+		. niz_wa_magic_login_url( $user_id, '/member/', true );
+}
+
 function niz_wa_answer_then_menu( $user_id, $answer ) {
 	$conversation = NWA_DB::get_conversation_by_user( $user_id );
 	if ( ! $conversation ) {
 		return $answer;
 	}
+
+	// Prospects get the activation offer on the back of the answer they asked
+	// for, rather than as a third message nobody asked for.
+	$answer .= niz_wa_activation_nudge( $user_id );
 
 	nwa_send_message( $user_id, $conversation->wa_number, $answer );
 	niz_wa_sofia_menu( $user_id, $conversation->wa_number );
@@ -2506,6 +2540,11 @@ function niz_wa_flow_strings( $lang ) {
 			"Shall I add you? Reply *YES* to join, or *NO* to skip." => "¿Te apunto? Responde *YES* para unirte, o *NO* para omitir.",
 			"Reply *YES* to continue, or *NO* to skip."  => "Responde *YES* para continuar, o *NO* para omitir.",
 			"Reply *YES* to continue, or *NO* if you'd rather not." => "Responde *YES* para continuar, o *NO* si prefieres no hacerlo.",
+			"*Activate your free account* to save mosques, earn Barakah points and manage your own listings." => "*Activa tu cuenta gratuita* para guardar mezquitas, ganar puntos Barakah y gestionar tus propias fichas.",
+			"Tap to activate and sign in — no password needed:" => "Toca para activarla y entrar — sin contraseña:",
+			"Tap below to open your Masjid4All member page — you'll be signed in automatically, no password needed:" => "Toca abajo para abrir tu página de miembro de Masjid4All — entrarás automáticamente, sin contraseña:",
+			"Once you're in you can add your email, set a password, and explore prayer times, the mosque directory and your Barakah points." => "Una vez dentro puedes añadir tu correo, crear una contraseña y explorar los horarios de oración, el directorio de mezquitas y tus puntos Barakah.",
+			"_The link works once and expires in 20 minutes._" => "_El enlace funciona una sola vez y caduca en 20 minutos._",
 		),
 		"ms" => array(
 			"📍 *Add Mosque*"                                     => "📍 *Tambah Masjid*",
@@ -2634,6 +2673,11 @@ function niz_wa_flow_strings( $lang ) {
 			"Shall I add you? Reply *YES* to join, or *NO* to skip." => "Mahu saya tambah anda? Balas *YES* untuk menyertai, atau *NO* untuk melangkau.",
 			"Reply *YES* to continue, or *NO* to skip."  => "Balas *YES* untuk teruskan, atau *NO* untuk melangkau.",
 			"Reply *YES* to continue, or *NO* if you'd rather not." => "Balas *YES* untuk teruskan, atau *NO* jika anda tidak mahu.",
+			"*Activate your free account* to save mosques, earn Barakah points and manage your own listings." => "*Aktifkan akaun percuma anda* untuk menyimpan masjid, mengumpul mata Barakah dan menguruskan penyenaraian anda sendiri.",
+			"Tap to activate and sign in — no password needed:" => "Tekan untuk mengaktifkan dan log masuk — tiada kata laluan diperlukan:",
+			"Tap below to open your Masjid4All member page — you'll be signed in automatically, no password needed:" => "Tekan di bawah untuk membuka halaman ahli Masjid4All anda — anda akan log masuk secara automatik, tiada kata laluan diperlukan:",
+			"Once you're in you can add your email, set a password, and explore prayer times, the mosque directory and your Barakah points." => "Setelah masuk, anda boleh menambah emel, menetapkan kata laluan, dan meneroka waktu solat, direktori masjid dan mata Barakah anda.",
+			"_The link works once and expires in 20 minutes._" => "_Pautan ini berfungsi sekali sahaja dan tamat tempoh dalam 20 minit._",
 		),
 	);
 

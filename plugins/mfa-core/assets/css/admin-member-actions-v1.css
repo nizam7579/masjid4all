@@ -1,0 +1,97 @@
+/* Staff actions on the member detail page.
+   Tokens from global-v3.css; the modal mirrors .mfa-assist-overlay's shape
+   so the admin area and the public site behave the same way. */
+
+.mfa-admin-member-actions-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mfa-space-3);
+  margin: var(--mfa-space-5) 0 var(--mfa-space-2);
+}
+
+.mfa-mact-btn[disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: auto; /* keep the title tooltip reachable */
+}
+
+.mfa-admin-member-actions-note {
+  margin: 0 0 var(--mfa-space-5);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--mfa-muted);
+}
+
+.mfa-mact-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: var(--mfa-space-5);
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.mfa-mact-overlay.is-open {
+  display: flex;
+}
+
+.mfa-mact-modal {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  max-height: 88vh;
+  overflow-y: auto;
+  padding: var(--mfa-space-7) var(--mfa-space-6) var(--mfa-space-6);
+  background: var(--mfa-white);
+  border-radius: var(--mfa-radius-md);
+  box-shadow: var(--mfa-shadow-float);
+}
+
+.mfa-mact-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  font-size: 24px;
+  line-height: 1;
+  color: var(--mfa-muted);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.mfa-mact-close:hover {
+  color: var(--mfa-ink);
+}
+
+.mfa-mact-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mfa-space-4);
+  margin-top: var(--mfa-space-4);
+}
+
+.mfa-mact-submit {
+  width: 100%;
+}
+
+.mfa-mact-msg {
+  margin: 0;
+  min-height: 18px;
+  font-size: 13px;
+  color: var(--mfa-danger);
+}
+
+.mfa-mact-msg.is-success {
+  color: var(--mfa-teal-dark);
+}
+
+@media (max-width: 600px) {
+  .mfa-admin-member-actions-bar .mfa-mact-btn {
+    flex: 1 1 100%;
+  }
+}

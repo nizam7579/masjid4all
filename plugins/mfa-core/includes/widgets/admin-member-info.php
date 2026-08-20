@@ -94,6 +94,14 @@ function mfa_admin_member_info_shortcode() {
 								<span class="mfa-body"><?php echo esc_html( $row['cct_created'] ? date_i18n( 'j M Y, g:i a', strtotime( $row['cct_created'] ) ) : '—' ); ?></span>
 							</div>
 						</div>
+
+						<?php
+						// Staff actions: edit details, and contact them. Gated on the
+						// same admin section as this page.
+						if ( function_exists( 'mfa_admin_member_actions_render' ) ) {
+							echo mfa_admin_member_actions_render( $row, $user_id ); // phpcs:ignore WordPress.Security.EscapeOutput
+						}
+						?>
 					</div>
 
 					<div class="mfa-admin-member-info-col-right">

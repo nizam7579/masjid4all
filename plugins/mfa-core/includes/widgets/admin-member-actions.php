@@ -1,0 +1,486 @@
+<?php
+/**
+ * Staff actions on a member: edit their details, and contact them.
+ *
+ * Rendered inside [mfa_admin_member_info]. Everything here is gated on the
+ * same 'member' admin section as the page around it, and every send is
+ * nonce-checked, confirmed in the browser first, and written to the
+ * member's activity timeline afterwards - a message sent from an admin
+ * screen is invisible otherwise, and "did we already contact them?" is the
+ * first question anyone asks.
+ *
+ * The WhatsApp rules are not UI decoration. Meta only accepts a free-form
+ * message inside 24 hours of the member's last inbound one; outside that
+ * window it must be an approved template. So the plain-message button is
+ * disabled once the window closes, and the template button is offered
+ * instead. See CLAUDE.md on wp_nwa_* datetimes being GMT - the window
+ * comparison depends on it.
+ *
+ * @package mfa-core
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/** Can the current user act on members? */
+function mfa_admin_member_can_act() {
+	if ( ! is_user_logged_in() ) {
+		return false;
+	}
+
+	if ( function_exists( 'mfa_user_can_access_admin_section' ) ) {
+		return (bool) mfa_user_can_access_admin_section( 'member' );
+	}
+
+	return current_user_can( 'edit_users' );
+}
+
+/**
+ * Templates offered in the Send Template picker.
+ *
+ * These are names only. No template has been approved in Meta yet, so a
+ * send will fail until they exist - the handler reports that plainly
+ * rather than pretending it worked.
+ */
+function mfa_admin_member_templates() {
+	return apply_filters( 'mfa_admin_member_templates', array(
+		'mfa_welcome'   => 'Welcome',
+		'mfa_followup'  => 'Follow-up',
+	) );
+}
+
+/**
+ * What can we do for this member right now, and why not.
+ *
+ * Returns the reasons as text so the UI can explain a disabled button
+ * instead of just greying it out.
+ */
+function mfa_admin_member_contact_state( $user_id ) {
+	$user  = get_userdata( $user_id );
+	$state = array(
+		'email'          => '',
+		'can_email'      => false,
+		'email_reason'   => '',
+		'phone'          => '',
+		'can_whatsapp'   => false,
+		'wa_reason'      => '',
+		'can_template'   => false,
+		'template_reason'=> '',
+		'window_expires' => '',
+	);
+
+	if ( ! $user ) {
+		return $state;
+	}
+
+	// --- email
+	$state['email'] = $user->user_email;
+	if ( function_exists( 'mfa_is_placeholder_email' ) && mfa_is_placeholder_email( $user->user_email ) ) {
+		$state['email_reason'] = 'No real email address on file.';
+	} else {
+		$state['can_email'] = true;
+	}
+
+	// --- whatsapp
+	$phone = trim( (string) get_user_meta( $user_id, 'user_phone', true ) );
+	$state['phone'] = $phone;
+
+	if ( '' === $phone ) {
+		$state['wa_reason']       = 'No WhatsApp number on file.';
+		$state['template_reason'] = 'No WhatsApp number on file.';
+		return $state;
+	}
+
+	// A number is enough for a template; a plain message also needs the window.
+	$state['can_template'] = true;
+
+	if ( ! class_exists( 'NWA_DB' ) ) {
+		$state['wa_reason'] = 'WhatsApp plugin unavailable.';
+		return $state;
+	}
+
+	$conversation = NWA_DB::get_conversation_by_user( $user_id );
+	if ( ! $conversation ) {
+		$state['wa_reason'] = 'They have never messaged Sofia, so there is no open window.';
+		return $state;
+	}
+
+	$state['window_expires'] = (string) $conversation->window_expires_at;
+
+	if ( NWA_DB::is_within_window( $conversation ) ) {
+		$state['can_whatsapp'] = true;
+	} else {
+		$state['wa_reason'] = 'The 24-hour window closed'
+			. ( $conversation->window_expires_at
+				? ' on ' . date_i18n( 'j M, g:i a', strtotime( get_date_from_gmt( $conversation->window_expires_at ) ) )
+				: '' )
+			. '. Send an approved template instead.';
+	}
+
+	return $state;
+}
+
+/* ---------------- Render ---------------- */
+
+/**
+ * The action bar plus its modals, for the member detail page.
+ *
+ * @param array $row     jet_cct_member row.
+ * @param int   $user_id
+ */
+function mfa_admin_member_actions_render( $row, $user_id ) {
+	if ( ! mfa_admin_member_can_act() ) {
+		return '';
+	}
+
+	global $wpdb;
+
+	$state     = mfa_admin_member_contact_state( $user_id );
+	$templates = mfa_admin_member_templates();
+	$statuses  = function_exists( 'mfa_admin_member_status_options' )
+		? mfa_admin_member_status_options()
+		: array( 'Prospect', 'Member' );
+
+	$countries = $wpdb->get_col(
+		"SELECT DISTINCT country FROM {$wpdb->prefix}jet_cct_member WHERE country IS NOT NULL AND TRIM(country) != '' ORDER BY country ASC"
+	);
+
+	$uid   = (int) $user_id;
+	$nonce = wp_create_nonce( 'mfa_admin_member_action_' . $uid );
+	$name  = isset( $row['name'] ) ? $row['name'] : '';
+	$email = isset( $row['email'] ) ? $row['email'] : '';
+	$cty   = isset( $row['country'] ) ? $row['country'] : '';
+	$stat  = isset( $row['status'] ) ? $row['status'] : '';
+
+	ob_start();
+	?>
+	<div class="mfa-admin-member-actions-bar" data-user="<?php echo $uid; ?>" data-nonce="<?php echo esc_attr( $nonce ); ?>">
+		<button type="button" class="mfa-btn mfa-btn-secondary mfa-mact-btn" data-mact-open="mfa-mact-edit-<?php echo $uid; ?>">Update Info</button>
+		<button type="button" class="mfa-btn mfa-btn-secondary mfa-mact-btn" data-mact-open="mfa-mact-email-<?php echo $uid; ?>" <?php disabled( ! $state['can_email'] ); ?> title="<?php echo esc_attr( $state['email_reason'] ); ?>">Send Email</button>
+		<button type="button" class="mfa-btn mfa-btn-secondary mfa-mact-btn" data-mact-open="mfa-mact-wa-<?php echo $uid; ?>" <?php disabled( ! $state['can_whatsapp'] ); ?> title="<?php echo esc_attr( $state['wa_reason'] ); ?>">Send WhatsApp</button>
+		<button type="button" class="mfa-btn mfa-btn-secondary mfa-mact-btn" data-mact-open="mfa-mact-tpl-<?php echo $uid; ?>" <?php disabled( ! $state['can_template'] ); ?> title="<?php echo esc_attr( $state['template_reason'] ); ?>">Send Template</button>
+	</div>
+
+	<?php if ( '' !== $state['wa_reason'] ) : ?>
+		<p class="mfa-admin-member-actions-note"><?php echo esc_html( $state['wa_reason'] ); ?></p>
+	<?php endif; ?>
+
+	<div class="mfa-mact-overlay" id="mfa-mact-edit-<?php echo $uid; ?>" role="dialog" aria-modal="true" aria-hidden="true">
+		<div class="mfa-mact-modal">
+			<button type="button" class="mfa-mact-close" data-mact-close aria-label="Close">&times;</button>
+			<h3 class="mfa-h3">Update Info</h3>
+			<form class="mfa-mact-form" data-mact-action="update">
+				<div class="mfa-form-group">
+					<label>Name</label>
+					<input type="text" name="name" value="<?php echo esc_attr( $name ); ?>" required>
+				</div>
+				<div class="mfa-form-group">
+					<label>Email</label>
+					<input type="email" name="email" value="<?php echo esc_attr( $email ); ?>">
+				</div>
+				<div class="mfa-form-group">
+					<label>WhatsApp number</label>
+					<input type="tel" name="phone" value="<?php echo esc_attr( $state['phone'] ); ?>" placeholder="60123456789">
+				</div>
+				<div class="mfa-form-row">
+					<div class="mfa-form-group">
+						<label>Country</label>
+						<select name="country">
+							<option value="">&mdash;</option>
+							<?php foreach ( $countries as $c ) : ?>
+								<option value="<?php echo esc_attr( $c ); ?>" <?php selected( $cty, $c ); ?>><?php echo esc_html( $c ); ?></option>
+							<?php endforeach; ?>
+						</select>
+					</div>
+					<div class="mfa-form-group">
+						<label>Status</label>
+						<select name="status">
+							<?php foreach ( $statuses as $s ) : ?>
+								<option value="<?php echo esc_attr( $s ); ?>" <?php selected( $stat, $s ); ?>><?php echo esc_html( $s ); ?></option>
+							<?php endforeach; ?>
+						</select>
+					</div>
+				</div>
+				<button type="submit" class="mfa-btn mfa-btn-primary mfa-mact-submit">Save Changes</button>
+				<p class="mfa-mact-msg" data-mact-msg></p>
+			</form>
+		</div>
+	</div>
+
+	<div class="mfa-mact-overlay" id="mfa-mact-email-<?php echo $uid; ?>" role="dialog" aria-modal="true" aria-hidden="true">
+		<div class="mfa-mact-modal">
+			<button type="button" class="mfa-mact-close" data-mact-close aria-label="Close">&times;</button>
+			<h3 class="mfa-h3">Send Email</h3>
+			<p class="mfa-body-muted">To <strong><?php echo esc_html( $state['email'] ); ?></strong></p>
+			<form class="mfa-mact-form" data-mact-action="email" data-mact-confirm="Send this email to <?php echo esc_attr( $state['email'] ); ?>?">
+				<div class="mfa-form-group">
+					<label>Subject</label>
+					<input type="text" name="subject" required>
+				</div>
+				<div class="mfa-form-group">
+					<label>Message</label>
+					<textarea name="body" rows="7" required></textarea>
+				</div>
+				<button type="submit" class="mfa-btn mfa-btn-primary mfa-mact-submit">Send Email</button>
+				<p class="mfa-mact-msg" data-mact-msg></p>
+			</form>
+		</div>
+	</div>
+
+	<div class="mfa-mact-overlay" id="mfa-mact-wa-<?php echo $uid; ?>" role="dialog" aria-modal="true" aria-hidden="true">
+		<div class="mfa-mact-modal">
+			<button type="button" class="mfa-mact-close" data-mact-close aria-label="Close">&times;</button>
+			<h3 class="mfa-h3">Send WhatsApp</h3>
+			<p class="mfa-body-muted">To <strong>+<?php echo esc_html( $state['phone'] ); ?></strong></p>
+			<form class="mfa-mact-form" data-mact-action="whatsapp" data-mact-confirm="Send this WhatsApp message to +<?php echo esc_attr( $state['phone'] ); ?>?">
+				<div class="mfa-form-group">
+					<label>Message</label>
+					<textarea name="body" rows="6" required></textarea>
+				</div>
+				<button type="submit" class="mfa-btn mfa-btn-primary mfa-mact-submit">Send Message</button>
+				<p class="mfa-mact-msg" data-mact-msg></p>
+			</form>
+		</div>
+	</div>
+
+	<div class="mfa-mact-overlay" id="mfa-mact-tpl-<?php echo $uid; ?>" role="dialog" aria-modal="true" aria-hidden="true">
+		<div class="mfa-mact-modal">
+			<button type="button" class="mfa-mact-close" data-mact-close aria-label="Close">&times;</button>
+			<h3 class="mfa-h3">Send Template</h3>
+			<p class="mfa-body-muted">To <strong>+<?php echo esc_html( $state['phone'] ); ?></strong>. A template reaches them outside the 24-hour window, but it must already be approved in Meta.</p>
+			<form class="mfa-mact-form" data-mact-action="template" data-mact-confirm="Send this template to +<?php echo esc_attr( $state['phone'] ); ?>?">
+				<div class="mfa-form-group">
+					<label>Template</label>
+					<select name="template" required>
+						<?php foreach ( $templates as $key => $label ) : ?>
+							<option value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?> (<?php echo esc_html( $key ); ?>)</option>
+						<?php endforeach; ?>
+					</select>
+				</div>
+				<button type="submit" class="mfa-btn mfa-btn-primary mfa-mact-submit">Send Template</button>
+				<p class="mfa-mact-msg" data-mact-msg></p>
+			</form>
+		</div>
+	</div>
+	<?php
+	return ob_get_clean();
+}
+
+/* ---------------- AJAX ----------------
+   One entry point per action. Every one re-checks the capability and the
+   nonce server-side: the browser confirmation is a courtesy to the person
+   clicking, never the control. Every send is written to the member's
+   activity timeline, because a message sent from here is otherwise
+   invisible and "have we contacted them?" is the first thing anyone asks. */
+
+add_action( 'wp_ajax_mfa_admin_member_update', 'mfa_admin_member_ajax_update' );
+function mfa_admin_member_ajax_update() {
+	$user_id = isset( $_POST['user_id'] ) ? absint( $_POST['user_id'] ) : 0;
+
+	if ( ! mfa_admin_member_can_act() || ! $user_id ) {
+		wp_send_json_error( array( 'message' => 'Not allowed.' ) );
+	}
+	check_ajax_referer( 'mfa_admin_member_action_' . $user_id, 'nonce' );
+
+	$user = get_userdata( $user_id );
+	if ( ! $user ) {
+		wp_send_json_error( array( 'message' => 'That member no longer exists.' ) );
+	}
+
+	$name    = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
+	$email   = isset( $_POST['email'] ) ? sanitize_email( wp_unslash( $_POST['email'] ) ) : '';
+	$phone   = isset( $_POST['phone'] ) ? sanitize_text_field( wp_unslash( $_POST['phone'] ) ) : '';
+	$country = isset( $_POST['country'] ) ? sanitize_text_field( wp_unslash( $_POST['country'] ) ) : '';
+	$status  = isset( $_POST['status'] ) ? sanitize_text_field( wp_unslash( $_POST['status'] ) ) : '';
+
+	if ( '' === $name ) {
+		wp_send_json_error( array( 'message' => 'Name cannot be empty.' ) );
+	}
+	if ( '' !== $email && ! is_email( $email ) ) {
+		wp_send_json_error( array( 'message' => 'That email address is not valid.' ) );
+	}
+
+	$allowed = function_exists( 'mfa_admin_member_status_options' ) ? mfa_admin_member_status_options() : array();
+	if ( '' !== $status && $allowed && ! in_array( $status, $allowed, true ) ) {
+		wp_send_json_error( array( 'message' => 'Unknown status.' ) );
+	}
+
+	// Normalised the same way the WhatsApp side stores it, or the same
+	// number typed differently will never match a conversation.
+	if ( '' !== $phone ) {
+		$phone = function_exists( 'niz_user_normalize_phone' )
+			? niz_user_normalize_phone( $phone )
+			: preg_replace( '/\D/', '', $phone );
+	}
+
+	$changed = array();
+
+	if ( '' !== $email && $email !== $user->user_email ) {
+		// Changing the account email is an auth-adjacent change: it is what
+		// login and password reset both key on, so it is applied to the real
+		// user record, not only the CCT row.
+		$exists = email_exists( $email );
+		if ( $exists && (int) $exists !== $user_id ) {
+			wp_send_json_error( array( 'message' => 'Another account already uses that email.' ) );
+		}
+		wp_update_user( array( 'ID' => $user_id, 'user_email' => $email ) );
+		$changed[] = 'email';
+	}
+
+	if ( $name !== $user->display_name ) {
+		wp_update_user( array( 'ID' => $user_id, 'display_name' => $name ) );
+		$changed[] = 'name';
+	}
+
+	$old_phone = trim( (string) get_user_meta( $user_id, 'user_phone', true ) );
+	if ( $phone !== $old_phone ) {
+		update_user_meta( $user_id, 'user_phone', $phone );
+		$changed[] = 'phone';
+	}
+
+	if ( function_exists( 'niz_user_update_field' ) ) {
+		niz_user_update_field( $user_id, 'name', $name );
+		if ( '' !== $email ) {
+			niz_user_update_field( $user_id, 'email', $email );
+		}
+		niz_user_update_field( $user_id, 'phone', $phone );
+		niz_user_update_field( $user_id, 'country', $country );
+		if ( '' !== $status ) {
+			niz_user_update_field( $user_id, 'status', $status );
+			// Keep the usermeta the rest of the site reads in step with the
+			// CCT row - they drifted apart once already and took 22 rows of
+			// reconciliation to put right.
+			update_user_meta( $user_id, 'user_status', in_array( $status, array( 'Member', 'Premium Member', 'Premium Lifetime' ), true ) ? 'member' : 'prospect' );
+			$changed[] = 'status';
+		}
+	}
+
+	if ( function_exists( 'mfa_log_activity' ) ) {
+		mfa_log_activity( $user_id, 'admin_update', 'Details updated by ' . wp_get_current_user()->display_name
+			. ( $changed ? ' (' . implode( ', ', array_unique( $changed ) ) . ')' : '' ) );
+	}
+
+	wp_send_json_success( array( 'message' => 'Saved.' ) );
+}
+
+add_action( 'wp_ajax_mfa_admin_member_email', 'mfa_admin_member_ajax_email' );
+function mfa_admin_member_ajax_email() {
+	$user_id = isset( $_POST['user_id'] ) ? absint( $_POST['user_id'] ) : 0;
+
+	if ( ! mfa_admin_member_can_act() || ! $user_id ) {
+		wp_send_json_error( array( 'message' => 'Not allowed.' ) );
+	}
+	check_ajax_referer( 'mfa_admin_member_action_' . $user_id, 'nonce' );
+
+	$state = mfa_admin_member_contact_state( $user_id );
+	if ( ! $state['can_email'] ) {
+		wp_send_json_error( array( 'message' => $state['email_reason'] ? $state['email_reason'] : 'Cannot email this member.' ) );
+	}
+
+	$subject = isset( $_POST['subject'] ) ? sanitize_text_field( wp_unslash( $_POST['subject'] ) ) : '';
+	$body    = isset( $_POST['body'] ) ? sanitize_textarea_field( wp_unslash( $_POST['body'] ) ) : '';
+
+	if ( '' === $subject || '' === $body ) {
+		wp_send_json_error( array( 'message' => 'Subject and message are both required.' ) );
+	}
+
+	$sent = wp_mail(
+		$state['email'],
+		$subject,
+		$body,
+		array( 'From: Masjid4All <' . get_option( 'admin_email' ) . '>' )
+	);
+
+	if ( ! $sent ) {
+		error_log( 'mfa_admin_member_ajax_email: wp_mail failed for user ' . $user_id );
+		wp_send_json_error( array( 'message' => 'The mail server rejected it. Nothing was sent.' ) );
+	}
+
+	if ( function_exists( 'mfa_log_activity' ) ) {
+		mfa_log_activity( $user_id, 'admin_email', 'Email sent by ' . wp_get_current_user()->display_name . ': ' . $subject );
+	}
+
+	wp_send_json_success( array( 'message' => 'Email sent.' ) );
+}
+
+add_action( 'wp_ajax_mfa_admin_member_whatsapp', 'mfa_admin_member_ajax_whatsapp' );
+function mfa_admin_member_ajax_whatsapp() {
+	$user_id = isset( $_POST['user_id'] ) ? absint( $_POST['user_id'] ) : 0;
+
+	if ( ! mfa_admin_member_can_act() || ! $user_id ) {
+		wp_send_json_error( array( 'message' => 'Not allowed.' ) );
+	}
+	check_ajax_referer( 'mfa_admin_member_action_' . $user_id, 'nonce' );
+
+	// Re-checked here, not just in the UI: the window can close between the
+	// page rendering and the button being pressed, and Meta would reject it.
+	$state = mfa_admin_member_contact_state( $user_id );
+	if ( ! $state['can_whatsapp'] ) {
+		wp_send_json_error( array( 'message' => $state['wa_reason'] ? $state['wa_reason'] : 'Cannot message this member.' ) );
+	}
+
+	$body = isset( $_POST['body'] ) ? sanitize_textarea_field( wp_unslash( $_POST['body'] ) ) : '';
+	if ( '' === $body ) {
+		wp_send_json_error( array( 'message' => 'Message cannot be empty.' ) );
+	}
+
+	if ( ! function_exists( 'nwa_send_message' ) ) {
+		wp_send_json_error( array( 'message' => 'WhatsApp plugin unavailable.' ) );
+	}
+
+	$res = nwa_send_message( $user_id, $state['phone'], $body );
+
+	if ( empty( $res['success'] ) ) {
+		$why = ! empty( $res['error'] ) ? $res['error'] : 'unknown error';
+		wp_send_json_error( array( 'message' => 'WhatsApp refused it (' . $why . '). Nothing was sent.' ) );
+	}
+
+	if ( function_exists( 'mfa_log_activity' ) ) {
+		mfa_log_activity( $user_id, 'admin_whatsapp', 'WhatsApp sent by ' . wp_get_current_user()->display_name );
+	}
+
+	wp_send_json_success( array( 'message' => 'Message sent.' ) );
+}
+
+add_action( 'wp_ajax_mfa_admin_member_template', 'mfa_admin_member_ajax_template' );
+function mfa_admin_member_ajax_template() {
+	$user_id = isset( $_POST['user_id'] ) ? absint( $_POST['user_id'] ) : 0;
+
+	if ( ! mfa_admin_member_can_act() || ! $user_id ) {
+		wp_send_json_error( array( 'message' => 'Not allowed.' ) );
+	}
+	check_ajax_referer( 'mfa_admin_member_action_' . $user_id, 'nonce' );
+
+	$state = mfa_admin_member_contact_state( $user_id );
+	if ( ! $state['can_template'] ) {
+		wp_send_json_error( array( 'message' => $state['template_reason'] ? $state['template_reason'] : 'Cannot message this member.' ) );
+	}
+
+	$template  = isset( $_POST['template'] ) ? sanitize_key( wp_unslash( $_POST['template'] ) ) : '';
+	$templates = mfa_admin_member_templates();
+
+	if ( ! isset( $templates[ $template ] ) ) {
+		wp_send_json_error( array( 'message' => 'Unknown template.' ) );
+	}
+
+	if ( ! function_exists( 'nwa_send_template' ) ) {
+		wp_send_json_error( array( 'message' => 'WhatsApp plugin unavailable.' ) );
+	}
+
+	// Signature is ( $to, $template_name, $lang_code, $components, $user_id ) -
+	// the number comes first here, unlike nwa_send_message().
+	$res = nwa_send_template( $state['phone'], $template, 'en_US', array(), $user_id );
+
+	if ( empty( $res['success'] ) ) {
+		$why = ! empty( $res['error'] ) ? $res['error'] : 'unknown error';
+		// Expected until the templates are created and approved in Meta.
+		wp_send_json_error( array( 'message' => 'Meta refused it (' . $why . '). Templates must be created and approved in Meta before they can be sent.' ) );
+	}
+
+	if ( function_exists( 'mfa_log_activity' ) ) {
+		mfa_log_activity( $user_id, 'admin_template', 'Template "' . $template . '" sent by ' . wp_get_current_user()->display_name );
+	}
+
+	wp_send_json_success( array( 'message' => 'Template sent.' ) );
+}

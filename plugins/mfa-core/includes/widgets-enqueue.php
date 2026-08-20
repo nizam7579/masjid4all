@@ -112,6 +112,11 @@ function mfa_core_enqueue_widget_assets() {
 			wp_enqueue_style( 'mfa-core-admin-member-list', MFA_CORE_URL . 'assets/css/admin-member-list-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell' ), $get_version( $admin_member_list_css ) );
 
 			$admin_member_info_css = MFA_CORE_PATH . 'assets/css/admin-member-info-v3.css';
+			$mact_css = MFA_CORE_PATH . 'assets/css/admin-member-actions-v1.css';
+			wp_enqueue_style( 'mfa-core-admin-member-actions', MFA_CORE_URL . 'assets/css/admin-member-actions-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell' ), $get_version( $mact_css ) );
+			$mact_js = MFA_CORE_PATH . 'assets/js/admin-member-actions-v1.js';
+			wp_enqueue_script( 'mfa-core-admin-member-actions', MFA_CORE_URL . 'assets/js/admin-member-actions-v1.js', array(), $get_version( $mact_js ), true );
+			wp_localize_script( 'mfa-core-admin-member-actions', 'mfaMemberActions', array( 'url' => admin_url( 'admin-ajax.php' ) ) );
 			wp_enqueue_style( 'mfa-core-admin-member-info', MFA_CORE_URL . 'assets/css/admin-member-info-v3.css', array( 'mfa-core-global', 'mfa-core-admin-shell', 'mfa-core-admin-member-list' ), $get_version( $admin_member_info_css ) );
 
 			$admin_tabs_js = MFA_CORE_PATH . 'assets/js/admin-tabs-v1.js';
@@ -503,6 +508,7 @@ function mfa_core_litespeed_css_excludes( $excludes ) {
 	$excludes[] = 'mfa-core/assets/css/admin-signups-v1.css';
 	$excludes[] = 'mfa-core/assets/css/admin-member-list-v1.css';
 	$excludes[] = 'mfa-core/assets/css/admin-member-info-v3.css';
+	$excludes[] = 'mfa-core/assets/css/admin-member-actions-v1.css';
 	$excludes[] = 'mfa-core/assets/css/admin-mosque-list-v1.css';
 	$excludes[] = 'mfa-core/assets/css/admin-business-list-v1.css';
 	$excludes[] = 'mfa-core/assets/css/admin-website-list-v2.css';

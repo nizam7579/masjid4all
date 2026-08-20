@@ -498,10 +498,36 @@ their actual status as of the 2026-08-04 cutover:
   done, and `/admin/whatsapp/` offers a template picker in place of the reply
   box once the window closes (names come from `mfa_admin_member_templates()`
   when mfa-core is present, so the inbox and the member admin screen cannot
-  disagree; filterable as `nwa_message_templates`). What is still **not**
-  built is creating templates or submitting them to Meta for approval — and
-  **no template has been approved in Meta yet**, so every send currently
-  fails with Meta's own error, shown on screen rather than swallowed.
+  disagree; filterable as `nwa_message_templates`). **`mfa_welcome` and
+  `mfa_followup` are approved as of 2026-08-20** and send successfully.
+
+  **They are approved in Meta as plain "English", language code `en`, NOT
+  `en_US`.** Meta matches a template by name *and* translation, so an
+  `en_US` send fails with error 132001 even though the template is approved
+  and correct — which is what every send path did until this was fixed. The
+  language now resolves in ONE place: `send_template()` defaults
+  `$lang_code` to `''` and fills it from the `nwa_template_language` filter
+  (default `en`); call sites pass `''`. An explicit code still wins, so a
+  Malay template can pass `ms` per-send. Neither template takes a `{{1}}`
+  variable, by decision — components are sent empty.
+
+  **Every quick-reply button label on a template must be a keyword on an
+  enabled action.** A tap arrives as an ordinary inbound message whose text
+  is the button's label, and `NWA_DB::get_action_by_keyword()` matches the
+  **whole message, exactly** — no substring, no fuzzy. A label that is not a
+  keyword falls through to AI intent classification, which on production sent
+  "Find a mosque" into the *Add* Mosque flow and answered "Prayer times" by
+  inventing a Masjid4All phone app that does not exist. Tell Claude the exact
+  labels whenever a template is created or edited in Meta. The same rule
+  applies to list **row titles**, which also come back as their title.
+
+  What is still **not** built is creating templates or submitting them to
+  Meta from our side, and there is a concrete blocker: it needs the WABA id
+  plus `whatsapp_business_management` permission. The WABA id is stored
+  **nowhere** — not in `wp-config.php`, not in `nwa_settings`, not in the
+  webhook payloads we retain — and the access token is a SYSTEM_USER token
+  scoped to sending only, so it cannot be discovered from the API either.
+  Adding an `NWA_WABA_ID` constant is the unblock.
 - **User/contact management** — ✅ done, via `mfa-core`'s identity functions
   (moved from `enaizi-user` — see Plugin Architecture above), hooked through
   `nwa_resolve_user_id`. **Note:** `niz-wa` is intentionally standalone now —
@@ -512,7 +538,18 @@ their actual status as of the 2026-08-04 cutover:
 - **Receiving/webhook handling** — ✅ done, with the synchronous-processing caveat
   noted above. Signature verification (`x-hub-signature-256` HMAC), dedupe, and a
   "typing…" indicator (`NWA_Sender::mark_read_with_typing()`) shown while a reply is
-  generated are all implemented. No opt-out/unsubscribe flow has been built.
+  generated are all implemented.
+- **Opt-out (`STOP`)** — ✅ done 2026-08-20. `NWA_OptOut` hooks
+  `nwa_route_message_override` at **priority 30** — after every flow, before
+  the AI. Meta key `nwa_opted_out`; wrapper `nwa_is_opted_out()`. Opting out
+  blocks **templates only**, enforced inside `send_template()` so it holds
+  for every caller; replies inside the 24-hour window are deliberately still
+  answered, because that window only exists because the person wrote in.
+  **Never advertise `stop` in a flow prompt.** It is also each flow's cancel
+  word, but a flow only claims it while the flow is *live* — once the TTL
+  passes the message falls through to priority 30 and unsubscribes them, so a
+  prompt saying "type *stop* to cancel" was instructing people into exactly
+  that. Prompts advertise `cancel` instead; `stop` still cancels a live flow.
 - **Inbound media** — ✅ downloaded into the WordPress media library at receipt
   (`includes/class-nwa-media.php`, 2026-08-20), with the attachment id on
   `wp_nwa_messages.media_attachment_id` and the file rendered inline in the
@@ -538,6 +575,49 @@ their actual status as of the 2026-08-04 cutover:
   `advertise`), each backed by a global PHP callback registered in
   `includes/site-integration.php`. `advertise`'s reply is still placeholder
   copy/URLs — real content was intentionally left for later (KIV).
+  **Seeding only ever INSERTs a missing `intent_key`** — changing an existing
+  row needs an explicit idempotent `UPDATE` beside the others at the foot of
+  `niz_wa_seed_actions()`, and because that function is already loaded when
+  you deploy, new UPDATEs run on the NEXT request, not the one that wrote the
+  file. **`get_action_by_keyword()` has no `ORDER BY`**, so with duplicate
+  keywords across two actions the lower id silently wins — that is how
+  `claim_business`, pointing at a callback that never existed in any plugin,
+  beat `directory` and answered every "claim business" with "Sorry, something
+  went wrong on our end" until 2026-08-20. After any action work, re-check
+  that every enabled action's `callback_function` actually exists.
+- **Flow language (English / Spanish / Malay)** — 2026-08-20. Scripted flow
+  copy answers in the writer's language across all five flows (directory,
+  account, travel, leads, contact): 96 phrases per language, identical key
+  sets. `niz_wa_detect_lang()` scores space-padded function words, stores the
+  result on user meta `nwa_lang`, and `niz_wa_translate_outbound()` applies
+  the table with `strtr()` on the **`nwa_outbound_text`** filter in
+  `NWA_Sender` — one hook covering plain text and interactive **body** text.
+
+  **Language is stored, never re-detected per message.** A flow is a run of
+  very short replies ("Mezquita", "Si", a pasted URL) carrying no language
+  signal; per-message detection flips back to English mid-flow.
+
+  **Two categories must stay English, and both fail silently if translated:**
+  (1) **button and list row titles** — they are routing keywords, which is why
+  the filter never touches them, and why the place-confirm step also accepts
+  `si`/`sí`/`claro`/`vale`; (2) **command words inside sentences** —
+  `*register*`, `*travel*`, `*advertise*`, `*done*`, `*REGISTER*`, `*cancel*`,
+  `*directory*`, `*flight*`/`*car*`/`*bus*`/`*train*`, `*OK*`, `*Send*`,
+  `*Cancel*`, `*contact*`, plus `*Share*` (Google Maps' own button label).
+  There is an assertion that every command token in a key survives into both
+  translations — run it after editing the table. Adding a language is a word
+  list plus a map entry; nothing else changes.
+- **Directory place links** — a Google Maps link is accepted **even after the
+  flow's 30-minute TTL has expired**, because fetching a link out of Maps
+  routinely takes longer; with no live session it goes straight to
+  `niz_wa_place_add_from_link()`. That catch is guarded on **no pending action
+  of any kind**, not merely "no directory flow": this route runs at priority
+  20, ahead of travel (22), leads (23) and contact (25), so a looser check
+  would steal a Maps link from one of those.
+  `niz_wa_place_is_infrastructure()` refuses bus stops, stations and car parks
+  **before** the confirm step, reading Google's place `type` and **never the
+  name** — genuine halal businesses are called things like "Hamza Doner —
+  Railway Station Skopje".
 - **Knowledge base + AI Q&A fallback** — done. `wp_nwa_knowledge_base` grounds
   open-ended questions; populated with real Masjid4All content (see the portability
   note above on why this isn't reusable as-is on another site).

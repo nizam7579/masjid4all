@@ -339,6 +339,25 @@ function mfa_place_city_candidates( $country, $state, $floor ) {
 			}
 		}
 
+		// A state's CEREMONIAL name is still the state. Malaysian states carry
+		// honorifics - Johor Darul Ta'zim, Selangor Darul Ehsan, Perlis Indera
+		// Kayangan - and they land in the `city` column like any other value.
+		// Neither rule above catches them: they carry extra tokens so exact
+		// comparison misses, and they resolve to their OWN parent so the
+		// mis-tag rule allows them.
+		//
+		// The test is the remainder after the state name, not the whole
+		// string: "Johor Bahru" leaves "Bahru" and is a real city with 84
+		// mosques, while "Johor Darul Ta'zim" leaves an honorific. Four
+		// Indonesian regencies (Aceh Besar, Aceh Tamiang, Aceh Jaya, Aceh
+		// Singkil) also begin with their state's name and must survive.
+		if ( 0 === stripos( trim( $row['city'] ), $state ) ) {
+			$remainder = ltrim( substr( trim( $row['city'] ), strlen( $state ) ) );
+			if ( preg_match( '/^(darul|indera)\b/i', $remainder ) ) {
+				continue;
+			}
+		}
+
 		$out[ $row['city'] ] = array(
 			'mosque'   => (int) $row['mosque'],
 			'business' => (int) $row['business'],

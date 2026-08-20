@@ -328,7 +328,7 @@ class NWA_Shortcodes {
 			} else {
 				// Note the argument order: nwa_send_template() takes the phone
 				// number first, unlike nwa_send_message() which takes the user id.
-				$result = nwa_send_template( $active->wa_number, $template, 'en_US', array(), $active->user_id );
+				$result = nwa_send_template( $active->wa_number, $template, '', array(), $active->user_id );
 
 				if ( empty( $result['success'] ) ) {
 					self::set_notice( 'err', 'Template not sent: ' . ( $result['error'] ?? 'unknown error' ) . ' (a template must be approved in Meta under this exact name).' );

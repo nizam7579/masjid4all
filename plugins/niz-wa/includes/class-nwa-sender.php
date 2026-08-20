@@ -50,7 +50,7 @@ class NWA_Sender {
 	 * conversation). $to must be provided directly since there may not be
 	 * an existing conversation yet.
 	 */
-	public static function send_template( $to, $template_name, $lang_code = 'en_US', $components = array(), $user_id = null ) {
+	public static function send_template( $to, $template_name, $lang_code = '', $components = array(), $user_id = null ) {
 		// Enforced here rather than only in the UI: a template is the
 		// business-INITIATED channel, so this is the one send that must not
 		// happen after somebody opts out, whoever calls it and from wherever.
@@ -58,6 +58,16 @@ class NWA_Sender {
 			error_log( 'Niz WA: template blocked — user_id=' . $user_id . ' opted out at ' . NWA_OptOut::opted_out_at( $user_id ) );
 
 			return array( 'success' => false, 'error' => 'opted_out', 'message_id' => null );
+		}
+
+		// One source of truth for the template language. Our templates are
+		// approved in Meta as plain "English" (code `en`); sending `en_US`
+		// against them fails with 132001 - the template exists, the call just
+		// does not match a translation of it. A caller may still pass an
+		// explicit code, and the filter lets a Malay template switch to `ms`
+		// without touching a single call site.
+		if ( '' === $lang_code ) {
+			$lang_code = apply_filters( 'nwa_template_language', 'en', $template_name );
 		}
 
 		$body = array(
@@ -512,7 +522,7 @@ function nwa_send_message( $user_id, $to, $text ) {
 	return NWA_Sender::send_message( $user_id, $to, $text );
 }
 
-function nwa_send_template( $to, $template_name, $lang_code = 'en_US', $components = array(), $user_id = null ) {
+function nwa_send_template( $to, $template_name, $lang_code = '', $components = array(), $user_id = null ) {
 	return NWA_Sender::send_template( $to, $template_name, $lang_code, $components, $user_id );
 }
 

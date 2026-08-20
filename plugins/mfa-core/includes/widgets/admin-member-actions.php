@@ -606,7 +606,7 @@ function mfa_admin_member_ajax_template() {
 
 	// Signature is ( $to, $template_name, $lang_code, $components, $user_id ) -
 	// the number comes first here, unlike nwa_send_message().
-	$res = nwa_send_template( $state['phone'], $template, 'en_US', array(), $user_id );
+	$res = nwa_send_template( $state['phone'], $template, '', array(), $user_id );
 
 	if ( empty( $res['success'] ) ) {
 		$why = ! empty( $res['error'] ) ? $res['error'] : 'unknown error';

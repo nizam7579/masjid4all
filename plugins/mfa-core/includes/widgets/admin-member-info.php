@@ -149,6 +149,44 @@ function mfa_admin_member_info_shortcode() {
 						<?php endif; ?>
 
 						<?php
+						// Shown before the send buttons on purpose: whoever is about to
+						// message this member should see what automation already has
+						// them first.
+						$crm = function_exists( 'mfa_member_crm_profile' ) ? mfa_member_crm_profile( $user_id ) : null;
+						if ( $crm ) :
+							?>
+							<div class="mfa-admin-member-crm">
+								<h2 class="mfa-label">FluentCRM</h2>
+								<?php if ( 'found' === $crm['state'] ) : ?>
+									<p class="mfa-admin-member-crm-status">
+										<?php echo esc_html( ucfirst( $crm['status'] ) ); ?><?php
+										if ( $crm['type'] ) {
+											echo ' &middot; ' . esc_html( ucfirst( $crm['type'] ) );
+										}
+										?>
+									</p>
+									<?php if ( $crm['tags'] ) : ?>
+										<div class="mfa-admin-member-crm-tags">
+											<?php foreach ( $crm['tags'] as $tag ) : ?>
+												<span class="mfa-admin-check-badge is-ok"><?php echo esc_html( $tag ); ?></span>
+											<?php endforeach; ?>
+										</div>
+									<?php else : ?>
+										<p class="mfa-admin-member-crm-note">In the CRM, but no tags &mdash; no automation is keyed to them.</p>
+									<?php endif; ?>
+									<?php if ( $crm['lists'] ) : ?>
+										<p class="mfa-admin-member-crm-note">Lists: <?php echo esc_html( implode( ', ', $crm['lists'] ) ); ?></p>
+									<?php endif; ?>
+								<?php elseif ( 'none_possible' === $crm['state'] ) : ?>
+									<?php // Not the same as "not in the CRM" - it cannot be, until a real address exists. ?>
+									<p class="mfa-admin-member-crm-note mfa-admin-member-crm-blocked"><?php echo esc_html( $crm['reason'] ); ?></p>
+								<?php else : ?>
+									<p class="mfa-admin-member-crm-note"><?php echo esc_html( $crm['reason'] ); ?></p>
+								<?php endif; ?>
+							</div>
+						<?php endif; ?>
+
+						<?php
 						// Staff actions: edit details, and contact them. Gated on the
 						// same admin section as this page.
 						if ( function_exists( 'mfa_admin_member_actions_render' ) ) {

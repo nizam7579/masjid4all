@@ -183,3 +183,103 @@ function mfa_member_milestones( $user_id ) {
 		'Listing claimed'   => $claims > 0,
 	);
 }
+
+/**
+ * What FluentCRM knows about this member - so staff can see which
+ * automation someone is already in before sending them anything by hand.
+ *
+ * There are three genuinely different answers, and collapsing them would
+ * mislead. On production today: 18 of 29 members carry a placeholder
+ * address and therefore CANNOT have a CRM record at all, because FluentCRM
+ * is keyed on email; 4 have a real address but no record yet; 7 are in it.
+ * Showing "no tags" for all three reads as "no automation is reaching
+ * them", which is only actionable for the middle group.
+ *
+ * The API surface here was checked against the live install before being
+ * relied on: getContact() returns a Subscriber or null, and ->tags /
+ * ->lists are relations. Note getTags() does NOT exist - guarding on a
+ * method that isn't there is how a silent no-op gets shipped.
+ *
+ * @return array state => none_possible|not_in_crm|found, plus tags/lists.
+ */
+function mfa_member_crm_profile( $user_id ) {
+	$out = array(
+		'state'  => 'unavailable',
+		'reason' => '',
+		'tags'   => array(),
+		'lists'  => array(),
+		'status' => '',
+		'type'   => '',
+		'id'     => 0,
+	);
+
+	if ( ! function_exists( 'FluentCrmApi' ) ) {
+		$out['reason'] = 'FluentCRM is not active.';
+		return $out;
+	}
+
+	$user = get_userdata( (int) $user_id );
+	if ( ! $user ) {
+		$out['reason'] = 'No such user.';
+		return $out;
+	}
+
+	// FluentCRM is keyed on email, so a placeholder address is not "missing
+	// from the CRM" - it can never be in it until a real address is captured.
+	if ( function_exists( 'mfa_is_placeholder_email' ) && mfa_is_placeholder_email( $user->user_email ) ) {
+		$out['state']  = 'none_possible';
+		$out['reason'] = 'No real email address, so no CRM record is possible.';
+		return $out;
+	}
+
+	try {
+		$contact = FluentCrmApi( 'contacts' )->getContact( $user->user_email );
+	} catch ( \Throwable $e ) {
+		$out['reason'] = 'CRM lookup failed: ' . $e->getMessage();
+		return $out;
+	}
+
+	if ( ! $contact ) {
+		$out['state']  = 'not_in_crm';
+		$out['reason'] = 'Not in FluentCRM yet.';
+		return $out;
+	}
+
+	$out['state']  = 'found';
+	$out['id']     = (int) $contact->id;
+	$out['status'] = (string) $contact->status;
+	$out['type']   = (string) ( $contact->contact_type ?? '' );
+
+	// Iterated directly, NOT cast with (array). These are Laravel
+	// collections, and casting one yields its internal properties rather
+	// than its items - which produced "Attempt to read property title on
+	// array" and a list of empty strings. The element check covers both a
+	// model and a plain array, since the shape has differed between
+	// FluentCRM versions.
+	$title = function ( $item ) {
+		if ( is_object( $item ) ) {
+			return isset( $item->title ) ? (string) $item->title : '';
+		}
+		if ( is_array( $item ) ) {
+			return isset( $item['title'] ) ? (string) $item['title'] : '';
+		}
+
+		return '';
+	};
+
+	foreach ( $contact->tags as $tag ) {
+		$name = $title( $tag );
+		if ( '' !== $name ) {
+			$out['tags'][] = $name;
+		}
+	}
+
+	foreach ( $contact->lists as $list ) {
+		$name = $title( $list );
+		if ( '' !== $name ) {
+			$out['lists'][] = $name;
+		}
+	}
+
+	return $out;
+}

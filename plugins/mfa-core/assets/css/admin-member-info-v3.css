@@ -171,3 +171,54 @@
   border-radius: var(--mfa-radius-sm, 8px);
   font-size: 13px;
 }
+
+/* ---------- FluentCRM panel ---------- */
+
+.mfa-admin-member-crm {
+  margin-top: var(--mfa-space-5, 20px);
+  padding-top: var(--mfa-space-4, 16px);
+  border-top: 1px solid var(--mfa-border, #d7e4e1);
+}
+
+.mfa-admin-member-crm h2 {
+  margin: 0 0 var(--mfa-space-2, 8px);
+}
+
+.mfa-admin-member-crm-status {
+  margin: 0 0 var(--mfa-space-2, 8px);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mfa-ink, #12181f);
+}
+
+.mfa-admin-member-crm-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mfa-admin-member-crm-note {
+  margin: var(--mfa-space-2, 8px) 0 0;
+  font-size: 12px;
+  color: var(--mfa-muted, #56655f);
+}
+
+/* "No real email" is a different situation from "not in the CRM yet": the
+   first cannot be fixed by the CRM, only by capturing an address. */
+.mfa-admin-member-crm-blocked {
+  color: #8c2018;
+}
+
+/* The badges are borrowed from the listing pages, whose stylesheet does not
+   load here, so the ones this panel uses are defined locally. */
+.mfa-admin-member-crm .mfa-admin-check-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--mfa-radius-pill, 999px);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  background: #e6f4f2;
+  color: var(--mfa-teal-dark, #0d4d47);
+}

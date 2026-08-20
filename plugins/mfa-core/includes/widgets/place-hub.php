@@ -22,7 +22,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 add_filter( 'template_include', 'mfa_place_template_include' );
 function mfa_place_template_include( $template ) {
-	if ( is_admin() || ! is_singular( MFA_PLACE_POST_TYPE ) ) {
+	if ( is_admin() ) {
+		return $template;
+	}
+
+	// The archive (/places/) uses the same template; the shortcode below
+	// renders the country index instead of a hub body.
+	if ( ! is_singular( MFA_PLACE_POST_TYPE ) && ! is_post_type_archive( MFA_PLACE_POST_TYPE ) ) {
 		return $template;
 	}
 
@@ -105,8 +111,86 @@ function mfa_place_listing_url( $row ) {
 	return '';
 }
 
+/**
+ * /places/ - the countries that have a hub.
+ *
+ * Only built hubs are listed, never every country that happens to hold
+ * listings: the whole point of building them one at a time is that a hub is
+ * a page we are willing to promote, and an index full of empty countries
+ * would undo that. So this grows as hubs are added, with no edit here.
+ */
+function mfa_place_index_render() {
+	$countries = mfa_place_countries();
+
+	$total = array( 'mosque' => 0, 'business' => 0, 'regions' => 0 );
+	$rows  = array();
+
+	foreach ( $countries as $country ) {
+		$counts   = mfa_place_counts( $country->ID );
+		$children = mfa_place_children( $country->ID );
+
+		$rows[] = array( 'post' => $country, 'counts' => $counts, 'regions' => count( $children ) );
+
+		$total['mosque']   += (int) $counts['mosque'];
+		$total['business'] += (int) $counts['business'];
+		$total['regions']  += count( $children );
+	}
+
+	ob_start();
+	?>
+	<div class="mfa-shell mfa-stack">
+
+		<header class="mfa-hero mfa-hero--brand mfa-hero--bleed">
+			<div class="mfa-hero-inner">
+				<h1 class="mfa-hero-title">Browse by place</h1>
+				<p class="mfa-hero-tagline">
+					<?php echo esc_html( number_format_i18n( $total['mosque'] ) ); ?> mosques
+					&middot;
+					<?php echo esc_html( number_format_i18n( $total['business'] ) ); ?> halal businesses
+					<?php if ( $rows ) : ?>
+						&middot;
+						<?php echo esc_html( number_format_i18n( count( $rows ) ) ); ?>
+						<?php echo esc_html( _n( 'country', 'countries', count( $rows ), 'mfa-core' ) ); ?>
+					<?php endif; ?>
+				</p>
+			</div>
+		</header>
+
+		<div class="mfa-place">
+			<?php if ( ! $rows ) : ?>
+				<p class="mfa-place-empty">No place guides have been published yet.</p>
+			<?php else : ?>
+				<section class="mfa-place-section">
+					<ul class="mfa-place-countries">
+						<?php foreach ( $rows as $row ) : ?>
+							<li>
+								<a href="<?php echo esc_url( get_permalink( $row['post']->ID ) ); ?>" class="mfa-place-country">
+									<span class="mfa-place-country-name"><?php echo esc_html( $row['post']->post_title ); ?></span>
+									<span class="mfa-place-country-meta">
+										<?php if ( $row['regions'] ) : ?>
+											<span><?php echo esc_html( number_format_i18n( $row['regions'] ) ); ?> regions</span>
+										<?php endif; ?>
+										<span><?php echo esc_html( number_format_i18n( $row['counts']['mosque'] ) ); ?> mosques</span>
+										<span><?php echo esc_html( number_format_i18n( $row['counts']['business'] ) ); ?> businesses</span>
+									</span>
+								</a>
+							</li>
+						<?php endforeach; ?>
+					</ul>
+				</section>
+			<?php endif; ?>
+		</div>
+	</div>
+	<?php
+	return ob_get_clean();
+}
+
 add_shortcode( 'mfa_place_hub', 'mfa_place_hub_shortcode' );
 function mfa_place_hub_shortcode() {
+	if ( is_post_type_archive( MFA_PLACE_POST_TYPE ) ) {
+		return mfa_place_index_render();
+	}
+
 	$place_id = get_queried_object_id();
 	if ( ! $place_id ) {
 		return '';
@@ -144,8 +228,16 @@ function mfa_place_hub_shortcode() {
 
 		<nav class="mfa-place-crumbs" aria-label="Breadcrumb">
 			<?php
-			// No /places/ root crumb - the post type has no archive, so linking
-			// one would 404 on every hub page. The chain starts at the country.
+			// The root crumb exists now that /places/ is a real index page;
+			// it was omitted while the post type had no archive, because
+			// linking one would have 404'd on every hub page.
+			$places_root = get_post_type_archive_link( MFA_PLACE_POST_TYPE );
+			if ( $places_root ) :
+				?>
+				<a href="<?php echo esc_url( $places_root ); ?>">Places</a>
+				<span aria-hidden="true">&rsaquo;</span>
+			<?php endif; ?>
+			<?php
 			foreach ( $ancestors as $ancestor_id ) :
 				?>
 				<a href="<?php echo esc_url( get_permalink( $ancestor_id ) ); ?>"><?php echo esc_html( get_the_title( $ancestor_id ) ); ?></a>
@@ -172,7 +264,10 @@ function mfa_place_hub_shortcode() {
 						<li>
 							<a href="<?php echo esc_url( get_permalink( $child->ID ) ); ?>">
 								<span class="mfa-place-child-name"><?php echo esc_html( $child->post_title ); ?></span>
-								<span class="mfa-place-child-count"><?php echo esc_html( number_format_i18n( $child_counts['mosque'] ) ); ?> mosques</span>
+								<span class="mfa-place-child-count">
+									<span><?php echo esc_html( number_format_i18n( $child_counts['mosque'] ) ); ?> mosques</span>
+									<span><?php echo esc_html( number_format_i18n( $child_counts['business'] ) ); ?> businesses</span>
+								</span>
 							</a>
 						</li>
 					<?php endforeach; ?>

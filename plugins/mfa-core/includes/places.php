@@ -45,7 +45,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /** Bumping this reflushes rewrite rules once on the next load - without it a
  * freshly-uploaded plugin's /places/... URLs 404 until someone manually
  * re-saves permalinks, which looks exactly like a broken feature. */
-define( 'MFA_PLACES_REWRITE_VERSION', '1' );
+define( 'MFA_PLACES_REWRITE_VERSION', '2' );
 
 const MFA_PLACE_POST_TYPE = 'place';
 
@@ -102,7 +102,10 @@ function mfa_place_register_post_type() {
 			'menu_icon'          => 'dashicons-location-alt',
 			'hierarchical'       => true,
 			'supports'           => array( 'title', 'editor', 'excerpt', 'page-attributes', 'thumbnail' ),
-			'has_archive'        => false,
+			// /places/ lists the countries that have a hub. It was false while
+			// no index existed, which is why the breadcrumb below skipped a root
+			// crumb - linking one would have 404'd on every hub page.
+			'has_archive'        => 'places',
 			'rewrite'            => array(
 				'slug'         => 'places',
 				'hierarchical' => true,
@@ -483,6 +486,27 @@ function mfa_place_flush_counts( $place_id ) {
 	foreach ( get_post_ancestors( $place_id ) as $ancestor_id ) {
 		delete_transient( 'mfa_place_counts_' . (int) $ancestor_id );
 	}
+}
+
+/**
+ * Top-level hubs - the countries that have been built, for the /places/ index.
+ *
+ * Deliberately only what exists as a hub, not every country with listings:
+ * hubs are created by us country by country so we never auto-generate a long
+ * tail of empty pages (see this file's docblock). The index is therefore the
+ * list of places we have actually promoted.
+ */
+function mfa_place_countries() {
+	return get_posts(
+		array(
+			'post_type'      => MFA_PLACE_POST_TYPE,
+			'post_parent'    => 0,
+			'post_status'    => 'publish',
+			'orderby'        => 'title',
+			'order'          => 'ASC',
+			'posts_per_page' => -1,
+		)
+	);
 }
 
 /** Immediate children of a hub, alphabetical - the "all states" list on a

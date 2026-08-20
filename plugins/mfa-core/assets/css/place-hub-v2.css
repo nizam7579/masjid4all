@@ -255,3 +255,65 @@
     margin-bottom: var(--mfa-space-7, 32px);
   }
 }
+
+/* ---------- /places/ country index (2026-08-20) ----------
+   The archive lists the countries that have a hub, each with its region and
+   listing counts. Scoped to its own classes rather than reusing the child
+   list's, because a country row carries three numbers and a state row two. */
+
+.mfa-place-countries {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--mfa-space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mfa-place-country {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mfa-space-2);
+  padding: var(--mfa-space-5);
+  background: var(--mfa-white);
+  border: 1px solid var(--mfa-border);
+  border-radius: var(--mfa-radius-md);
+  text-decoration: none;
+  color: inherit;
+}
+
+.mfa-place-country:hover,
+.mfa-place-country:focus-visible {
+  border-color: var(--mfa-teal);
+}
+
+.mfa-place-country-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--mfa-ink);
+}
+
+.mfa-place-country-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mfa-space-2) var(--mfa-space-4);
+  font-size: 13px;
+  color: var(--mfa-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.mfa-place-empty {
+  margin: 0;
+  padding: var(--mfa-space-6);
+  background: var(--mfa-mint-bg);
+  border-radius: var(--mfa-radius-md);
+  color: var(--mfa-muted);
+}
+
+/* A state row now carries both counts, so they stack rather than sit on one
+   line and wrap awkwardly on narrow screens. */
+.mfa-place-child-count {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px var(--mfa-space-3);
+}

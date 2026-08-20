@@ -83,7 +83,7 @@ function mfa_admin_member_list_shortcode( $atts = array() ) {
 	$status_options = mfa_admin_member_status_options();
 
 	$atts = shortcode_atts(
-		array( 'statuses' => '', 'title' => '' ),
+		array( 'statuses' => '', 'title' => '', 'default_status' => '' ),
 		is_array( $atts ) ? $atts : array(),
 		'mfa_admin_member_list'
 	);
@@ -96,6 +96,22 @@ function mfa_admin_member_list_shortcode( $atts = array() ) {
 
 	if ( $is_restricted ) {
 		$status_options = $restrict;
+	}
+
+	// `statuses` is what the page ALLOWS; `default_status` is what it opens
+	// on. Without the second, adding Prospect to the allowed set turned the
+	// Members page into a second Prospects list showing all 109K rows - one
+	// attribute governed the dropdown and the query at once.
+	//
+	// Applied by seeding $status_filter rather than through a separate WHERE
+	// branch, so the dropdown always shows the same thing the table does.
+	// Keyed on isset() and not on emptiness: an explicit ?status= (choosing
+	// "All statuses") is a deliberate request for everything and must not be
+	// overridden by the default.
+	$default_status = trim( (string) $atts['default_status'] );
+
+	if ( ! isset( $_GET['status'] ) && '' !== $default_status && in_array( $default_status, $status_options, true ) ) {
+		$status_filter = $default_status;
 	}
 
 	// The import panel creates prospects, so it belongs wherever prospects are

@@ -700,6 +700,19 @@ function mfa_admin_member_ajax_whatsapp() {
 	// able to name its own buttons could route a member into any flow.
 	$preset  = isset( $_POST['preset'] ) ? sanitize_key( wp_unslash( $_POST['preset'] ) ) : '';
 	$catalog = mfa_admin_member_messages( 'whatsapp' );
+
+	// Re-checked here and not only at render, for the same reason the window
+	// is: an admin page left open goes stale. Without this, a member who
+	// verified their email ten minutes ago is still told it is unverified, and
+	// someone who has just become a member is still invited to activate. A
+	// free-form message carries no preset and is never gated.
+	if ( $preset && isset( $catalog[ $preset ] )
+		&& ! mfa_admin_member_message_applies( isset( $catalog[ $preset ]['when'] ) ? $catalog[ $preset ]['when'] : '', $user_id ) ) {
+		wp_send_json_error( array(
+			'message' => 'That message no longer applies to this member — reload the page to see the current options. Nothing was sent.',
+		) );
+	}
+
 	$buttons = ( $preset && isset( $catalog[ $preset ]['buttons'] ) ) ? $catalog[ $preset ]['buttons'] : array();
 
 	if ( $buttons && function_exists( 'nwa_send_buttons' ) ) {

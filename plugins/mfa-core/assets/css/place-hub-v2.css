@@ -213,6 +213,22 @@
   text-decoration: underline;
 }
 
+/* Numbered window. The pager itself is a 16px-gap flex row, which is too
+   airy for a run of page numbers, so they get their own tighter track. */
+.mfa-place-pager-pages {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--mfa-space-2, 8px);
+}
+.mfa-place-pager-current {
+  font-weight: 700;
+  color: var(--mfa-ink, #14231f);
+}
+.mfa-place-pager-gap {
+  color: var(--mfa-muted, #5b6b66);
+}
+
 /* ---------- sibling cross-links ---------- */
 
 .mfa-place-siblings {

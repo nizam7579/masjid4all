@@ -85,9 +85,87 @@ function mfa_place_404_on_out_of_range_page() {
 			status_header( 404 );
 			nocache_headers();
 
+			// The 404 status is authoritative, but the page still rendered
+			// Rank Math's normal head - so it advertised index,follow while
+			// returning 404. Contradicting yourself is never useful.
+			add_filter( 'rank_math/frontend/robots', 'mfa_place_noindex_out_of_range' );
+
 			return;
 		}
 	}
+}
+
+/** @internal Only ever attached from the out-of-range branch above. */
+function mfa_place_noindex_out_of_range( $robots ) {
+	$robots['index']  = 'noindex';
+	$robots['follow'] = 'follow';
+
+	return $robots;
+}
+
+/**
+ * Point a paginated view's canonical at ITSELF, not at page 1.
+ *
+ * Pagination is a query arg, which Rank Math does not recognise as pagination
+ * the way it does /page/N/ - so every one of the 5,875 paginated URLs across
+ * the hubs was emitting `canonical` to the unpaginated hub, i.e. telling
+ * Google that page 42 of Jawa Timur is a duplicate of page 1. Google's own
+ * guidance is that each page of a series is its own canonical.
+ */
+add_filter( 'rank_math/frontend/canonical', 'mfa_place_paged_canonical' );
+function mfa_place_paged_canonical( $canonical ) {
+	if ( ! is_singular( MFA_PLACE_POST_TYPE ) || ! $canonical ) {
+		return $canonical;
+	}
+
+	$args = array();
+	foreach ( array( 'mosque', 'business' ) as $type ) {
+		$paged = mfa_place_current_page( $type );
+		if ( $paged > 1 ) {
+			$args[ $type . '_pg' ] = $paged;
+		}
+	}
+
+	return $args ? add_query_arg( $args, $canonical ) : $canonical;
+}
+
+/**
+ * Page numbers to render: first, last, and a window around the current page.
+ * A null marks an elided run, drawn as an ellipsis.
+ *
+ * Previous/Next alone left deep pages unreachable in practice - Indonesia's
+ * country hub is 998 pages, so page 500 sat 499 sequential hops from the
+ * first, which no crawler walks. A window gives several entry points per
+ * view. It does NOT make 998 pages crawlable on its own: the real answer to a
+ * list that long is a finer hub (city level), not deeper pagination.
+ *
+ * @return array<int|null>
+ */
+function mfa_place_pager_range( $paged, $pages, $span = 2 ) {
+	$show = array( 1, $pages );
+
+	for ( $i = $paged - $span; $i <= $paged + $span; $i++ ) {
+		if ( $i >= 1 && $i <= $pages ) {
+			$show[] = $i;
+		}
+	}
+
+	$show = array_unique( $show );
+	sort( $show );
+
+	$out  = array();
+	$prev = 0;
+	foreach ( $show as $n ) {
+		if ( $prev && $n > $prev + 1 ) {
+			// An ellipsis standing in for exactly one page is worse than the
+			// page itself - "1 2 3 ... 5" hides nothing and costs a click.
+			$out[] = ( $n === $prev + 2 ) ? $prev + 1 : null;
+		}
+		$out[] = $n;
+		$prev  = $n;
+	}
+
+	return $out;
 }
 
 /** Each listing type paginates independently ($type is 'mosque' or
@@ -384,7 +462,17 @@ function mfa_place_listing_section( $heading, $result, $paged, $type ) {
 				<?php if ( $paged > 1 ) : ?>
 					<a href="<?php echo esc_url( add_query_arg( $type . '_pg', $paged - 1 ) ); ?>" rel="prev">&larr; Previous</a>
 				<?php endif; ?>
-				<span>Page <?php echo esc_html( number_format_i18n( $paged ) ); ?> of <?php echo esc_html( number_format_i18n( $pages ) ); ?></span>
+				<span class="mfa-place-pager-pages">
+					<?php foreach ( mfa_place_pager_range( $paged, $pages ) as $n ) : ?>
+						<?php if ( null === $n ) : ?>
+							<span class="mfa-place-pager-gap" aria-hidden="true">&hellip;</span>
+						<?php elseif ( $n === $paged ) : ?>
+							<span class="mfa-place-pager-current" aria-current="page"><?php echo esc_html( number_format_i18n( $n ) ); ?></span>
+						<?php else : ?>
+							<a href="<?php echo esc_url( add_query_arg( $type . '_pg', $n ) ); ?>"><?php echo esc_html( number_format_i18n( $n ) ); ?></a>
+						<?php endif; ?>
+					<?php endforeach; ?>
+				</span>
 				<?php if ( $paged < $pages ) : ?>
 					<a href="<?php echo esc_url( add_query_arg( $type . '_pg', $paged + 1 ) ); ?>" rel="next">Next &rarr;</a>
 				<?php endif; ?>

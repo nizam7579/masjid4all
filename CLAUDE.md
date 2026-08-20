@@ -195,6 +195,34 @@ That function is the single chokepoint: it sets `user_status`, promotes the
 `mfa_registration_route`, and fires `mfa_user_activated`. Its "already a member"
 guard makes all of that idempotent.
 
+- **The member list's status filter carries meaning, not just a whitelist.**
+  `[mfa_admin_member_list]` takes **`statuses`** (which filters the page
+  OFFERS) and **`default_status`** (which one it OPENS on). Conflating them
+  broke the Members page four ways in one afternoon, so treat any change here
+  as behavioural rather than cosmetic.
+
+  **Adding a status to `statuses` changes more than the dropdown.** Three
+  flags used to key on "does the allowed set include Prospect", so the
+  Members page silently gained the directory import panel, switched to the
+  prospect column layout and built its country dropdown from 109K rows. They
+  now key on a page-level **`$prospect_view`** — is this page ABOUT prospects
+  — not on what it allows.
+
+  **On a members-oriented page the filter values mean:** `Prospect` =
+  `mfa_admin_member_reached_out_sql()` (prospects who messaged Sofia, ~2), not
+  all 109,405 — a bare `status='Prospect'` made choosing the filter *widen*
+  the view by four orders of magnitude. The empty option = members + those
+  active prospects, labelled **"Members + active prospects"**; it says "All
+  statuses" only on a prospect page, where that is true. The count noun
+  follows the active filter.
+
+  **Do not blank imported users' `status` to tidy this up** (considered and
+  rejected 2026-08-20). Of 109,405 prospects, 34,582 carry
+  `lead_source = directory:%` and **74,811 carry nothing** — blanking is
+  irreversible for those, manufactures the missing-value ambiguity this file
+  warns about above, and removes the denominator the fb-ads campaign measures
+  conversion against. "Has this person contacted us?" is derived and already
+  computed; storing it as a status duplicates a fact that can drift.
 - **Do not measure growth from `user_registered` on old rows.** The imports wrote
   synthetic dates in bulk — every month May–Oct 2026 spans the same full ID range,
   user ID 2 carries an October date, two months are in the future. `/admin/reports/`

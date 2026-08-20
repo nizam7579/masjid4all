@@ -243,7 +243,245 @@ function mfa_place_generate_state_hubs( $country, $args = array() ) {
 	return $report;
 }
 
+/**
+ * Cities in one state that are worth a hub.
+ *
+ * Cities have no enumerable canonical list the way states do - after
+ * city-normalize.php has run, the canonical set simply IS the distinct column
+ * values. So the guard against junk cannot be a whitelist here, and is instead
+ * two explicit tests:
+ *
+ * - the floor, which removes the long tail of one-off localities the address
+ *   parser mistook for a city;
+ * - an ambiguity check, because a bare "Pasuruan" sitting beside an explicit
+ *   "Kota Pasuruan" or "Kabupaten Pasuruan" cannot be assigned to either.
+ *   city-normalize.php deliberately leaves those 68 values alone rather than
+ *   guessing, so this is where they get excluded from becoming pages.
+ *
+ * @return array city => array( mosque, business, total ), largest first.
+ */
+function mfa_place_city_candidates( $country, $state, $floor ) {
+	global $wpdb;
+
+	$mosque   = mfa_place_table( 'mosque' );
+	$business = mfa_place_table( 'business' );
+	$excluded = mfa_place_excluded_statuses();
+	$holes    = implode( ',', array_fill( 0, count( $excluded ), '%s' ) );
+
+	$sql = "SELECT city,
+	               SUM( m ) AS mosque,
+	               SUM( b ) AS business
+	          FROM (
+	            SELECT city, COUNT(*) m, 0 b FROM `{$mosque}`
+	             WHERE country = %s AND state = %s AND city <> ''
+	               AND ( listing_status IS NULL OR listing_status NOT IN ( {$holes} ) )
+	             GROUP BY city
+	            UNION ALL
+	            SELECT city, 0 m, COUNT(*) b FROM `{$business}`
+	             WHERE country = %s AND state = %s AND city <> ''
+	               AND ( listing_status IS NULL OR listing_status NOT IN ( {$holes} ) )
+	             GROUP BY city
+	          ) t
+	         GROUP BY city";
+
+	$args = array_merge(
+		array( $country, $state ),
+		$excluded,
+		array( $country, $state ),
+		$excluded
+	);
+
+	$rows = $wpdb->get_results( $wpdb->prepare( $sql, $args ), ARRAY_A );
+
+	// Build the core/type map first so ambiguity can be tested.
+	$by_key = array();
+	foreach ( $rows as $row ) {
+		list( $core, $type ) = mfa_city_split( $country, $row['city'] );
+		$by_key[ $core . "\0" . $type ] = true;
+	}
+
+	$out = array();
+	foreach ( $rows as $row ) {
+		$total = (int) $row['mosque'] + (int) $row['business'];
+		if ( $total < $floor ) {
+			continue;
+		}
+
+		list( $core, $type ) = mfa_city_split( $country, $row['city'] );
+		if ( '' === $type
+			&& ( isset( $by_key[ $core . "\0regency" ] ) || isset( $by_key[ $core . "\0city" ] ) ) ) {
+			continue; // Ambiguous bare name - see this function's docblock.
+		}
+
+		$out[ $row['city'] ] = array(
+			'mosque'   => (int) $row['mosque'],
+			'business' => (int) $row['business'],
+			'total'    => $total,
+		);
+	}
+
+	arsort( $out );
+
+	return $out;
+}
+
+/**
+ * Create city hubs beneath every existing state hub of a country.
+ *
+ * Same contract as mfa_place_generate_state_hubs(): dry-run by default,
+ * capped by `limit` because each publish costs one Nominatim lookup.
+ *
+ * A city hub is only ever created under a state hub that already exists - the
+ * depth-2 match in mfa_place_listing_where() reads its parent's title as the
+ * state, so an orphaned city hub would match nothing.
+ *
+ * @param string $country
+ * @param array  $args floor, limit, dry_run, state (optional, one state only).
+ * @return array Report.
+ */
+function mfa_place_generate_city_hubs( $country, $args = array() ) {
+	$args = wp_parse_args(
+		$args,
+		array(
+			'floor'   => 20,
+			'limit'   => 15,
+			'dry_run' => true,
+			'state'   => '',
+		)
+	);
+
+	$report = array(
+		'country'       => $country,
+		'dry_run'       => (bool) $args['dry_run'],
+		'floor'         => (int) $args['floor'],
+		'created'       => array(),
+		'existing'      => 0,
+		'candidates'    => 0,
+		'remaining'     => 0,
+		'created_count' => 0,
+	);
+
+	$root = mfa_place_find_hub( $country, 0 );
+	if ( ! $root ) {
+		$report['error'] = "No country hub for {$country} - create the country and its states first.";
+		return $report;
+	}
+
+	$states = get_posts(
+		array(
+			'post_type'   => MFA_PLACE_POST_TYPE,
+			'post_parent' => $root,
+			'post_status' => 'publish',
+			'numberposts' => -1,
+			'orderby'     => 'title',
+			'order'       => 'ASC',
+		)
+	);
+
+	$made = 0;
+
+	foreach ( $states as $state_post ) {
+		$state = get_the_title( $state_post );
+		if ( '' !== $args['state'] && $state !== $args['state'] ) {
+			continue;
+		}
+
+		foreach ( mfa_place_city_candidates( $country, $state, $args['floor'] ) as $city => $counts ) {
+			$report['candidates']++;
+
+			if ( mfa_place_find_hub( $city, $state_post->ID ) ) {
+				$report['existing']++;
+				continue;
+			}
+
+			if ( $made >= $args['limit'] ) {
+				$report['remaining']++;
+				continue;
+			}
+
+			if ( $args['dry_run'] ) {
+				$report['created'][ $state . ' / ' . $city ] = sprintf(
+					'would create - %d mosques, %d businesses',
+					$counts['mosque'],
+					$counts['business']
+				);
+				$made++;
+				continue;
+			}
+
+			if ( $made > 0 ) {
+				sleep( 1 ); // Nominatim, ~1 req/sec.
+			}
+
+			$id = wp_insert_post(
+				array(
+					'post_type'   => MFA_PLACE_POST_TYPE,
+					// Exact match with the CCT `city` value is required -
+					// mfa_place_listing_where() compares with equality.
+					'post_title'  => $city,
+					'post_status' => 'publish',
+					'post_parent' => (int) $state_post->ID,
+				),
+				true
+			);
+
+			if ( is_wp_error( $id ) ) {
+				$report['created'][ $state . ' / ' . $city ] = 'ERROR: ' . $id->get_error_message();
+				continue;
+			}
+
+			$geo_error = get_post_meta( $id, '_mfa_place_geocode_error', true );
+
+			$report['created'][ $state . ' / ' . $city ] = array(
+				'id'       => (int) $id,
+				'url'      => get_permalink( $id ),
+				'mosques'  => $counts['mosque'],
+				'business' => $counts['business'],
+				'geocoded' => $geo_error ? 'FAILED: ' . $geo_error : 'ok',
+			);
+			$made++;
+		}
+	}
+
+	$report['created_count'] = $made;
+
+	return $report;
+}
+
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
+	WP_CLI::add_command(
+		'mfa generate-city-hubs',
+		function ( $args, $assoc ) {
+			$country = isset( $assoc['country'] ) ? $assoc['country'] : '';
+			if ( '' === $country ) {
+				WP_CLI::error( 'Pass --country=Indonesia' );
+			}
+
+			$r = mfa_place_generate_city_hubs(
+				$country,
+				array(
+					'floor'   => isset( $assoc['floor'] ) ? (int) $assoc['floor'] : 20,
+					'limit'   => isset( $assoc['limit'] ) ? (int) $assoc['limit'] : 15,
+					'dry_run' => ! isset( $assoc['apply'] ),
+					'state'   => isset( $assoc['state'] ) ? $assoc['state'] : '',
+				)
+			);
+
+			if ( ! empty( $r['error'] ) ) {
+				WP_CLI::error( $r['error'] );
+			}
+
+			foreach ( $r['created'] as $label => $info ) {
+				WP_CLI::log( '  ' . $label . ': ' . ( is_array( $info ) ? $info['url'] : $info ) );
+			}
+			WP_CLI::log( sprintf(
+				'%s: %d created, %d already existed, %d candidates at floor %d, %d still queued.',
+				$country, $r['created_count'], $r['existing'], $r['candidates'], $r['floor'], $r['remaining']
+			) );
+			WP_CLI::success( $r['dry_run'] ? 'Dry run - pass --apply to write.' : 'Applied.' );
+		}
+	);
+
 	WP_CLI::add_command(
 		'mfa generate-place-hubs',
 		function ( $args, $assoc ) {

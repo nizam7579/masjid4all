@@ -131,8 +131,13 @@ function mfa_admin_home_shortcode() {
 	ob_start();
 	?>
 	<div class="mfa-admin-home">
-		<h1 class="mfa-h2">Assalamualaikum, <?php echo esc_html( $name ); ?></h1>
-		<p class="mfa-body-muted">Choose a section to get started.</p>
+		<div class="mfa-admin-home-head">
+			<h1 class="mfa-h2">Assalamualaikum, <?php echo esc_html( $name ); ?></h1>
+			<div class="mfa-admin-home-links">
+				<a href="<?php echo esc_url( home_url( '/' ) ); ?>" class="mfa-btn mfa-btn-secondary">View site</a>
+				<a href="<?php echo esc_url( home_url( '/member/' ) ); ?>" class="mfa-btn mfa-btn-secondary">My member page</a>
+			</div>
+		</div>
 
 		<?php echo do_shortcode( '[mfa_admin_signups]' ); ?>
 

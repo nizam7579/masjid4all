@@ -1,0 +1,220 @@
+/* Dashboard panels on /admin/ ([mfa_admin_signups] + the page heading).
+   Loads only on the admin root. Tokens come from global-v3.css; nothing
+   here redefines a colour or radius of its own, and every selector is
+   scoped to its own class rather than reaching into children generically.
+
+   The .mfa-admin-home-* rules live here rather than in admin-shell-v3.css
+   because that sheet loads on every admin page while this one loads only
+   on the root, which is the only page with a dashboard heading. */
+
+.mfa-admin-home-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mfa-space-4);
+  margin-bottom: var(--mfa-space-6);
+}
+
+.mfa-admin-home-head .mfa-h2 {
+  margin: 0;
+}
+
+.mfa-admin-home-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mfa-space-3);
+}
+
+.mfa-signups {
+  margin-bottom: var(--mfa-space-8);
+}
+
+/* ---------- Section headings ---------- */
+
+.mfa-ov-title {
+  margin: var(--mfa-space-7) 0 var(--mfa-space-4);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--mfa-muted);
+}
+
+.mfa-ov-title:first-child {
+  margin-top: 0;
+}
+
+.mfa-ov-foot {
+  margin: var(--mfa-space-4) 0 0;
+  max-width: 70ch;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--mfa-muted);
+}
+
+/* ---------- Overview cards ---------- */
+
+.mfa-ov-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--mfa-space-4);
+}
+
+.mfa-ov-card {
+  display: flex;
+  flex-direction: column;
+  padding: var(--mfa-space-5);
+  background: var(--mfa-white);
+  border: 1px solid var(--mfa-border);
+  border-radius: var(--mfa-radius-md);
+}
+
+.mfa-ov-card-title {
+  margin: 0 0 var(--mfa-space-3);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--mfa-ink);
+}
+
+.mfa-ov-rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.mfa-ov-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--mfa-space-3);
+  padding: 7px 0;
+  border-bottom: 1px solid var(--mfa-border);
+  text-decoration: none;
+  color: inherit;
+}
+
+.mfa-ov-rows .mfa-ov-row:last-child {
+  border-bottom: 0;
+}
+
+/* Scoped to the row itself, not "any link in the card" - a broad rule here
+   is exactly what caused the invisible-CTA bugs the design system fixed. */
+a.mfa-ov-row:hover,
+a.mfa-ov-row:focus-visible {
+  background: var(--mfa-mint-bg);
+  border-radius: var(--mfa-radius-sm);
+  box-shadow: 0 0 0 6px var(--mfa-mint-bg);
+}
+
+.mfa-ov-lbl {
+  font-size: 14px;
+  color: var(--mfa-muted);
+}
+
+.mfa-ov-note {
+  display: block;
+  font-size: 11px;
+  color: var(--mfa-muted);
+  opacity: 0.75;
+}
+
+.mfa-ov-num {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--mfa-ink);
+  white-space: nowrap;
+}
+
+.mfa-ov-total {
+  margin-top: auto;
+  padding-top: var(--mfa-space-3);
+  border-top: 2px solid var(--mfa-border);
+}
+
+.mfa-ov-total .mfa-ov-row {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.mfa-ov-total .mfa-ov-lbl {
+  font-weight: 700;
+  color: var(--mfa-ink);
+}
+
+.mfa-ov-total .mfa-ov-num {
+  font-size: 20px;
+  color: var(--mfa-teal-dark);
+}
+
+/* ---------- Stat tiles (arrival, interest, follow-up) ---------- */
+
+.mfa-signups-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--mfa-space-4);
+}
+
+.mfa-signups-stat {
+  display: block;
+  padding: var(--mfa-space-5);
+  background: var(--mfa-white);
+  border: 1px solid var(--mfa-border);
+  border-radius: var(--mfa-radius-md);
+  text-align: center;
+  text-decoration: none;
+  color: inherit;
+}
+
+a.mfa-signups-stat:hover,
+a.mfa-signups-stat:focus-visible {
+  border-color: var(--mfa-teal);
+}
+
+.mfa-signups-stats--leads .mfa-signups-stat {
+  background: var(--mfa-mint-bg);
+}
+
+.mfa-signups-stat--highlight {
+  background: var(--mfa-mint-bg);
+  border-color: var(--mfa-teal);
+}
+
+/* Only number on the page with an expiry - outside 24h a free-form
+   WhatsApp reply is refused and it has to be an approved template. */
+.mfa-signups-stat--urgent {
+  background: #fff7e6;
+  border-color: #e0a800;
+}
+
+.mfa-signups-num {
+  display: block;
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--mfa-teal-dark);
+}
+
+.mfa-signups-lbl {
+  display: block;
+  margin-top: var(--mfa-space-2);
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--mfa-muted);
+}
+
+.mfa-signups-lbl small {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+@media (max-width: 640px) {
+  .mfa-admin-home-head {
+    align-items: flex-start;
+  }
+
+  .mfa-signups-num {
+    font-size: 24px;
+  }
+}

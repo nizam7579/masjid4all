@@ -95,8 +95,8 @@ function mfa_core_enqueue_widget_assets() {
 
 		// Signups panel - only the /admin/ root renders [mfa_admin_signups].
 		if ( $post && 'admin' === $post->post_name ) {
-			$signups_css = MFA_CORE_PATH . 'assets/css/admin-signups-v1.css';
-			wp_enqueue_style( 'mfa-core-admin-signups', MFA_CORE_URL . 'assets/css/admin-signups-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell' ), $get_version( $signups_css ) );
+			$signups_css = MFA_CORE_PATH . 'assets/css/admin-signups-v2.css';
+			wp_enqueue_style( 'mfa-core-admin-signups', MFA_CORE_URL . 'assets/css/admin-signups-v2.css', array( 'mfa-core-global', 'mfa-core-admin-shell' ), $get_version( $signups_css ) );
 		}
 
 		// Members and Prospects render the same table component.
@@ -505,7 +505,7 @@ function mfa_core_litespeed_css_excludes( $excludes ) {
 	$excludes[] = 'mfa-core/assets/css/member-account-modals-v1.css';
 	$excludes[] = 'mfa-core/assets/css/global-v3.css';
 	$excludes[] = 'mfa-core/assets/css/admin-shell-v3.css';
-	$excludes[] = 'mfa-core/assets/css/admin-signups-v1.css';
+	$excludes[] = 'mfa-core/assets/css/admin-signups-v2.css';
 	$excludes[] = 'mfa-core/assets/css/admin-member-list-v1.css';
 	$excludes[] = 'mfa-core/assets/css/admin-member-info-v3.css';
 	$excludes[] = 'mfa-core/assets/css/admin-member-actions-v1.css';

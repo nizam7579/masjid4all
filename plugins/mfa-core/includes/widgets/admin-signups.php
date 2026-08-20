@@ -1,6 +1,7 @@
 <?php
 /**
- * [mfa_admin_signups] - real member conversions, shown on /admin/.
+ * [mfa_admin_signups] - the /admin/ dashboard: what we have, where new
+ * members came from, what interest we've captured, and what needs chasing.
  *
  * The model this reflects (agreed 2026-08-19):
  *
@@ -13,23 +14,60 @@
  *   three funnel through niz_user_complete_registration(), which sets
  *   user_status to 'member' AND resets user_registered to that moment.
  *
- * That reset is what makes this panel trustworthy. user_registered is
- * otherwise meaningless across most of wp_users: the imports wrote
- * synthetic dates in bulk (every month from May to October 2026 spans the
- * same full ID range, user ID 2 carries an October date, and two of those
- * months are in the future). Filtering on status AND a reset date sidesteps
- * all of it - prospects are excluded by status, and any member's date is
- * the moment they actually converted.
+ * ## Where the numbers come from, and why
  *
- * An earlier version of this panel counted by user ID above a watermark.
- * That worked, but status + date is strictly better: it survives future
- * imports, and it counts the conversion rather than the account.
+ * Every count here reads the SAME column the matching list page filters
+ * on - jet_cct_member.status for people, listing_status for the three
+ * directories. That is not incidental: an earlier version counted
+ * prospects from the user_status usermeta, which gave 34,597 while
+ * /admin/prospects listed 109,407 off the CCT. Two screens disagreeing
+ * about the headline number is worse than either being slightly off.
+ *
+ * Each section's TOTAL is the sum of its own buckets, computed in one
+ * GROUP BY pass rather than a separate COUNT(*). The crawler inserts rows
+ * continuously, so two queries a second apart genuinely disagree - taking
+ * the total from the same pass means the rows always add up to the total
+ * printed beneath them.
+ *
+ * ## Dates
+ *
+ * user_registered is meaningless across most of wp_users - the imports
+ * wrote synthetic dates in bulk, and 265 users currently carry a
+ * 31 Dec 2026 date. It is trustworthy for MEMBERS only, because
+ * niz_user_complete_registration() resets it at activation. So:
+ *   - members converted today -> user_registered (GMT)
+ *   - prospects added today   -> cct_created
+ * Never the other way round.
  *
  * @package mfa-core
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
+}
+
+/** Cache TTL for the count queries. Four GROUP BYs over ~360k rows. */
+function mfa_overview_cache_ttl() {
+	return (int) apply_filters( 'mfa_overview_cache_ttl', 5 * MINUTE_IN_SECONDS );
+}
+
+/** Wraps a count callback in a transient so a dashboard load isn't four table scans. */
+function mfa_overview_cached( $key, $callback ) {
+	$ttl = mfa_overview_cache_ttl();
+	if ( $ttl < 1 ) {
+		return call_user_func( $callback );
+	}
+
+	$cache_key = 'mfa_overview_' . $key;
+	$cached    = get_transient( $cache_key );
+	if ( false !== $cached ) {
+		return $cached;
+	}
+
+	$value = call_user_func( $callback );
+	set_transient( $cache_key, $value, $ttl );
+
+	return $value;
 }
 
 /** Start of the period treated as "new". Stored so it can move without a deploy. */
@@ -55,126 +93,281 @@ function mfa_signup_routes() {
 	);
 }
 
+/* ---------------- Overview: people ---------------- */
+
 /**
- * Conversion counts.
- *
- * "Member" means user_status is member or premium - the statuses that mean
- * someone completed a registration. Everything else (prospect, or no status
- * meta at all, which is true of 74,812 imported rows) is a contact, not a
- * conversion, and is deliberately excluded.
+ * Member/prospect counts, straight off jet_cct_member.status - the same
+ * column /admin/member and /admin/prospects filter on.
  */
-function mfa_signup_stats() {
-	global $wpdb;
+function mfa_overview_members() {
+	return mfa_overview_cached( 'members', function () {
+		global $wpdb;
 
-	$since = mfa_signup_since();
-	$stats = array( 'since' => $since );
+		$cct    = $wpdb->prefix . 'jet_cct_member';
+		$counts = array( 'prospects' => 0, 'members' => 0, 'premium' => 0, 'unset' => 0, 'total' => 0 );
 
-	$member_join = "INNER JOIN {$wpdb->usermeta} s ON s.user_id = u.ID
-	                AND s.meta_key = 'user_status'
-	                AND s.meta_value IN ('member','premium')";
+		$rows = $wpdb->get_results( "SELECT status, COUNT(*) AS n FROM {$cct} GROUP BY status", ARRAY_A );
 
-	$stats['members_total'] = (int) $wpdb->get_var(
-		"SELECT COUNT(*) FROM {$wpdb->users} u {$member_join}"
-	);
+		foreach ( $rows as $row ) {
+			$n = (int) $row['n'];
+			$counts['total'] += $n;
 
-	$stats['members_new'] = (int) $wpdb->get_var( $wpdb->prepare(
-		"SELECT COUNT(*) FROM {$wpdb->users} u {$member_join} WHERE u.user_registered >= %s",
-		$since . ' 00:00:00'
-	) );
+			switch ( (string) $row['status'] ) {
+				case 'Prospect':
+					$counts['prospects'] += $n;
+					break;
+				case 'Member':
+					$counts['members'] += $n;
+					break;
+				case 'Premium Member':
+				case 'Premium Lifetime':
+					$counts['premium'] += $n;
+					break;
+				default:
+					// A row with no status is invisible in BOTH list pages -
+					// /admin/member restricts to member statuses and
+					// /admin/prospects is locked to Prospect - so nobody would
+					// ever find these people. Surfacing the count is the only
+					// thing standing between them and being lost, and it keeps
+					// the rows adding up to the total printed beneath them.
+					$counts['unset'] += $n;
+					break;
+			}
+		}
 
-	// user_registered is GMT, so compare against the GMT date.
-	$stats['today'] = (int) $wpdb->get_var( $wpdb->prepare(
-		"SELECT COUNT(*) FROM {$wpdb->users} u {$member_join} WHERE DATE(u.user_registered) = %s",
-		gmdate( 'Y-m-d' )
-	) );
-
-	$stats['prospects'] = (int) $wpdb->get_var(
-		"SELECT COUNT(*) FROM {$wpdb->usermeta} WHERE meta_key = 'user_status' AND meta_value = 'prospect'"
-	);
-
-	$cct = $wpdb->prefix . 'jet_cct_member';
-	$stats['referred'] = (int) $wpdb->get_var( $wpdb->prepare(
-		"SELECT COUNT(*) FROM {$wpdb->users} u {$member_join}
-		 INNER JOIN {$cct} c ON c.user_id = u.ID
-		 WHERE u.user_registered >= %s AND c.referrer_id > 0 AND c.referrer_id <> 14270",
-		$since . ' 00:00:00'
-	) );
-
-	// Split the new members by how they arrived.
-	$stats['routes'] = array();
-	foreach ( mfa_signup_routes() as $key => $label ) {
-		$stats['routes'][ $key ] = (int) $wpdb->get_var( $wpdb->prepare(
-			"SELECT COUNT(*) FROM {$wpdb->users} u {$member_join}
-			 LEFT JOIN {$wpdb->usermeta} r ON r.user_id = u.ID AND r.meta_key = 'mfa_registration_route'
-			 WHERE u.user_registered >= %s AND COALESCE(NULLIF(r.meta_value,''),'unknown') = %s",
-			$since . ' 00:00:00',
-			$key
+		// Members converted today: user_registered is reset at activation, so
+		// it is real for these rows specifically. GMT, like the column.
+		$counts['members_today'] = (int) $wpdb->get_var( $wpdb->prepare(
+			"SELECT COUNT(*) FROM {$wpdb->users} u
+			 INNER JOIN {$cct} c ON c.user_id = u.ID
+			 WHERE c.status IN ('Member','Premium Member','Premium Lifetime')
+			   AND DATE(u.user_registered) = %s",
+			gmdate( 'Y-m-d' )
 		) );
-	}
 
-	return $stats;
+		// Prospects added today: cct_created is clean, unlike user_registered.
+		$counts['prospects_today'] = (int) $wpdb->get_var( $wpdb->prepare(
+			"SELECT COUNT(*) FROM {$cct} WHERE status = 'Prospect' AND DATE(cct_created) = %s",
+			gmdate( 'Y-m-d' )
+		) );
+
+		$counts['today'] = $counts['members_today'] + $counts['prospects_today'];
+
+		return $counts;
+	} );
 }
 
 /**
- * Sofia lead counts per type - the "gauge interest" numbers.
+ * Directory counts off listing_status, plus the claim count where the
+ * table has a claim concept.
  *
- * Read from the mfa_sofia_leads user meta rather than FluentCRM, so it
- * keeps working if the CRM is deactivated, and counts leads from contacts
- * of any status - a prospect who joins the waitlist is exactly the signal
- * being measured.
+ * @param string $table  CCT suffix: mosque | business | web.
+ * @param string $claim  Column that means "somebody claimed this", or ''.
+ */
+function mfa_overview_listing( $table, $claim = '' ) {
+	return mfa_overview_cached( 'listing_' . $table, function () use ( $table, $claim ) {
+		global $wpdb;
+
+		$cct    = $wpdb->prefix . 'jet_cct_' . $table;
+		$counts = array( 'buckets' => array(), 'total' => 0, 'claimed' => null );
+
+		$rows = $wpdb->get_results( "SELECT listing_status AS s, COUNT(*) AS n FROM {$cct} GROUP BY listing_status", ARRAY_A );
+
+		foreach ( $rows as $row ) {
+			$n     = (int) $row['n'];
+			$label = ( null === $row['s'] || '' === $row['s'] ) ? 'Unset' : (string) $row['s'];
+
+			$counts['buckets'][ $label ] = $n;
+			$counts['total']            += $n;
+		}
+
+		if ( $claim ) {
+			$counts['claimed'] = (int) $wpdb->get_var(
+				"SELECT COUNT(*) FROM {$cct}
+				 WHERE {$claim} IS NOT NULL AND {$claim} <> '' AND {$claim} <> '0'
+				   AND {$claim} <> '0000-00-00 00:00:00'"
+			);
+		}
+
+		return $counts;
+	} );
+}
+
+/* ---------------- How new members arrived ---------------- */
+
+/**
+ * Where members came from.
+ *
+ * Note mfa_registration_route only started being written on 2026-08-19,
+ * so every member who predates it counts as "Before tracking" rather than
+ * being guessed at. Direct/Referral and "from an imported prospect" work
+ * for all members regardless, since they read data that always existed.
+ */
+function mfa_overview_arrival() {
+	return mfa_overview_cached( 'arrival', function () {
+		global $wpdb;
+
+		$cct  = $wpdb->prefix . 'jet_cct_member';
+		$out  = array( 'routes' => array(), 'direct' => 0, 'referral' => 0, 'from_prospect' => 0, 'total' => 0 );
+
+		foreach ( array_keys( mfa_signup_routes() ) as $key ) {
+			$out['routes'][ $key ] = 0;
+		}
+
+		$rows = $wpdb->get_results(
+			"SELECT COALESCE(NULLIF(r.meta_value,''),'unknown') AS route,
+			        COALESCE(ls.meta_value,'') AS lead_source,
+			        c.referrer_id
+			 FROM {$wpdb->users} u
+			 INNER JOIN {$cct} c ON c.user_id = u.ID
+			        AND c.status IN ('Member','Premium Member','Premium Lifetime')
+			 LEFT JOIN {$wpdb->usermeta} r  ON r.user_id  = u.ID AND r.meta_key = 'mfa_registration_route'
+			 LEFT JOIN {$wpdb->usermeta} ls ON ls.user_id = u.ID AND ls.meta_key = 'lead_source'",
+			ARRAY_A
+		);
+
+		foreach ( $rows as $row ) {
+			$out['total']++;
+
+			$route = isset( $out['routes'][ $row['route'] ] ) ? $row['route'] : 'unknown';
+			$out['routes'][ $route ]++;
+
+			// 14270 is the "no real referrer" sentinel used across the codebase.
+			if ( ! empty( $row['referrer_id'] ) && 14270 !== (int) $row['referrer_id'] ) {
+				$out['referral']++;
+			} else {
+				$out['direct']++;
+			}
+
+			// The imports stamped lead_source as directory:<type>:<id>. A member
+			// carrying one converted from an imported prospect - the number the
+			// fbads / bulk WhatsApp / email campaigns are trying to move.
+			if ( 0 === strpos( (string) $row['lead_source'], 'directory:' ) ) {
+				$out['from_prospect']++;
+			}
+		}
+
+		return $out;
+	} );
+}
+
+/* ---------------- Interest ---------------- */
+
+/**
+ * Lead counts per type - the "gauge interest" numbers.
+ *
+ * Driven by the lead registry (mfa_lead_types()) rather than a hardcoded
+ * list, so registering a new lead magnet adds its tile here with no edit
+ * to this file. Read from the mfa_sofia_leads user meta rather than
+ * FluentCRM, so it keeps working if the CRM is deactivated, and counts
+ * leads from contacts of any status - a prospect who joins the waitlist is
+ * exactly the signal being measured.
  */
 function mfa_signup_lead_counts() {
-	global $wpdb;
-
 	$types = function_exists( 'mfa_lead_types' ) ? mfa_lead_types() : array();
 	if ( empty( $types ) ) {
 		return array();
 	}
 
-	$counts = array();
-	foreach ( $types as $key => $cfg ) {
-		$counts[ $key ] = array( 'label' => $cfg['label'], 'emoji' => $cfg['emoji'], 'count' => 0 );
-	}
+	return mfa_overview_cached( 'leads', function () use ( $types ) {
+		global $wpdb;
 
-	$rows = $wpdb->get_col( "SELECT meta_value FROM {$wpdb->usermeta} WHERE meta_key = 'mfa_sofia_leads'" );
-
-	foreach ( $rows as $raw ) {
-		$leads = maybe_unserialize( $raw );
-		if ( ! is_array( $leads ) ) {
-			continue;
+		$counts = array();
+		foreach ( $types as $key => $cfg ) {
+			$counts[ $key ] = array( 'label' => $cfg['label'], 'emoji' => $cfg['emoji'], 'count' => 0 );
 		}
-		foreach ( array_keys( $leads ) as $type ) {
-			if ( isset( $counts[ $type ] ) ) {
-				$counts[ $type ]['count']++;
+
+		$rows = $wpdb->get_col( "SELECT meta_value FROM {$wpdb->usermeta} WHERE meta_key = 'mfa_sofia_leads'" );
+
+		foreach ( $rows as $raw ) {
+			$leads = maybe_unserialize( $raw );
+			if ( ! is_array( $leads ) ) {
+				continue;
+			}
+			foreach ( array_keys( $leads ) as $type ) {
+				if ( isset( $counts[ $type ] ) ) {
+					$counts[ $type ]['count']++;
+				}
 			}
 		}
-	}
 
-	return $counts;
+		return $counts;
+	} );
 }
 
-/** Most recent conversions, newest first. */
-function mfa_signup_recent( $limit = 15 ) {
-	global $wpdb;
+/* ---------------- Needs follow-up ---------------- */
 
-	$cct = $wpdb->prefix . 'jet_cct_member';
+/**
+ * The work queue: what someone should act on today.
+ *
+ * The open-window count is the only number here with an expiry - outside
+ * 24 hours a free-form WhatsApp message is refused by Meta and it has to
+ * be an approved template, so it is deliberately first.
+ */
+function mfa_overview_followup() {
+	return mfa_overview_cached( 'followup', function () {
+		global $wpdb;
 
-	return $wpdb->get_results( $wpdb->prepare(
-		"SELECT u.ID, u.user_email, u.display_name, u.user_registered,
-		        s.meta_value AS status,
-		        COALESCE(NULLIF(r.meta_value,''),'unknown') AS route,
-		        o.meta_value AS first_seen,
-		        c.referrer_id
-		 FROM {$wpdb->users} u
-		 INNER JOIN {$wpdb->usermeta} s ON s.user_id = u.ID AND s.meta_key = 'user_status'
-		        AND s.meta_value IN ('member','premium')
-		 LEFT JOIN {$wpdb->usermeta} r ON r.user_id = u.ID AND r.meta_key = 'mfa_registration_route'
-		 LEFT JOIN {$wpdb->usermeta} o ON o.user_id = u.ID AND o.meta_key = 'mfa_original_registered'
-		 LEFT JOIN {$cct} c ON c.user_id = u.ID
-		 ORDER BY u.user_registered DESC
-		 LIMIT %d",
-		(int) $limit
-	), ARRAY_A );
+		$cct = $wpdb->prefix . 'jet_cct_member';
+		$out = array( 'open_window' => 0, 'no_email' => 0, 'open_inquiries' => 0 );
+
+		$conv = $wpdb->prefix . 'nwa_conversations';
+		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $conv ) ) ) {
+			// window_expires_at is GMT (see CLAUDE.md) - compare against GMT.
+			$out['open_window'] = (int) $wpdb->get_var(
+				"SELECT COUNT(*) FROM {$conv} WHERE user_id > 0 AND window_expires_at > UTC_TIMESTAMP()"
+			);
+		}
+
+		$members = $wpdb->get_results(
+			"SELECT u.ID, u.user_email FROM {$wpdb->users} u
+			 INNER JOIN {$cct} c ON c.user_id = u.ID
+			 WHERE c.status IN ('Member','Premium Member','Premium Lifetime')",
+			ARRAY_A
+		);
+
+		foreach ( $members as $m ) {
+			if ( function_exists( 'mfa_is_placeholder_email' ) && mfa_is_placeholder_email( $m['user_email'] ) ) {
+				$out['no_email']++;
+			}
+		}
+
+		$inq = $wpdb->prefix . 'jet_cct_contact_us';
+		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $inq ) ) ) {
+			$out['open_inquiries'] = (int) $wpdb->get_var(
+				"SELECT COUNT(*) FROM {$inq} WHERE cct_status IS NULL OR cct_status NOT IN ('Replied','Archived')"
+			);
+		}
+
+		return $out;
+	} );
+}
+
+/* ---------------- Render helpers ---------------- */
+
+/** One label/number row, linked to its filtered list when one exists. */
+function mfa_overview_row( $label, $value, $url = '', $note = '' ) {
+	$num = '<span class="mfa-ov-num">' . esc_html( number_format_i18n( (int) $value ) ) . '</span>';
+	$lbl = '<span class="mfa-ov-lbl">' . esc_html( $label )
+		. ( $note ? ' <small class="mfa-ov-note">' . esc_html( $note ) . '</small>' : '' )
+		. '</span>';
+
+	if ( $url ) {
+		return '<a class="mfa-ov-row is-link" href="' . esc_url( $url ) . '">' . $lbl . $num . '</a>';
+	}
+
+	return '<div class="mfa-ov-row">' . $lbl . $num . '</div>';
+}
+
+/** A card of rows with a total underneath. */
+function mfa_overview_card( $title, $rows_html, $total, $total_url = '' ) {
+	$total_row = mfa_overview_row( 'Total', $total, $total_url );
+
+	return '<div class="mfa-ov-card">'
+		. '<h3 class="mfa-ov-card-title">' . esc_html( $title ) . '</h3>'
+		. '<div class="mfa-ov-rows">' . $rows_html . '</div>'
+		. '<div class="mfa-ov-total">' . $total_row . '</div>'
+		. '</div>';
 }
 
 /* ---------------- Render ---------------- */
@@ -188,60 +381,106 @@ function mfa_admin_signups_shortcode() {
 		return '';
 	}
 
-	$stats  = mfa_signup_stats();
-	$leads  = mfa_signup_lead_counts();
-	$rows   = mfa_signup_recent( 15 );
-	$routes = mfa_signup_routes();
+	$people   = mfa_overview_members();
+	$mosque   = mfa_overview_listing( 'mosque' );
+	$business = mfa_overview_listing( 'business', 'owner_id' );
+	$website  = mfa_overview_listing( 'web', 'claimed_at' );
+	$arrival  = mfa_overview_arrival();
+	$leads    = mfa_signup_lead_counts();
+	$follow   = mfa_overview_followup();
+	$routes   = mfa_signup_routes();
 
-	$since_label = date_i18n( 'j M Y', strtotime( $stats['since'] ) );
+	$member_url   = home_url( '/admin/member/' );
+	$prospect_url = home_url( '/admin/prospects/' );
+
+	// The buckets each directory is expected to report, in reading order.
+	// Anything the data holds that isn't listed still gets shown (see below),
+	// so a new status value can't silently vanish from the dashboard.
+	$listing_order = array( 'New', 'Pending', 'Approved', 'Rejected', 'Updated', 'Error', 'Unset' );
+
+	$render_listing = function ( $stats, $section, $claim_label ) use ( $listing_order ) {
+		$base = home_url( '/admin/' . $section . '/' );
+		$html = '';
+
+		$seen = array();
+		foreach ( $listing_order as $bucket ) {
+			if ( ! isset( $stats['buckets'][ $bucket ] ) ) {
+				continue;
+			}
+			$seen[] = $bucket;
+			$url    = ( 'Unset' === $bucket ) ? '' : add_query_arg( 'status', $bucket, $base );
+			$html  .= mfa_overview_row( $bucket, $stats['buckets'][ $bucket ], $url );
+		}
+
+		// Any status value we didn't anticipate, rather than dropping it.
+		foreach ( $stats['buckets'] as $bucket => $n ) {
+			if ( ! in_array( $bucket, $seen, true ) ) {
+				$html .= mfa_overview_row( $bucket, $n, add_query_arg( 'status', $bucket, $base ) );
+			}
+		}
+
+		if ( null !== $stats['claimed'] ) {
+			$html .= mfa_overview_row( $claim_label, $stats['claimed'], '', 'has an owner' );
+		}
+
+		$html .= mfa_overview_row( 'Premium', 0, '', 'not launched' );
+
+		return $html;
+	};
 
 	ob_start();
 	?>
 	<section class="mfa-signups">
-		<div class="mfa-signups-head">
-			<h2 class="mfa-signups-title">Members</h2>
-			<p class="mfa-signups-note">
-				Someone becomes a member only by completing a registration &mdash; through Sofia, Google or the web form.
-				Contacts we created for them (imports, or a first WhatsApp message) stay <strong>prospects</strong> and are not counted here.
-				&ldquo;New&rdquo; means converted since <strong><?php echo esc_html( $since_label ); ?></strong>.
-			</p>
+
+		<h2 class="mfa-ov-title">Overview</h2>
+		<div class="mfa-ov-grid">
+			<?php
+			// --- People
+			$people_rows  = mfa_overview_row( 'Today', $people['today'], '', sprintf( '%d members, %d prospects', $people['members_today'], $people['prospects_today'] ) );
+			$people_rows .= mfa_overview_row( 'Prospects', $people['prospects'], $prospect_url );
+			$people_rows .= mfa_overview_row( 'Members', $people['members'], add_query_arg( 'status', 'Member', $member_url ) );
+			$people_rows .= mfa_overview_row( 'Premium', $people['premium'], add_query_arg( 'status', 'Premium Member', $member_url ) );
+			if ( $people['unset'] > 0 ) {
+				$people_rows .= mfa_overview_row( 'No status', $people['unset'], '', 'not in either list' );
+			}
+			echo mfa_overview_card( 'Members', $people_rows, $people['total'] ); // phpcs:ignore WordPress.Security.EscapeOutput
+
+			echo mfa_overview_card( 'Mosque', $render_listing( $mosque, 'mosque', 'Claimed' ), $mosque['total'], home_url( '/admin/mosque/' ) ); // phpcs:ignore WordPress.Security.EscapeOutput
+			echo mfa_overview_card( 'Business', $render_listing( $business, 'business', 'Claimed' ), $business['total'], home_url( '/admin/business/' ) ); // phpcs:ignore WordPress.Security.EscapeOutput
+			echo mfa_overview_card( 'Website', $render_listing( $website, 'website', 'Claimed' ), $website['total'], home_url( '/admin/website/' ) ); // phpcs:ignore WordPress.Security.EscapeOutput
+			?>
 		</div>
 
-		<div class="mfa-signups-stats">
-			<div class="mfa-signups-stat">
-				<span class="mfa-signups-num"><?php echo esc_html( number_format_i18n( $stats['members_new'] ) ); ?></span>
-				<span class="mfa-signups-lbl">New members</span>
-			</div>
-			<div class="mfa-signups-stat">
-				<span class="mfa-signups-num"><?php echo esc_html( number_format_i18n( $stats['today'] ) ); ?></span>
-				<span class="mfa-signups-lbl">Today</span>
-			</div>
-			<div class="mfa-signups-stat">
-				<span class="mfa-signups-num"><?php echo esc_html( number_format_i18n( $stats['referred'] ) ); ?></span>
-				<span class="mfa-signups-lbl">Via a referral</span>
-			</div>
-			<div class="mfa-signups-stat">
-				<span class="mfa-signups-num"><?php echo esc_html( number_format_i18n( $stats['members_total'] ) ); ?></span>
-				<span class="mfa-signups-lbl">Members all time</span>
-			</div>
-			<div class="mfa-signups-stat">
-				<span class="mfa-signups-num"><?php echo esc_html( number_format_i18n( $stats['prospects'] ) ); ?></span>
-				<span class="mfa-signups-lbl">Prospects to convert</span>
-			</div>
-		</div>
-
-		<h3 class="mfa-signups-subtitle">How the new members arrived</h3>
+		<h2 class="mfa-ov-title">How the new members arrived</h2>
 		<div class="mfa-signups-stats mfa-signups-stats--routes">
 			<?php foreach ( $routes as $key => $label ) : ?>
 				<div class="mfa-signups-stat">
-					<span class="mfa-signups-num"><?php echo esc_html( number_format_i18n( $stats['routes'][ $key ] ) ); ?></span>
+					<span class="mfa-signups-num"><?php echo esc_html( number_format_i18n( $arrival['routes'][ $key ] ) ); ?></span>
 					<span class="mfa-signups-lbl"><?php echo esc_html( $label ); ?></span>
 				</div>
 			<?php endforeach; ?>
+			<div class="mfa-signups-stat">
+				<span class="mfa-signups-num"><?php echo esc_html( number_format_i18n( $arrival['direct'] ) ); ?></span>
+				<span class="mfa-signups-lbl">Direct</span>
+			</div>
+			<div class="mfa-signups-stat">
+				<span class="mfa-signups-num"><?php echo esc_html( number_format_i18n( $arrival['referral'] ) ); ?></span>
+				<span class="mfa-signups-lbl">Referral</span>
+			</div>
+			<div class="mfa-signups-stat mfa-signups-stat--highlight">
+				<span class="mfa-signups-num"><?php echo esc_html( number_format_i18n( $arrival['from_prospect'] ) ); ?></span>
+				<span class="mfa-signups-lbl">From a prospect</span>
+			</div>
 		</div>
+		<p class="mfa-ov-foot">
+			&ldquo;From a prospect&rdquo; counts members who started as one of the
+			<?php echo esc_html( number_format_i18n( mfa_overview_members()['prospects'] ) ); ?> imported contacts &mdash;
+			the number the ads, bulk WhatsApp and email campaigns are trying to move.
+			Route tracking began on 19 Aug, so anyone who joined earlier counts as &ldquo;Before tracking&rdquo;.
+		</p>
 
 		<?php if ( ! empty( $leads ) ) : ?>
-			<h3 class="mfa-signups-subtitle">Interest captured by Sofia</h3>
+			<h2 class="mfa-ov-title">Interest &amp; leads</h2>
 			<div class="mfa-signups-stats mfa-signups-stats--leads">
 				<?php foreach ( $leads as $lead ) : ?>
 					<div class="mfa-signups-stat">
@@ -252,44 +491,22 @@ function mfa_admin_signups_shortcode() {
 			</div>
 		<?php endif; ?>
 
-		<h3 class="mfa-signups-subtitle">Most recent conversions</h3>
-		<?php if ( empty( $rows ) ) : ?>
-			<p class="mfa-signups-empty">No members yet. The first completed registration will appear here.</p>
-		<?php else : ?>
-			<div class="mfa-signups-tablewrap">
-				<table class="mfa-signups-table">
-					<thead>
-						<tr>
-							<th>Name</th><th>Email</th><th>Via</th><th>Status</th><th>Referred</th><th>First seen</th><th>Converted</th>
-						</tr>
-					</thead>
-					<tbody>
-					<?php foreach ( $rows as $r ) :
-						$route_key   = isset( $routes[ $r['route'] ] ) ? $r['route'] : 'unknown';
-						$is_placeholder = ( false !== stripos( $r['user_email'], '@mfa.com' ) );
-						// 14270 is the "no real referrer" sentinel used across the codebase.
-						$has_ref = ! empty( $r['referrer_id'] ) && 14270 !== (int) $r['referrer_id'];
-						?>
-						<tr>
-							<td data-label="Name"><?php echo esc_html( $r['display_name'] ); ?></td>
-							<td data-label="Email"><?php echo $is_placeholder ? '<span class="mfa-signups-muted">no email yet</span>' : esc_html( $r['user_email'] ); ?></td>
-							<td data-label="Via">
-								<span class="mfa-signups-tag mfa-signups-tag--<?php echo esc_attr( $route_key ); ?>"><?php echo esc_html( $routes[ $route_key ] ); ?></span>
-							</td>
-							<td data-label="Status"><?php echo esc_html( ucfirst( (string) $r['status'] ) ); ?></td>
-							<td data-label="Referred"><?php echo $has_ref ? '#' . esc_html( $r['referrer_id'] ) : '<span class="mfa-signups-muted">&mdash;</span>'; ?></td>
-							<td data-label="First seen">
-								<?php echo ! empty( $r['first_seen'] )
-									? esc_html( date_i18n( 'j M Y', strtotime( $r['first_seen'] ) ) )
-									: '<span class="mfa-signups-muted">&mdash;</span>'; ?>
-							</td>
-							<td data-label="Converted"><?php echo esc_html( date_i18n( 'j M, H:i', strtotime( $r['user_registered'] ) ) ); ?></td>
-						</tr>
-					<?php endforeach; ?>
-					</tbody>
-				</table>
+		<h2 class="mfa-ov-title">Needs follow-up</h2>
+		<div class="mfa-signups-stats mfa-signups-stats--followup">
+			<div class="mfa-signups-stat<?php echo $follow['open_window'] ? ' mfa-signups-stat--urgent' : ''; ?>">
+				<span class="mfa-signups-num"><?php echo esc_html( number_format_i18n( $follow['open_window'] ) ); ?></span>
+				<span class="mfa-signups-lbl">WhatsApp window open <small>reply free-form now</small></span>
 			</div>
-		<?php endif; ?>
+			<a class="mfa-signups-stat" href="<?php echo esc_url( home_url( '/admin/inquiry/' ) ); ?>">
+				<span class="mfa-signups-num"><?php echo esc_html( number_format_i18n( $follow['open_inquiries'] ) ); ?></span>
+				<span class="mfa-signups-lbl">Inquiries not replied</span>
+			</a>
+			<a class="mfa-signups-stat" href="<?php echo esc_url( $member_url ); ?>">
+				<span class="mfa-signups-num"><?php echo esc_html( number_format_i18n( $follow['no_email'] ) ); ?></span>
+				<span class="mfa-signups-lbl">Members with no real email</span>
+			</a>
+		</div>
+
 	</section>
 	<?php
 	return ob_get_clean();

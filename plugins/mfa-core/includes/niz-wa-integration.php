@@ -447,6 +447,56 @@ function niz_wa_account_start( $user_id, $then = null ) {
 	return '';
 }
 
+/**
+ * Is this message *just* an email address, from somebody who still needs one?
+ *
+ * Deliberately strict on all three counts, because this fires with no session
+ * to vouch for it.
+ */
+function niz_wa_account_wants_email( $user_id, $message_text ) {
+	$text = trim( (string) $message_text );
+
+	// The WHOLE message must be the address - "email us at a@b.com" is a
+	// sentence, not an answer. sanitize_email() strips anything else, so a
+	// mismatch means the message carried more than an address.
+	if ( '' === $text || $text !== sanitize_email( $text ) || ! is_email( $text ) ) {
+		return false;
+	}
+
+	// Never accept a placeholder as the "real" address we are trying to replace.
+	if ( function_exists( 'mfa_is_placeholder_email' ) && mfa_is_placeholder_email( $text ) ) {
+		return false;
+	}
+
+	// Only people who actually still need one, so an established member who
+	// happens to send an address is not dragged into a change-email flow.
+	return ! niz_wa_is_member( $user_id ) || niz_wa_needs_real_email( $user_id );
+}
+
+/**
+ * Pick the email step back up with no session, and send the code.
+ *
+ * The name step is skipped: whatever display name we already hold stands. Any
+ * `then` follow-up (an automatic claim carried from the directory flow) is
+ * gone with the lapsed session, which is correct - that context expired too.
+ */
+function niz_wa_account_resume_email( $user_id, $wa_number, $conversation, $email ) {
+	$code = (string) random_int( 100000, 999999 );
+	niz_wa_send_email_code( $email, $code );
+
+	NWA_DB::set_pending_action( $conversation->id, 'account_flow', array(
+		'step'       => 'await_code',
+		'email'      => $email,
+		'code_hash'  => wp_hash( $code ),
+		'attempts'   => 0,
+	), 20 );
+
+	nwa_send_message( $user_id, $wa_number,
+		"📧 I've sent a 6-digit code to *{$email}*.\n\nPlease enter the code here to confirm the email is yours." );
+
+	return '';
+}
+
 /* ---- Account-flow session handler (override filter, priority 15) ---- */
 add_filter( 'nwa_route_message_override', 'niz_wa_account_route', 15, 5 );
 
@@ -457,7 +507,28 @@ function niz_wa_account_route( $override, $user_id, $wa_number, $message_text, $
 	if ( ! class_exists( 'NWA_DB' ) ) {
 		return $override;
 	}
-	if ( 'account_flow' !== NWA_DB::get_active_pending_action( $conversation ) ) {
+	$pending = NWA_DB::get_active_pending_action( $conversation );
+
+	if ( 'account_flow' !== $pending ) {
+		// A bare email address with no live session is almost always somebody
+		// answering this flow after its 20-minute TTL lapsed - the same
+		// near-miss the Add-Mosque flow had with Google Maps links, and one
+		// that nearly cost a live campaign reply on 2026-08-20.
+		//
+		// Safe to resume without asking, because the 6-digit code IS the
+		// confirmation: nothing about the account changes until they prove
+		// they can read that inbox.
+		//
+		// Guarded on NO pending action of any kind. This route runs at
+		// priority 15, ahead of travel (22), leads (23) and contact (25), so a
+		// looser check would steal an address one of those was waiting for.
+		// It is also self-limiting: the first one sets an await_code session,
+		// so a second address arrives WITH a pending action and is treated as
+		// a wrong code rather than triggering another send.
+		if ( null === $pending && niz_wa_account_wants_email( $user_id, $message_text ) ) {
+			return niz_wa_account_resume_email( $user_id, $wa_number, $conversation, sanitize_email( trim( $message_text ) ) );
+		}
+
 		return $override;
 	}
 

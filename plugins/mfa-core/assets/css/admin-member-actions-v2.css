@@ -95,3 +95,19 @@
     flex: 1 1 100%;
   }
 }
+
+/* Prepared-message picker inside the Send Email / Send WhatsApp modals. */
+.mfa-mact-preset {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--mfa-border, #d7e4e1);
+  border-radius: var(--mfa-radius-sm, 8px);
+  font-size: 14px;
+}
+
+.mfa-mact-hint {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--mfa-muted, #56655f);
+}

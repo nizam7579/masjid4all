@@ -98,3 +98,76 @@
   background: var(--mfa-mint-bg);
   color: var(--mfa-teal-dark);
 }
+
+/* ---------- Last contact, milestones, activity filter (2026-08-20) ---------- */
+
+.mfa-admin-member-ago,
+.mfa-admin-member-via {
+  display: block;
+  font-size: 11px;
+  color: var(--mfa-muted, #56655f);
+}
+
+.mfa-admin-member-none {
+  color: var(--mfa-muted, #56655f);
+}
+
+.mfa-admin-member-milestones {
+  margin-top: var(--mfa-space-5, 20px);
+}
+
+.mfa-admin-member-milestones h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--mfa-space-2, 8px);
+  margin: 0 0 var(--mfa-space-3, 12px);
+}
+
+.mfa-admin-member-milestones ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mfa-admin-member-milestones li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--mfa-space-2, 8px);
+  font-size: 13px;
+}
+
+.mfa-admin-member-milestones li.is-done {
+  color: var(--mfa-teal-dark, #0d4d47);
+  font-weight: 600;
+}
+
+/* Outstanding items stay legible rather than greyed to near-invisible -
+   the whole point is that somebody acts on them. */
+.mfa-admin-member-milestones li.is-todo {
+  color: var(--mfa-muted, #56655f);
+}
+
+.mfa-admin-activity-filter {
+  display: flex;
+  align-items: center;
+  gap: var(--mfa-space-2, 8px);
+  margin-bottom: var(--mfa-space-3, 12px);
+}
+
+.mfa-admin-activity-filter label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mfa-muted, #56655f);
+}
+
+.mfa-admin-activity-filter select {
+  padding: 6px 10px;
+  border: 1px solid var(--mfa-border, #d7e4e1);
+  border-radius: var(--mfa-radius-sm, 8px);
+  font-size: 13px;
+}

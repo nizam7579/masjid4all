@@ -1,6 +1,6 @@
 /**
  * Staff actions on the member detail page: Update Info, Send Email,
- * Send WhatsApp, Send Template.
+ * Send WhatsApp, Send Template, and the prepared-message pickers.
  *
  * The confirm() before a send is a courtesy to whoever is clicking, not a
  * security control - every handler re-checks the capability, the nonce and
@@ -9,6 +9,32 @@
  */
 (function () {
 	'use strict';
+
+	// Prepared-message picker: fills the fields, never sends. Staff still edit
+	// and press the real submit, so a canned message cannot leave unread.
+	// Typed text is protected - once the box has content, switching asks first.
+	document.addEventListener('change', function (e) {
+		var select = e.target.closest('[data-mact-preset]');
+		if (!select) { return; }
+
+		var form = select.closest('.mfa-mact-form');
+		if (!form) { return; }
+
+		var option = select.options[select.selectedIndex];
+		if (!option || !option.value) { return; } // Free-form: leave it alone.
+
+		var body = form.querySelector('textarea[name="body"]');
+		var subject = form.querySelector('input[name="subject"]');
+
+		if (body && body.value.trim() &&
+			!window.confirm('Replace what you have already written?')) {
+			select.selectedIndex = 0;
+			return;
+		}
+
+		if (subject && option.dataset.subject) { subject.value = option.dataset.subject; }
+		if (body && option.dataset.body) { body.value = option.dataset.body; body.focus(); }
+	});
 
 	var bar = document.querySelector('.mfa-admin-member-actions-bar');
 	if (!bar) {
@@ -119,3 +145,40 @@
 		});
 	});
 }());
+
+/**
+ * Activity tab type filter. Client-side because the whole list is already
+ * in the DOM (capped at 100 rows by mfa_get_member_activity), so filtering
+ * server-side would cost a round trip to hide rows already downloaded.
+ */
+(function () {
+	'use strict';
+
+	document.addEventListener('change', function (e) {
+		var select = e.target.closest('[data-activity-filter]');
+		if (!select) { return; }
+
+		var panel = select.closest('.mfa-admin-tabpanel');
+		if (!panel) { return; }
+
+		var wanted = select.value;
+		panel.querySelectorAll('tr[data-activity-type]').forEach(function (row) {
+			row.hidden = wanted !== '' && row.getAttribute('data-activity-type') !== wanted;
+		});
+
+		// The "no activity" row belongs to the unfiltered list; a filter that
+		// matches nothing needs to say so itself.
+		var visible = panel.querySelectorAll('tr[data-activity-type]:not([hidden])').length;
+		var empty = panel.querySelector('[data-activity-empty]');
+		if (!empty) {
+			var tbody = panel.querySelector('tbody');
+			if (tbody) {
+				empty = document.createElement('tr');
+				empty.setAttribute('data-activity-empty', '');
+				empty.innerHTML = '<td colspan="3" class="mfa-admin-member-empty">Nothing of that type.</td>';
+				tbody.appendChild(empty);
+			}
+		}
+		if (empty) { empty.hidden = visible > 0; }
+	});
+})();

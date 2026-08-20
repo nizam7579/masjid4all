@@ -89,11 +89,64 @@ function mfa_admin_member_info_shortcode() {
 								<span class="mfa-label">Rank</span>
 								<span class="mfa-body"><?php echo esc_html( trim( (string) $row['rank'] ) ? trim( (string) $row['rank'] ) : '—' ); ?></span>
 							</div>
+							<?php
+							// Above Registered on purpose: "when did we last speak"
+							// is the first thing the helpline needs.
+							$last = function_exists( 'mfa_member_last_contact' ) ? mfa_member_last_contact( $user_id ) : null;
+							?>
+							<div class="mfa-admin-member-info-item">
+								<span class="mfa-label">Last contact</span>
+								<span class="mfa-body">
+									<?php if ( $last ) : ?>
+										<?php echo esc_html( date_i18n( 'j M Y, g:i a', strtotime( $last['at'] ) ) ); ?>
+										<small class="mfa-admin-member-ago"><?php echo esc_html( mfa_member_time_ago( $last['at'] ) ); ?></small>
+										<small class="mfa-admin-member-via">via <?php echo esc_html( $last['channel'] ); ?></small>
+										<?php
+										// A prospect often messages Sofia before registering,
+										// and activation resets user_registered - so a contact
+										// older than the join date is normal, not a data fault.
+										if ( ! empty( $row['cct_created'] ) && strtotime( $last['at'] ) < strtotime( $row['cct_created'] ) ) :
+											?>
+											<small class="mfa-admin-member-ago">before they registered</small>
+										<?php endif; ?>
+									<?php else : ?>
+										<span class="mfa-admin-member-none">No contact recorded</span>
+									<?php endif; ?>
+								</span>
+							</div>
 							<div class="mfa-admin-member-info-item">
 								<span class="mfa-label">Registered</span>
 								<span class="mfa-body"><?php echo esc_html( $row['cct_created'] ? date_i18n( 'j M Y, g:i a', strtotime( $row['cct_created'] ) ) : '—' ); ?></span>
 							</div>
+							<div class="mfa-admin-member-info-item">
+								<span class="mfa-label">Barakah points</span>
+								<span class="mfa-body"><?php echo esc_html( number_format_i18n( function_exists( 'mfa_get_barakah_points' ) ? mfa_get_barakah_points( $user_id ) : 0 ) ); ?></span>
+							</div>
+							<div class="mfa-admin-member-info-item">
+								<span class="mfa-label">Affiliate downline</span>
+								<span class="mfa-body"><?php echo esc_html( number_format_i18n( function_exists( 'mfa_member_downline_count' ) ? mfa_member_downline_count( $user_id ) : 0 ) ); ?></span>
+							</div>
 						</div>
+
+						<?php
+						$milestones = function_exists( 'mfa_member_milestones' ) ? mfa_member_milestones( $user_id ) : array();
+						if ( $milestones ) :
+							$done = count( array_filter( $milestones ) );
+							?>
+							<div class="mfa-admin-member-milestones">
+								<h2 class="mfa-label">Status
+									<span class="mfa-admin-tab-count"><?php echo esc_html( $done . '/' . count( $milestones ) ); ?></span>
+								</h2>
+								<ul>
+									<?php foreach ( $milestones as $label => $has ) : ?>
+										<li class="<?php echo $has ? 'is-done' : 'is-todo'; ?>">
+											<span aria-hidden="true"><?php echo $has ? '&#10003;' : '&#183;'; ?></span>
+											<?php echo esc_html( $label ); ?>
+										</li>
+									<?php endforeach; ?>
+								</ul>
+							</div>
+						<?php endif; ?>
 
 						<?php
 						// Staff actions: edit details, and contact them. Gated on the
@@ -119,6 +172,29 @@ function mfa_admin_member_info_shortcode() {
 							</div>
 
 							<div class="mfa-admin-tabpanel is-active" data-tabpanel="activity">
+								<?php
+								// Built from the types this member actually has, not a
+								// hardcoded list - the same reasoning as the country and
+								// rank filters on the list page. A new activity type
+								// starts being filterable the first time it is recorded,
+								// with no edit here.
+								$activity_types = array();
+								foreach ( $activity as $entry ) {
+									$activity_types[ $entry['type'] ] = ucwords( str_replace( '_', ' ', $entry['type'] ) );
+								}
+								asort( $activity_types );
+								?>
+								<?php if ( count( $activity_types ) > 1 ) : ?>
+									<div class="mfa-admin-activity-filter">
+										<label for="mfa-activity-filter-<?php echo esc_attr( $user_id ); ?>">Show</label>
+										<select id="mfa-activity-filter-<?php echo esc_attr( $user_id ); ?>" data-activity-filter>
+											<option value="">All (<?php echo esc_html( number_format_i18n( count( $activity ) ) ); ?>)</option>
+											<?php foreach ( $activity_types as $type => $label ) : ?>
+												<option value="<?php echo esc_attr( $type ); ?>"><?php echo esc_html( $label ); ?></option>
+											<?php endforeach; ?>
+										</select>
+									</div>
+								<?php endif; ?>
 								<div class="mfa-admin-member-table-wrap">
 									<table class="mfa-admin-member-table">
 										<thead>
@@ -135,7 +211,7 @@ function mfa_admin_member_info_shortcode() {
 												</tr>
 											<?php else : ?>
 												<?php foreach ( $activity as $entry ) : ?>
-													<tr>
+													<tr data-activity-type="<?php echo esc_attr( $entry['type'] ); ?>">
 														<td data-label="Type"><span class="mfa-admin-activity-type mfa-admin-activity-type-<?php echo esc_attr( $entry['type'] ); ?>"><?php echo esc_html( ucwords( str_replace( '_', ' ', $entry['type'] ) ) ); ?></span></td>
 														<td data-label="Description" class="mfa-admin-member-info-wrap-cell"><?php echo esc_html( $entry['description'] ); ?></td>
 														<td data-label="Time"><?php echo esc_html( date_i18n( 'j M Y, g:i a', strtotime( $entry['created_at'] ) ) ); ?></td>

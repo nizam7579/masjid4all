@@ -51,6 +51,94 @@ function mfa_admin_member_templates() {
 }
 
 /**
+ * Prepared messages staff can start from, per channel.
+ *
+ * Keyed off what a member is MISSING rather than which route they arrived
+ * by - the principle already agreed for follow-ups, which is what lets one
+ * set serve Sofia, Google and web-form members alike.
+ *
+ * Copy lives here rather than in the database on purpose while the wording
+ * is still being worked out: it is versioned, reviewable in a diff, and
+ * cannot be edited into something nobody approved. Every read goes through
+ * this one function, so moving to an editable store later is a change in
+ * one place. Filter `mfa_admin_member_messages` to add or reword without
+ * touching the file.
+ *
+ * {{name}} and {{site}} are substituted at render time. Nothing else is,
+ * deliberately - a placeholder that silently stays literal in a sent
+ * message is worse than not offering it.
+ *
+ * @param string $channel email|whatsapp
+ */
+function mfa_admin_member_messages( $channel ) {
+	$site = get_bloginfo( 'name' ) ?: 'Masjid4All';
+
+	$messages = array(
+		'email' => array(
+			'welcome' => array(
+				'label'   => 'Welcome',
+				'subject' => 'Welcome to ' . $site,
+				'body'    => "Assalamualaikum {{name}},\n\nWelcome to {{site}} — we're glad to have you.\n\nYou can find mosques and halal businesses near you, save the ones you visit, and earn Barakah points as you contribute to the directory.\n\nIf there's anything you need, just reply to this email.\n\n{{site}} Team",
+			),
+			'verify_whatsapp' => array(
+				'label'   => 'Ask them to verify WhatsApp',
+				'subject' => 'Add your WhatsApp to ' . $site,
+				'body'    => "Assalamualaikum {{name}},\n\nYour {{site}} account doesn't have a verified WhatsApp number yet. Adding one lets us reach you with prayer time reminders and lets you use Sofia, our WhatsApp assistant, for mosque and halal business lookups.\n\nYou can add and verify it from your member page:\n" . home_url( '/member/' ) . "\n\nIt takes less than a minute.\n\n{{site}} Team",
+			),
+			'set_password' => array(
+				'label'   => 'Ask them to set a password',
+				'subject' => 'Set a password for your ' . $site . ' account',
+				'body'    => "Assalamualaikum {{name}},\n\nYou signed up without setting a password, so you can currently only sign in the way you first joined.\n\nSetting one means you can always get in by email and password too:\n" . home_url( '/member/' ) . "\n\n{{site}} Team",
+			),
+			'complete_profile' => array(
+				'label'   => 'Nudge to complete profile',
+				'subject' => 'Finish setting up your ' . $site . ' profile',
+				'body'    => "Assalamualaikum {{name}},\n\nYour profile is still incomplete. Finishing it takes a couple of minutes and earns you Barakah points:\n" . home_url( '/member/' ) . "\n\n{{site}} Team",
+			),
+		),
+
+		'whatsapp' => array(
+			'welcome' => array(
+				'label' => 'Welcome',
+				'body'  => "Assalamualaikum {{name}} 👋\n\nWelcome to {{site}}. You can ask me for prayer times, the nearest mosque, or halal businesses near you — just tell me what you need.",
+			),
+			'verify_email' => array(
+				'label' => 'Ask them to verify email',
+				'body'  => "Assalamualaikum {{name}},\n\nYour email isn't verified yet, so we can't send you updates. You can verify it from your member page:\n" . home_url( '/member/' ),
+			),
+			'complete_profile' => array(
+				'label' => 'Nudge to complete profile',
+				'body'  => "Assalamualaikum {{name}},\n\nYour {{site}} profile is still incomplete — finishing it takes a minute and earns you Barakah points:\n" . home_url( '/member/' ),
+			),
+			'check_in' => array(
+				'label' => 'Friendly check-in',
+				'body'  => "Assalamualaikum {{name}},\n\nJust checking in from {{site}} — is there anything we can help you with?",
+			),
+		),
+	);
+
+	$channel  = ( 'email' === $channel ) ? 'email' : 'whatsapp';
+	$messages = apply_filters( 'mfa_admin_member_messages', $messages, $channel );
+
+	return isset( $messages[ $channel ] ) ? $messages[ $channel ] : array();
+}
+
+/** Fills the two placeholders the prepared messages use. */
+function mfa_admin_member_message_fill( $text, $row ) {
+	$name = isset( $row['name'] ) ? trim( (string) $row['name'] ) : '';
+	if ( $name ) {
+		$parts = preg_split( '/\s+/', $name );
+		$name  = $parts[0];
+	}
+
+	return str_replace(
+		array( '{{name}}', '{{site}}' ),
+		array( $name ? $name : 'there', get_bloginfo( 'name' ) ?: 'Masjid4All' ),
+		(string) $text
+	);
+}
+
+/**
  * What can we do for this member right now, and why not.
  *
  * Returns the reasons as text so the UI can explain a disabled button
@@ -214,6 +302,23 @@ function mfa_admin_member_actions_render( $row, $user_id ) {
 			<h3 class="mfa-h3">Send Email</h3>
 			<p class="mfa-body-muted">To <strong><?php echo esc_html( $state['email'] ); ?></strong></p>
 			<form class="mfa-mact-form" data-mact-action="email" data-mact-confirm="Send this email to <?php echo esc_attr( $state['email'] ); ?>?">
+				<?php $email_messages = mfa_admin_member_messages( 'email' ); ?>
+				<?php if ( $email_messages ) : ?>
+					<div class="mfa-form-group">
+						<label>Start from</label>
+						<select class="mfa-mact-preset" data-mact-preset>
+							<option value="">Free-form (write your own)</option>
+							<?php foreach ( $email_messages as $key => $msg ) : ?>
+								<option
+									value="<?php echo esc_attr( $key ); ?>"
+									data-subject="<?php echo esc_attr( mfa_admin_member_message_fill( $msg['subject'] ?? '', $row ) ); ?>"
+									data-body="<?php echo esc_attr( mfa_admin_member_message_fill( $msg['body'] ?? '', $row ) ); ?>"
+								><?php echo esc_html( $msg['label'] ); ?></option>
+							<?php endforeach; ?>
+						</select>
+						<small class="mfa-mact-hint">Picking one fills the fields below &mdash; edit them before sending.</small>
+					</div>
+				<?php endif; ?>
 				<div class="mfa-form-group">
 					<label>Subject</label>
 					<input type="text" name="subject" required>
@@ -234,6 +339,22 @@ function mfa_admin_member_actions_render( $row, $user_id ) {
 			<h3 class="mfa-h3">Send WhatsApp</h3>
 			<p class="mfa-body-muted">To <strong>+<?php echo esc_html( $state['phone'] ); ?></strong></p>
 			<form class="mfa-mact-form" data-mact-action="whatsapp" data-mact-confirm="Send this WhatsApp message to +<?php echo esc_attr( $state['phone'] ); ?>?">
+				<?php $wa_messages = mfa_admin_member_messages( 'whatsapp' ); ?>
+				<?php if ( $wa_messages ) : ?>
+					<div class="mfa-form-group">
+						<label>Start from</label>
+						<select class="mfa-mact-preset" data-mact-preset>
+							<option value="">Free-form (write your own)</option>
+							<?php foreach ( $wa_messages as $key => $msg ) : ?>
+								<option
+									value="<?php echo esc_attr( $key ); ?>"
+									data-body="<?php echo esc_attr( mfa_admin_member_message_fill( $msg['body'] ?? '', $row ) ); ?>"
+								><?php echo esc_html( $msg['label'] ); ?></option>
+							<?php endforeach; ?>
+						</select>
+						<small class="mfa-mact-hint">Picking one fills the message below &mdash; edit it before sending.</small>
+					</div>
+				<?php endif; ?>
 				<div class="mfa-form-group">
 					<label>Message</label>
 					<textarea name="body" rows="6" required></textarea>

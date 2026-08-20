@@ -188,6 +188,12 @@
   border-radius: 10px;
   max-width: 70%;
   font-size: 14px;
+  /* Without these a long URL - or the JSON stored for a template or
+     interactive message - runs straight out of the bubble. pre-wrap also
+     keeps the line breaks people actually type; they collapsed before. */
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: pre-wrap;
 }
 .nwa-message-bubble.is-inbound {
   align-self: flex-start;

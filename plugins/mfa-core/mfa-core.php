@@ -39,6 +39,7 @@ $mfa_core_includes = array(
 	'includes/sofia-leads.php',
 	'includes/content-boilerplate.php',
 	'includes/account-completion.php',
+	'includes/member-snapshot.php',
 	'includes/listing-status.php',
 	'includes/whatsapp-nudge.php',
 	'includes/member-import.php',

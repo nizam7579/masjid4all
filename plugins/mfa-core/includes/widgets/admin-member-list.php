@@ -114,18 +114,30 @@ function mfa_admin_member_list_shortcode( $atts = array() ) {
 		$status_filter = $default_status;
 	}
 
-	// The import panel creates prospects, so it belongs wherever prospects are
-	// listed - the unrestricted view or a Prospect-only one - and nowhere else.
-	// Tying it to $is_restricted alone would have hidden it from the very page
-	// it exists for.
-	$shows_prospects = ! $is_restricted || in_array( 'Prospect', $restrict, true );
+	// Whether this PAGE is about prospects - which is NOT the same as whether
+	// it allows filtering to them. The Members page offers a Prospect filter
+	// but is still the members page: its columns, its count noun and the import
+	// panel must not change just because the filter exists. Testing
+	// in_array('Prospect', $restrict) alone got this wrong the moment Prospect
+	// was added to that list.
+	$prospect_view = ! $is_restricted
+		|| ( in_array( 'Prospect', $restrict, true ) && ( '' === $default_status || 'Prospect' === $default_status ) );
+
+	// The import panel creates prospects, so it belongs on a prospect page and
+	// nowhere else.
+	$shows_prospects = $prospect_view;
 
 	// The Members view reaches past its status list to include prospects who
-	// have messaged Sofia. The Prospects view already lists them.
-	$includes_reached_out = $is_restricted && ! in_array( 'Prospect', $restrict, true );
+	// have messaged Sofia. A prospect view already lists them.
+	$includes_reached_out = $is_restricted && ! $prospect_view;
 
 	// What one row is called, so the count line reads honestly on each view.
-	if ( $is_restricted && ! in_array( 'Prospect', $restrict, true ) ) {
+	// Follows the ACTIVE filter first: the Members page filtered to Prospect
+	// was reporting "74,904 members", which is the page's noun applied to a
+	// count of something else.
+	if ( '' !== $status_filter ) {
+		$noun = ( 'Prospect' === $status_filter ) ? 'prospect' : 'member';
+	} elseif ( $is_restricted && ! $prospect_view ) {
 		$noun = 'member';
 	} elseif ( array( 'Prospect' ) === $restrict ) {
 		$noun = 'prospect';
@@ -137,9 +149,13 @@ function mfa_admin_member_list_shortcode( $atts = array() ) {
 	// values outside JetEngine's configured rank options) - build the
 	// filter from what's actually in the data, not a hardcoded list.
 	// Countries present in this view's own slice of the table.
-	$country_scope = $is_restricted
-		? $wpdb->prepare( 'status IN (' . implode( ',', array_fill( 0, count( $restrict ), '%s' ) ) . ')', $restrict )
-		: '1=1';
+	if ( '' !== $status_filter && in_array( $status_filter, $status_options, true ) ) {
+		$country_scope = $wpdb->prepare( 'status = %s', $status_filter );
+	} elseif ( $is_restricted ) {
+		$country_scope = $wpdb->prepare( 'status IN (' . implode( ',', array_fill( 0, count( $restrict ), '%s' ) ) . ')', $restrict );
+	} else {
+		$country_scope = '1=1';
+	}
 	$country_options = $wpdb->get_col(
 		"SELECT DISTINCT country FROM {$cct_table} WHERE {$country_scope} AND country IS NOT NULL AND TRIM(country) != '' ORDER BY country ASC"
 	);

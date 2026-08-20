@@ -126,6 +126,17 @@ function mfa_state_alias_tables() {
 		),
 	);
 
+	// Malaysia's 16 canonical names already exist in geohash-crawl.php and are
+	// the source of truth for the hubs live since 2026-08-16. Reuse that table
+	// rather than restating it here - two copies would drift, and the hub
+	// titles depend on an exact match. This makes Malaysia visible to
+	// mfa_state_canonical_list() (so the hub generator can handle it) WITHOUT
+	// changing how its states are parsed: mfa_geohash_guess_state() still
+	// routes Malaysia through mfa_malaysia_normalize_state_name().
+	if ( function_exists( 'mfa_malaysia_state_aliases' ) ) {
+		$tables['Malaysia'] = mfa_malaysia_state_aliases();
+	}
+
 	/**
 	 * @param array $tables country => canonical => aliases.
 	 */

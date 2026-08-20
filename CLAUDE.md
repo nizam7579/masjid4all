@@ -665,6 +665,26 @@ their actual status as of the 2026-08-04 cutover:
   cannot be keyed at all. **Verify by rendering each message and looking for
   lines that come through unchanged** — counting keys would have passed while
   three sentences shipped in English.
+- **Flow TTLs need a resume path, not a longer TTL.** Twice the same failure:
+  a session lapses, the person answers anyway, and the AI fields it instead of
+  the flow. **Recognise the ANSWER, not the session** — a Google Maps link with
+  no live session goes to `niz_wa_place_add_from_link()`, and a message that is
+  *just an email address* resumes the account flow at its code step
+  (`niz_wa_account_wants_email()`). Both are safe without asking because the
+  expected answer carries its own confirmation: the link ends in a Yes/No, the
+  address ends in a 6-digit code, so nothing is committed on a guess.
+
+  Every such catch is guarded on **no pending action of ANY kind** — these
+  routes run early (account 15, directory 20) and would otherwise steal input
+  from travel (22), leads (23) or contact (25). The email catch additionally
+  demands the **whole message** be the address, refuses both placeholder
+  domains, and only fires for accounts still lacking a real email. It is
+  self-limiting: the first address sets `await_code`, so a second arrives with
+  a session and reads as a wrong code.
+
+  **Still open:** the account flow's **name step has no resume path** — a name
+  or "OK" is just text and cannot be pattern-matched, so it would need a
+  recently-expired-session signal instead.
 - **Directory place links** — a Google Maps link is accepted **even after the
   flow's 30-minute TTL has expired**, because fetching a link out of Maps
   routinely takes longer; with no live session it goes straight to

@@ -2029,30 +2029,52 @@ function niz_wa_detect_lang( $text ) {
 		return "";
 	}
 
-	$es = 0;
-	foreach ( array(
-		// Function words carry the signal: content words like "mezquita" are
-		// too rare in a two-word reply to be worth much, and the failure this
-		// widening fixes was a full Spanish sentence containing none of the
-		// obvious religious vocabulary at all.
-		" que ", " porque ", " donde ", " dónde ", " hay ", " cerca ", " para ", " como ", " cómo ",
-		" puede ", " pueden ", " quiero ", " quisiera ", " tengo ", " gracias ", " por favor ",
-		" los ", " las ", " del ", " una ", " con ", " sin ", " por ", " son ", " pero ", " muy ",
-		" cuando ", " también ", " tambien ", " aquí ", " aqui ", " hola ", " buenas ",
-		" mezquita ", " oracion ", " oración ", " rezo ", " sí ", " es ", " esta ", " está ",
-		" soy ", " dime ", " cual ", " cuál ", " ser ", " estar ", " tiene ", " bien ",
-		" todo ", " nada ", " más ", " mas ", " ya ", " desde ",
-	) as $w ) {
-		if ( false !== strpos( $t, $w ) ) {
-			$es++;
+	// Function words carry the signal: content words are too rare in a
+	// two-word reply to be worth much, and the miss that forced this list
+	// wider was a full Spanish sentence with no religious vocabulary at all.
+	// Every entry is space-padded, so it only matches a standalone word -
+	// which is what keeps short Malay particles ("di", "ke") from firing
+	// inside English text.
+	$words = array(
+		"es" => array(
+			" que ", " porque ", " donde ", " dónde ", " hay ", " cerca ", " para ", " como ", " cómo ",
+			" puede ", " pueden ", " quiero ", " quisiera ", " tengo ", " gracias ", " por favor ",
+			" los ", " las ", " del ", " una ", " con ", " sin ", " por ", " son ", " pero ", " muy ",
+			" cuando ", " también ", " tambien ", " aquí ", " aqui ", " hola ", " buenas ",
+			" mezquita ", " oracion ", " oración ", " rezo ", " sí ", " es ", " esta ", " está ",
+			" soy ", " dime ", " cual ", " cuál ", " ser ", " estar ", " tiene ", " bien ",
+			" todo ", " nada ", " más ", " mas ", " ya ", " desde ",
+		),
+		"ms" => array(
+			" saya ", " nak ", " hendak ", " boleh ", " ada ", " tidak ", " tak ", " dengan ",
+			" untuk ", " ini ", " itu ", " di ", " ke ", " dan ", " yang ", " apa ", " mana ",
+			" macam ", " tolong ", " terima kasih ", " sila ", " bila ", " sudah ", " belum ",
+			" nak tanya ", " berapa ", " kat ", " dekat ", " masjid ", " solat ", " waktu ",
+			" saya nak ", " boleh tak ", " awak ", " kami ", " kita ", " juga ", " lagi ",
+		),
+	);
+
+	$scores = array();
+	foreach ( $words as $lang => $list ) {
+		$n = 0;
+		foreach ( $list as $w ) {
+			if ( false !== strpos( $t, $w ) ) {
+				$n++;
+			}
 		}
-	}
-	// Characters that essentially do not occur in our English or Malay copy.
-	if ( preg_match( "/[ñ¿¡áéíóú]/u", $t ) ) {
-		$es += 2;
+		$scores[ $lang ] = $n;
 	}
 
-	return $es >= 2 ? "es" : "";
+	// Characters that essentially do not occur in our English or Malay copy.
+	if ( preg_match( "/[ñ¿¡áéíóú]/u", $t ) ) {
+		$scores["es"] += 2;
+	}
+
+	arsort( $scores );
+	$top   = key( $scores );
+	$score = current( $scores );
+
+	return $score >= 2 ? $top : "";
 }
 
 /**
@@ -2131,6 +2153,30 @@ function niz_wa_flow_strings( $lang ) {
 			"Please tap *Yes, add it* or *No*."                   => "Toca *Yes, add it* o *No*.",
 			"No problem, I've cancelled that. 👍"                 => "Sin problema, lo he cancelado. 👍",
 			"Send *directory* anytime to start again, or just tell me what you need." => "Envía *directory* cuando quieras para empezar de nuevo, o dime qué necesitas.",
+		),
+		"ms" => array(
+			"📍 *Add Mosque*"                                     => "📍 *Tambah Masjid*",
+			"📍 *Add Business*"                                   => "📍 *Tambah Perniagaan*",
+			"🕌 *Masjid4All Directory*"                           => "🕌 *Direktori Masjid4All*",
+			"You can add any of these to Masjid4All for *free*:"  => "Anda boleh menambah mana-mana ini ke Masjid4All secara *percuma*:",
+			"*Mosque* — so the community can find its prayer times & location" => "*Masjid* — supaya komuniti dapat mencari waktu solat & lokasinya",
+			"*Business* — list your halal-friendly business for Muslims to discover" => "*Perniagaan* — senaraikan perniagaan mesra halal anda untuk ditemui umat Islam",
+			"*Website* — share a useful Islamic website or resource" => "*Laman web* — kongsi laman web atau sumber Islam yang berguna",
+			"Which one would you like to add?"                    => "Yang mana satu ingin anda tambah?",
+			"Please send the *Google Maps link* of your mosque:"   => "Sila hantar *pautan Google Maps* masjid anda:",
+			"Please send the *Google Maps link* of your business:" => "Sila hantar *pautan Google Maps* perniagaan anda:",
+			"1. Open Google Maps"                                 => "1. Buka Google Maps",
+			"2. Search for your mosque"                           => "2. Cari masjid anda",
+			"2. Search for your business"                         => "2. Cari perniagaan anda",
+			"3. Tap *Share* and copy the link"                    => "3. Tekan *Share* dan salin pautan",
+			"4. Paste the link here"                              => "4. Tampal pautan di sini",
+			"Hmm, that didn't look like a link. "                 => "Hmm, itu tidak kelihatan seperti pautan. ",
+			"I found:"                                            => "Saya jumpa:",
+			"Add this to the Masjid4All mosque directory?"        => "Tambah ini ke direktori masjid Masjid4All?",
+			"Add this to the Masjid4All business directory?"      => "Tambah ini ke direktori perniagaan Masjid4All?",
+			"Please tap *Yes, add it* or *No*."                   => "Sila tekan *Yes, add it* atau *No*.",
+			"No problem, I've cancelled that. 👍"                 => "Tiada masalah, saya sudah batalkan. 👍",
+			"Send *directory* anytime to start again, or just tell me what you need." => "Hantar *directory* bila-bila masa untuk mula semula, atau beritahu saya apa yang anda perlukan.",
 		),
 	);
 

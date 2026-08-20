@@ -62,6 +62,16 @@ function mfa_admin_member_info_shortcode() {
 					<div class="mfa-admin-member-info-col-left">
 						<h1 class="mfa-h2"><?php echo esc_html( $row['name'] ? $row['name'] : '—' ); ?></h1>
 
+						<?php
+						// Directly under the name: these are what the page is FOR, and
+						// they used to sit below the details, the milestones and the
+						// CRM panel, so on a member with a full record they were
+						// several screens down.
+						if ( function_exists( 'mfa_admin_member_actions_render' ) ) {
+							echo mfa_admin_member_actions_render( $row, $user_id ); // phpcs:ignore WordPress.Security.EscapeOutput
+						}
+						?>
+
 						<div class="mfa-admin-member-info-grid">
 							<div class="mfa-admin-member-info-item">
 								<span class="mfa-label">Email</span>
@@ -186,13 +196,6 @@ function mfa_admin_member_info_shortcode() {
 							</div>
 						<?php endif; ?>
 
-						<?php
-						// Staff actions: edit details, and contact them. Gated on the
-						// same admin section as this page.
-						if ( function_exists( 'mfa_admin_member_actions_render' ) ) {
-							echo mfa_admin_member_actions_render( $row, $user_id ); // phpcs:ignore WordPress.Security.EscapeOutput
-						}
-						?>
 					</div>
 
 					<div class="mfa-admin-member-info-col-right">

@@ -3,10 +3,27 @@
    so the admin area and the public site behave the same way. */
 
 .mfa-admin-member-actions-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--mfa-space-3);
-  margin: var(--mfa-space-5) 0 var(--mfa-space-2);
+  /* Two per row, four in two rows. A grid rather than flex-wrap so the
+     buttons stay the same width whatever their label length - with flex the
+     row broke unevenly and "Send WhatsApp" pushed "Send Template" onto a
+     third line. */
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--mfa-space-2);
+  margin: var(--mfa-space-3) 0 var(--mfa-space-4);
+}
+
+/* Sized down from the default button: this is a compact action bar sitting
+   under the name, not a page-level call to action. */
+.mfa-admin-member-actions-bar .mfa-mact-btn {
+  width: 100%;
+  padding: 7px 10px;
+  font-size: 12px;
+  line-height: 1.3;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .mfa-mact-btn[disabled] {
@@ -91,8 +108,8 @@
 }
 
 @media (max-width: 600px) {
-  .mfa-admin-member-actions-bar .mfa-mact-btn {
-    flex: 1 1 100%;
+  .mfa-admin-member-actions-bar {
+    grid-template-columns: 1fr;
   }
 }
 

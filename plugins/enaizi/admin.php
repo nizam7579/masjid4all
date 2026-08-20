@@ -1,15 +1,23 @@
 <?php
 
-// COUNTRY FILTER
-add_action('init', function() {
-    if (!empty($_GET['country'])) {
-        $country = sanitize_text_field($_GET['country']);
-        $country = 'Indonesia';
-        setcookie('country', $country, time() + (86400 * 30), '/'); // 30-day cookie
-        $_COOKIE['country'] = $country; // Set it manually for immediate access
-    }
-}); 
- 
+// COUNTRY FILTER - REMOVED 2026-08-20.
+//
+// This hook read $_GET['country'], sanitized it, then threw the result away
+// and wrote the literal 'Indonesia' into a 30-day cookie. Any URL carrying a
+// ?country= param therefore stamped every visitor as Indonesian, which is
+// what produced displays like "Kuala Lumpur, Indonesia": the GPS widget had
+// set the city correctly and this overwrote the country underneath it.
+//
+// Not repaired in place, because the country cookie now has exactly one
+// owner - mfa-core's niz_mfa_set_cookies widget, which writes coordinates,
+// country and city together as a single unit precisely so the two can never
+// describe different places. A URL parameter writing country on its own
+// breaks that invariant even when the value is right.
+//
+// Nothing depended on it: the public directories read no ?country= param,
+// and the country_cookie_filter shortcode below (left in place, read-only)
+// appears on no published page.
+
 add_shortcode('country_cookie_filter', function() {
     return $_COOKIE['country'] ?? ''; 
 });

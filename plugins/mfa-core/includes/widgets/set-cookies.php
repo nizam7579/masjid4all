@@ -38,6 +38,15 @@ function niz_mfa_set_cookies_shortcode() {
         // rather than only updating every few kilometres.
         var MFA_GEO_CELL = 6;
 
+        // One-time repair marker. A visitor whose country cookie was corrupted
+        // by something other than this widget keeps that value forever,
+        // because an unchanged cell skips the lookup that would correct it -
+        // which is how "Kuala Lumpur, Indonesia" survived: the city was right,
+        // the country had been overwritten underneath it, and the cell never
+        // moved. Bumping this forces exactly one re-lookup per browser, after
+        // which the cell shortcut resumes.
+        var MFA_GEO_V = '2';
+
         function getContainer() {
             return document.getElementById(containerId);
         }
@@ -88,6 +97,7 @@ function niz_mfa_set_cookies_shortcode() {
             window.setCookie('city', city || '');
             window.setCookie('cell', cell || encodeGeohash(lat, lon, MFA_GEO_CELL));
             window.setCookie('loc_updated', String(Math.floor(Date.now() / 1000)));
+            window.setCookie('geo_v', MFA_GEO_V);
         }
 
         // Moving inside the same cell cannot change the city or country, so only
@@ -258,7 +268,11 @@ function niz_mfa_set_cookies_shortcode() {
             var newCell = encodeGeohash(lat, lon, MFA_GEO_CELL);
             var oldCell = window.getCookie('cell');
 
-            if (!isManual && oldCell && oldCell === newCell) {
+            // A stored place written before the repair marker cannot be
+            // trusted, so take the lookup once even though the cell matches.
+            var needsRepair = window.getCookie('geo_v') !== MFA_GEO_V;
+
+            if (!isManual && !needsRepair && oldCell && oldCell === newCell) {
                 updateCoordsOnly(lat, lon);
                 updateStatusIndicator('✅ Location current');
                 finishUpdate();

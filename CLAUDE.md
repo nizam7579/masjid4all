@@ -209,7 +209,24 @@ guard makes all of that idempotent.
 - **Two placeholder email domains exist**, `<phone>@mfa.com` and the older
   `<phone>@noemail.com`. Use `mfa_is_placeholder_email()`; never hand-roll the check.
   18 of 29 members carry one, so **most members are unreachable by email** — sending
-  to them hard-bounces on a domain with no sending history.
+  to them hard-bounces on a domain with no sending history. It also means they
+  **cannot exist in FluentCRM at all**, which is keyed on email: on production
+  the split is 7 members in the CRM, 4 with a real address but no record, and
+  18 who can never have one until an address is captured. Those are three
+  different situations and UI must not collapse them — "no tags" reads as "no
+  automation is reaching them", which is only actionable for the middle group.
+  Capturing real addresses is the gate on every email sequence.
+- **Several `jet_cct_member` columns look purpose-built and are never written.**
+  `last_contact` is empty for all 29 members, `chk_share` and `business_owner`
+  for every one, and `partner_id` too. Anything presented to staff must be
+  DERIVED from the table that records the event —
+  `mfa-core/includes/member-snapshot.php` does this for last contact (newest of
+  `wp_nwa_messages`, admin-send activity rows and inquiries), the milestone
+  checklist and the affiliate downline. A field left blank because nobody
+  populates it is worse than no field: it reads as "this never happened".
+  When joining those sources, note **`wp_nwa_*` is GMT while the activity log
+  and `jet_cct_contact_us` are site-local** — compared raw, a WhatsApp message
+  lands eight hours out and wrongly wins "most recent".
 - **Test accounts are excluded from campaigns via the explicit `mfa_test_account`
   meta** (`mfa_user_is_test_account()`), never by matching a login or email pattern —
   a pattern would eventually catch a real member and drop them from every follow-up

@@ -257,6 +257,43 @@ function niz_wa_answer_then_menu( $user_id, $answer ) {
 }
 
 /**
+ * "Verify Email" — sends the verification link to the address on file.
+ *
+ * Mirrors Niz_Email_Verification::resend() (generate_token then send_email)
+ * rather than re-implementing it, so the token, its 24-hour expiry and the
+ * email template stay in one place.
+ */
+function niz_wa_action_verify_email( $user_id, $context ) {
+	$user = get_userdata( (int) $user_id );
+	if ( ! $user ) {
+		return "Please try again in a moment.";
+	}
+
+	// Nothing to verify at a placeholder address. Rather than pretending to
+	// send, hand them to the capture flow — which is what they actually need.
+	if ( function_exists( 'mfa_is_placeholder_email' ) && mfa_is_placeholder_email( $user->user_email ) ) {
+		return niz_wa_action_update_email( $user_id, $context );
+	}
+
+	if ( 'yes' === strtolower( (string) get_user_meta( $user_id, 'niz_email_verified', true ) ) ) {
+		return "Your email *{$user->user_email}* is already verified. ✅";
+	}
+
+	if ( ! class_exists( 'Niz_Email_Verification' ) ) {
+		return "Sorry, I can't send that right now. Please try again shortly.";
+	}
+
+	$token = Niz_Email_Verification::generate_token( $user_id );
+	$sent  = Niz_Email_Verification::send_email( $user_id, $token );
+
+	if ( ! $sent ) {
+		return "I couldn't send the verification email just now. Please try again shortly.";
+	}
+
+	return "📧 I've sent a verification link to *{$user->user_email}*.\n\nOpen your inbox and tap the link to confirm the address is yours. The link is valid for 24 hours.";
+}
+
+/**
  * Prayer times / find a mosque / more info / not now.
  *
  * These four exist because they are the quick-reply buttons on the approved
@@ -290,6 +327,54 @@ function niz_wa_action_more_info( $user_id, $context ) {
 
 function niz_wa_action_not_now( $user_id, $context ) {
 	return "No problem 👍\n\nI'm here whenever you need me — prayer times, finding a mosque, or adding your mosque or business to Masjid4All.";
+}
+
+/**
+ * A name we can actually show back to somebody, or '' if all we have is a
+ * generated placeholder.
+ *
+ * Accounts created from an inbound WhatsApp message are named after the
+ * number (`user_60123...`, or the bare digits), so "I have your name as
+ * *user_353833906505*" would be worse than simply asking.
+ */
+function niz_wa_account_known_name( $user_id ) {
+	$user = get_userdata( (int) $user_id );
+	if ( ! $user ) {
+		return '';
+	}
+
+	$name = trim( (string) $user->display_name );
+	if ( '' === $name ) {
+		return '';
+	}
+
+	if ( preg_match( '/^(user|nwa|mfa)[_-]/i', $name ) ) {
+		return '';
+	}
+
+	$phone  = preg_replace( '/\D+/', '', (string) get_user_meta( $user_id, 'user_phone', true ) );
+	$digits = preg_replace( '/\D+/', '', $name );
+	if ( '' !== $digits && $digits === $phone ) {
+		return '';
+	}
+
+	return $name;
+}
+
+/**
+ * "First, your *name* — I have it as *X*." / "First, what's your *name*?"
+ *
+ * Both strings already exist in the contact flow, so they are already in the
+ * es/ms translation table - reusing the exact wording keeps them translated.
+ */
+function niz_wa_account_name_prompt( $user_id ) {
+	$known = niz_wa_account_known_name( $user_id );
+
+	if ( '' !== $known ) {
+		return "First, your *name* — I have it as *{$known}*.\nReply *OK* to use it, or type a different name.";
+	}
+
+	return "First, what's your *name*?";
 }
 
 function niz_wa_is_member( $user_id ) {
@@ -342,8 +427,10 @@ function niz_wa_account_start( $user_id, $then = null ) {
 		if ( is_array( $then ) ) {
 			$ctx['then'] = $then;
 		}
+		$ctx['step'] = 'await_name';
 		nwa_send_message( $user_id, $wa,
-			"We don't have a real email address for your Masjid4All account yet, so we can't send you anything.\n\nWhat's your *email address*?" . niz_wa_dir_stop_hint() );
+			"We don't have a real email address for your Masjid4All account yet, so we can't send you anything."
+				. "\n\n" . niz_wa_account_name_prompt( $user_id ) );
 		NWA_DB::set_pending_action( $conversation->id, 'account_flow', $ctx, 20 );
 
 		return '';
@@ -353,8 +440,9 @@ function niz_wa_account_start( $user_id, $then = null ) {
 	if ( is_array( $then ) ) {
 		$ctx['then'] = $then;
 	}
+	$ctx['step'] = 'await_name';
 	nwa_send_message( $user_id, $wa,
-		"Let's set up your free Masjid4All account.\n\nWhat's your *email address*?" . niz_wa_dir_stop_hint() );
+		"Let's set up your free Masjid4All account." . "\n\n" . niz_wa_account_name_prompt( $user_id ) );
 	NWA_DB::set_pending_action( $conversation->id, 'account_flow', $ctx, 20 );
 	return '';
 }
@@ -382,6 +470,36 @@ function niz_wa_account_route( $override, $user_id, $wa_number, $message_text, $
 	if ( in_array( strtolower( $text ), array( 'stop', 'cancel', 'exit', 'quit', 'batal' ), true ) ) {
 		NWA_DB::set_pending_action( $conversation->id, null );
 		nwa_send_message( $user_id, $wa_number, "No problem, I've cancelled that. 👍" );
+		return '';
+	}
+
+	if ( 'await_name' === $step ) {
+		$known = niz_wa_account_known_name( $user_id );
+		$name  = $text;
+
+		if ( '' !== $known && in_array( strtolower( $text ), array( 'ok', 'okay', 'ya', 'yes', 'y', 'betul', 'sí', 'si' ), true ) ) {
+			$name = $known;
+		}
+
+		$name = sanitize_text_field( $name );
+
+		if ( mb_strlen( $name ) < 2 ) {
+			nwa_send_message( $user_id, $wa_number, "Please type your *name* so we know who to reply to." );
+
+			return '';
+		}
+
+		// Display name only. The jet_cct_member row is promoted by
+		// niz_user_complete_registration() at the end of the flow, so writing
+		// it here would put the two out of step if they abandon halfway.
+		wp_update_user( array( 'ID' => $user_id, 'display_name' => $name ) );
+
+		$ctx['step'] = 'await_email';
+		$ctx['name'] = $name;
+		NWA_DB::set_pending_action( $conversation->id, 'account_flow', $ctx, 20 );
+
+		nwa_send_message( $user_id, $wa_number, "Thanks, *{$name}*! What's your *email address*?" );
+
 		return '';
 	}
 
@@ -2541,6 +2659,18 @@ function niz_wa_seed_actions() {
 			'requires_confirmation' => false,
 			'confirm_message'       => '',
 			'callback_function'     => 'niz_wa_action_update_email',
+			'enabled'               => true,
+		),
+		array(
+			// Keywords deliberately exclude a bare "verify": that reads as the
+			// WhatsApp-number verification (the VERIFY-XXXX handler at router
+			// priority 10), and the two would be indistinguishable.
+			'intent_key'            => 'verify_email',
+			'keywords'              => 'verify email,verify my email,resend verification,sahkan emel,verificar correo',
+			'description'           => 'User wants the email-verification link sent to the address on their account',
+			'requires_confirmation' => false,
+			'confirm_message'       => '',
+			'callback_function'     => 'niz_wa_action_verify_email',
 			'enabled'               => true,
 		),
 		array(

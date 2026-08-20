@@ -70,6 +70,50 @@ function mfa_admin_member_templates() {
  *
  * @param string $channel email|whatsapp
  */
+/**
+ * Should this prepared message be offered for this member?
+ *
+ * A named rule rather than a callback, so the catalogue stays plain data and
+ * the same rule can be re-checked server-side before a send.
+ */
+function mfa_admin_member_message_applies( $when, $user_id ) {
+	$when = (string) $when;
+
+	if ( '' === $when ) {
+		return true;
+	}
+
+	if ( 'prospect' === $when ) {
+		// "Not yet a member", not "explicitly a prospect". Two reasons:
+		// ~74,800 accounts carry no user_status meta at all, and they are
+		// exactly the people who still need activating; and the meta is
+		// overwhelmingly lowercase but not entirely (production has one
+		// 'Prospect', staging more), so an exact match would hide the option
+		// from those rows too.
+		$status = strtolower( (string) get_user_meta( $user_id, 'user_status', true ) );
+
+		return ! in_array( $status, array( 'member', 'premium' ), true );
+	}
+
+	if ( 'email_unverified' === $when ) {
+		$user = get_userdata( (int) $user_id );
+		if ( ! $user ) {
+			return false;
+		}
+
+		// A placeholder address cannot be verified - there is nobody at the
+		// other end. Those members need Activate Account or the email-capture
+		// flow, which is a different offer, so this one is hidden for them.
+		if ( function_exists( 'mfa_is_placeholder_email' ) && mfa_is_placeholder_email( $user->user_email ) ) {
+			return false;
+		}
+
+		return 'yes' !== strtolower( (string) get_user_meta( $user_id, 'niz_email_verified', true ) );
+	}
+
+	return true;
+}
+
 function mfa_admin_member_messages( $channel ) {
 	$site = get_bloginfo( 'name' ) ?: 'Masjid4All';
 
@@ -98,13 +142,40 @@ function mfa_admin_member_messages( $channel ) {
 		),
 
 		'whatsapp' => array(
+			'activate_account' => array(
+				'label' => 'Activate Account',
+				// Only offered for a prospect: a member has nothing to activate.
+				'when'  => 'prospect',
+				'body'  => "Assalamualaikum {{name}} 👋\n\nYou're on {{site}} as a contact, but your account isn't active yet.\n\nActivating takes a minute — I'll confirm your *name* and *email*, and then you can save mosques, earn Barakah points and manage your own listings.\n\nTap *Register* below to start.",
+				// Titles are ROUTING KEYWORDS, not labels: a tap sends the title
+				// back as the message and it is matched whole-string against
+				// wp_nwa_actions. 'Register' -> register, 'Not now' -> not_now.
+				// Renaming one here silently breaks the button.
+				'buttons' => array(
+					array( 'id' => 'act_register', 'title' => 'Register' ),
+					array( 'id' => 'act_not_now',  'title' => 'Not now' ),
+				),
+			),
 			'welcome' => array(
 				'label' => 'Welcome',
 				'body'  => "Assalamualaikum {{name}} 👋\n\nWelcome to {{site}}. You can ask me for prayer times, the nearest mosque, or halal businesses near you — just tell me what you need.",
 			),
 			'verify_email' => array(
-				'label' => 'Ask them to verify email',
-				'body'  => "Assalamualaikum {{name}},\n\nYour email isn't verified yet, so we can't send you updates. You can verify it from your member page:\n" . home_url( '/member/' ),
+				'label' => 'Verify Email',
+				// Hidden for a placeholder address: there is nothing at the other
+				// end to verify. Those members get Activate Account instead.
+				'when'  => 'email_unverified',
+				'body'  => "Assalamualaikum {{name}},
+
+Your email address isn't verified yet, so we can't send you updates or help you reset a password.
+
+Tap *Verify Email* below and I'll send a verification link straight to it.",
+				// Titles are ROUTING KEYWORDS - 'Verify Email' -> verify_email,
+				// 'Not now' -> not_now. Renaming one breaks the button silently.
+				'buttons' => array(
+					array( 'id' => 'ver_email',   'title' => 'Verify Email' ),
+					array( 'id' => 'ver_not_now', 'title' => 'Not now' ),
+				),
 			),
 			'complete_profile' => array(
 				'label' => 'Nudge to complete profile',
@@ -321,7 +392,7 @@ function mfa_admin_member_actions_render( $row, $user_id ) {
 				<?php if ( $email_messages ) : ?>
 					<div class="mfa-form-group">
 						<label>Start from</label>
-						<select class="mfa-mact-preset" data-mact-preset>
+						<select class="mfa-mact-preset" name="preset" data-mact-preset>
 							<option value="">Free-form (write your own)</option>
 							<?php foreach ( $email_messages as $key => $msg ) : ?>
 								<option
@@ -358,9 +429,10 @@ function mfa_admin_member_actions_render( $row, $user_id ) {
 				<?php if ( $wa_messages ) : ?>
 					<div class="mfa-form-group">
 						<label>Start from</label>
-						<select class="mfa-mact-preset" data-mact-preset>
+						<select class="mfa-mact-preset" name="preset" data-mact-preset>
 							<option value="">Free-form (write your own)</option>
 							<?php foreach ( $wa_messages as $key => $msg ) : ?>
+								<?php if ( ! mfa_admin_member_message_applies( $msg['when'] ?? '', $user_id ) ) { continue; } ?>
 								<option
 									value="<?php echo esc_attr( $key ); ?>"
 									data-body="<?php echo esc_attr( mfa_admin_member_message_fill( $msg['body'] ?? '', $row ) ); ?>"
@@ -565,7 +637,19 @@ function mfa_admin_member_ajax_whatsapp() {
 		wp_send_json_error( array( 'message' => 'WhatsApp plugin unavailable.' ) );
 	}
 
-	$res = nwa_send_message( $user_id, $state['phone'], $body );
+	// Buttons come from the SERVER-side registry, keyed by the chosen preset -
+	// never from the request. A tap sends the button's title back as the
+	// message, and that title is matched against wp_nwa_actions, so a client
+	// able to name its own buttons could route a member into any flow.
+	$preset  = isset( $_POST['preset'] ) ? sanitize_key( wp_unslash( $_POST['preset'] ) ) : '';
+	$catalog = mfa_admin_member_messages( 'whatsapp' );
+	$buttons = ( $preset && isset( $catalog[ $preset ]['buttons'] ) ) ? $catalog[ $preset ]['buttons'] : array();
+
+	if ( $buttons && function_exists( 'nwa_send_buttons' ) ) {
+		$res = nwa_send_buttons( $user_id, $state['phone'], $body, $buttons );
+	} else {
+		$res = nwa_send_message( $user_id, $state['phone'], $body );
+	}
 
 	if ( empty( $res['success'] ) ) {
 		$why = ! empty( $res['error'] ) ? $res['error'] : 'unknown error';

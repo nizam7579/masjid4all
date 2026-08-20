@@ -143,9 +143,72 @@ function niz_wa_action_reset_password( $user_id, $context ) {
  * link on the admin member page prefills. Tapping that link both opens the
  * 24-hour window (Sofia cannot message first) and lands straight in the
  * capture flow.
+ *
+ * Deliberately NOT niz_wa_account_start(): that hands a member who already
+ * has a real address a magic-login link, which is the right answer to "log
+ * me in" and a non-sequitur in reply to "add my email" (observed on
+ * production 2026-08-20). Someone who explicitly asks to add or change
+ * their email is asking to type one in.
  */
 function niz_wa_action_update_email( $user_id, $context ) {
-	return niz_wa_account_start( $user_id );
+	$conversation = NWA_DB::get_conversation_by_user( $user_id );
+	if ( ! $conversation ) {
+		return "Please try again in a moment.";
+	}
+
+	// A non-member has no account to hang an address on yet, so the account
+	// flow really is the right entry point for them.
+	if ( ! niz_wa_is_member( $user_id ) ) {
+		return niz_wa_account_start( $user_id );
+	}
+
+	$user    = get_userdata( (int) $user_id );
+	$current = ( $user && ! niz_wa_needs_real_email( $user_id ) ) ? $user->user_email : '';
+
+	$body = '' !== $current
+		? "Your Masjid4All account currently uses *{$current}*.\n\nSend the *new email address* you'd like to use instead."
+		: "We don't have a real email address for your Masjid4All account yet, so we can't send you anything.\n\nWhat's your *email address*?";
+
+	nwa_send_message( $user_id, $conversation->wa_number, $body . niz_wa_dir_stop_hint() );
+	NWA_DB::set_pending_action( $conversation->id, 'account_flow', array( 'step' => 'await_email' ), 20 );
+
+	return '';
+}
+
+/**
+ * Prayer times / find a mosque / more info / not now.
+ *
+ * These four exist because they are the quick-reply buttons on the approved
+ * WhatsApp templates. A template button tap arrives as plain text, and
+ * NWA_DB::get_action_by_keyword() matches the WHOLE message exactly, so a
+ * label that is not a keyword falls through to AI intent classification.
+ * That is how "Find a mosque" ended up in the Add-Mosque flow (the AI read
+ * it as the 'directory' intent) and how "Prayer times" got a free-form reply
+ * that invented a Masjid4All phone app. Anything we put on a template button
+ * needs a deterministic handler here, not an AI guess.
+ */
+function niz_wa_action_prayer_times( $user_id, $context ) {
+	return "🕌 *Prayer Times*\n\nCheck today's prayer times here:\nhttps://masjid4all.com/prayer-times/";
+}
+
+function niz_wa_action_find_mosque( $user_id, $context ) {
+	// /masjid/ is the published Masjid Directory. Not /mosque/, which is an
+	// unpublished draft, and not /admin/mosque/, which is the staff screen.
+	return "🕌 *Find a Mosque*\n\nBrowse mosques, suraus and musollas in the Masjid4All directory:\nhttps://masjid4all.com/masjid/";
+}
+
+function niz_wa_action_more_info( $user_id, $context ) {
+	return "*Masjid4All* — free tools for the Muslim community:\n\n"
+		. "🕌 Mosque directory & prayer times\n"
+		. "🧭 Qibla direction\n"
+		. "🏪 Halal-friendly business directory\n"
+		. "🌐 Islamic websites & resources\n\n"
+		. "Have a look: https://masjid4all.com/\n\n"
+		. "You can also add your mosque, business or website for free — just reply *directory*.";
+}
+
+function niz_wa_action_not_now( $user_id, $context ) {
+	return "No problem 👍\n\nI'm here whenever you need me — prayer times, finding a mosque, or adding your mosque or business to Masjid4All.";
 }
 
 function niz_wa_is_member( $user_id ) {
@@ -1947,7 +2010,55 @@ function niz_wa_seed_actions() {
 			'enabled'               => true,
 		),
 		array(
-			'intent_key'            => 'founding_member',
+			'intent_key'            => 'prayer_times',
+			'keywords'              => 'prayer times,prayer time,prayer,waktu solat,waktu sembahyang,solat times',
+			'description'           => 'User wants prayer times / waktu solat for their location',
+			'requires_confirmation' => false,
+			'confirm_message'       => '',
+			'callback_function'     => 'niz_wa_action_prayer_times',
+			'enabled'               => true,
+		),
+		array(
+			'intent_key'            => 'find_mosque',
+			'keywords'              => 'find a mosque,find mosque,nearest mosque,mosque near me,cari masjid,masjid berdekatan,find masjid',
+			'description'           => 'User wants to FIND or browse an existing mosque in the directory - not to add or claim one',
+			'requires_confirmation' => false,
+			'confirm_message'       => '',
+			'callback_function'     => 'niz_wa_action_find_mosque',
+			'enabled'               => true,
+		),
+		array(
+			'intent_key'            => 'more_info',
+			'keywords'              => 'more info,more information,tell me more,info,maklumat',
+			'description'           => 'User taps a "More info" button or asks generally what Masjid4All is',
+			'requires_confirmation' => false,
+			'confirm_message'       => '',
+			'callback_function'     => 'niz_wa_action_more_info',
+			'enabled'               => true,
+		),
+		array(
+			'intent_key'            => 'not_now',
+			'keywords'              => 'not now,no thanks,no thank you,maybe later,lain kali',
+			'description'           => 'User declines an offer for now and wants to end the exchange politely',
+			'requires_confirmation' => false,
+			'confirm_message'       => '',
+			'callback_function'     => 'niz_wa_action_not_now',
+			'enabled'               => true,
+		),
+		array(
+			// Was DB-only until 2026-08-20 (inserted by hand, so it existed on
+			// staging and production but would never appear in a fresh
+			// environment). Seeded here so it is reproducible.
+			'intent_key'            => 'update_email',
+			'keywords'              => 'email,my email,update email,change email,add email,add my email,emel,tukar emel,tambah emel',
+			'description'           => 'User wants to add or change the email address on their Masjid4All account',
+			'requires_confirmation' => false,
+			'confirm_message'       => '',
+			'callback_function'     => 'niz_wa_action_update_email',
+			'enabled'               => true,
+		),
+		array(
+			'intent_key'            => 'travel_prayer',
 			'keywords'              => 'founding member,founding,waitlist,join waitlist,early access,premium,lifetime,ahli pengasas,senarai menunggu',
 			'description'           => 'User is interested in becoming a Founding Member, joining the waitlist, or asks about premium/lifetime membership',
 			'requires_confirmation' => false,
@@ -1989,6 +2100,16 @@ function niz_wa_seed_actions() {
 		"UPDATE {$table} SET requires_confirmation = 0, confirm_message = '', keywords = %s, description = %s WHERE intent_key = 'reset_password' AND requires_confirmation <> 0",
 		'password,forgot password,reset password,request password,kata laluan,tukar password,lupa password,change password,login,log in,cannot login,sign in',
 		"User can't log in, forgot their password, or wants to sign in / access their account"
+	) );
+
+	// Template quick-reply buttons send their LABEL as the message, and
+	// keyword matching is whole-string, so every label we put on a button
+	// has to appear here verbatim. Seeding only inserts, so sync the
+	// existing row. Idempotent. (2026-08-20)
+	$wpdb->query( $wpdb->prepare(
+		"UPDATE {$table} SET keywords = %s WHERE intent_key = 'update_email' AND keywords NOT LIKE %s",
+		'email,my email,update email,change email,add email,add my email,emel,tukar emel,tambah emel',
+		'%add my email%'
 	) );
 }
 

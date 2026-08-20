@@ -142,22 +142,41 @@ function mfa_admin_member_info_shortcode() {
 						// Only for the members this is actually a problem for. The
 						// link is the one way to reach somebody the platform cannot
 						// message at all - see mfa_member_email_capture_link().
-						$needs_email  = function_exists( 'mfa_is_placeholder_email' ) && mfa_is_placeholder_email( $row['email'] ? $row['email'] : get_userdata( $user_id )->user_email );
+						// Tested on the WORDPRESS address, not the CCT one. Everything
+						// that sends reads wp_users, and the two disagree: a member can
+						// have a real address in the CCT while the account still carries
+						// the placeholder, which is exactly the case this panel is for.
+						$account_user = get_userdata( $user_id );
+						$needs_email  = $account_user && function_exists( 'mfa_is_placeholder_email' ) && mfa_is_placeholder_email( $account_user->user_email );
 						$capture_link = ( $needs_email && function_exists( 'mfa_member_email_capture_link' ) ) ? mfa_member_email_capture_link( $user_id ) : '';
+						$unused_email = ( $needs_email && function_exists( 'mfa_member_unused_cct_email' ) ) ? mfa_member_unused_cct_email( $user_id ) : '';
 						if ( $needs_email ) :
 							?>
 							<div class="mfa-admin-member-needs-email">
 								<h2 class="mfa-label">No email address</h2>
 								<p class="mfa-admin-member-crm-note">
-									This account is on a placeholder address, so nothing can be emailed to it
-									&mdash; and they have no WhatsApp thread we can reply into either.
+									The account address is <strong><?php echo esc_html( $account_user->user_email ); ?></strong>,
+									a placeholder &mdash; nothing can be emailed to it, and they have no WhatsApp
+									thread we can reply into either.
 								</p>
+
+								<?php if ( $unused_email ) : ?>
+									<p class="mfa-admin-member-crm-note">
+										Their member record holds <strong><?php echo esc_html( $unused_email ); ?></strong>,
+										which was never copied onto the account. It has not been confirmed against
+										this account, so it is shown rather than used &mdash; verify it with them first.
+									</p>
+								<?php endif; ?>
+
 								<?php if ( $capture_link ) : ?>
 									<p class="mfa-admin-member-crm-note">Send them this link from your own phone. Tapping it opens a chat with Sofia, who asks for their email.</p>
 									<input type="text" class="mfa-admin-member-capture-link" readonly value="<?php echo esc_attr( $capture_link ); ?>" onclick="this.select();">
 									<a class="mfa-btn mfa-btn-secondary mfa-dash-btn-sm" href="<?php echo esc_url( $capture_link ); ?>" target="_blank" rel="noopener">Open in WhatsApp</a>
 								<?php else : ?>
-									<p class="mfa-admin-member-crm-note">No phone number on file either, so there is no way to reach them.</p>
+									<p class="mfa-admin-member-crm-note">
+										No usable phone number either &mdash; a national-format number (leading 0)
+										cannot be turned into a wa.me link without guessing the country.
+									</p>
 								<?php endif; ?>
 							</div>
 						<?php endif; ?>

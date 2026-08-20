@@ -200,22 +200,72 @@ function mfa_member_milestones( $user_id ) {
  * @return string Empty when there is no number to send to.
  */
 function mfa_member_email_capture_link( $user_id ) {
-	$phone = trim( (string) get_user_meta( (int) $user_id, 'user_phone', true ) );
+	global $wpdb;
 
-	if ( '' === $phone ) {
-		global $wpdb;
-		$phone = (string) $wpdb->get_var( $wpdb->prepare(
+	$candidates = array(
+		(string) $wpdb->get_var( $wpdb->prepare(
 			"SELECT phone FROM {$wpdb->prefix}jet_cct_member WHERE user_id = %d",
 			(int) $user_id
-		) );
+		) ),
+		(string) get_user_meta( (int) $user_id, 'user_phone', true ),
+	);
+
+	foreach ( $candidates as $candidate ) {
+		$digits = preg_replace( '/[^0-9]/', '', $candidate );
+
+		// wa.me needs full international digits. A leading zero is a national
+		// format (0192208940 is Malaysian local for 60192208940) and wa.me
+		// silently fails on it. The country code is NOT guessed here - one of
+		// the 18 has only a national-format number, and inventing a prefix
+		// would produce a link to somebody else's phone. Better no link, and
+		// the UI says why.
+		if ( '' !== $digits && '0' !== $digits[0] ) {
+			return 'https://wa.me/' . $digits . '?text=' . rawurlencode( 'EMAIL' );
+		}
 	}
 
-	$phone = preg_replace( '/[^0-9]/', '', $phone );
-	if ( '' === $phone ) {
+	return '';
+}
+
+/**
+ * A real address recorded against the member record but never copied onto
+ * the WordPress account.
+ *
+ * jet_cct_member.email and wp_users.user_email can disagree, and on
+ * production 6 of the 18 "no email" members have a real address sitting in
+ * the CCT while the account still carries the placeholder. Everything that
+ * sends reads the WP address, so those members are unreachable despite us
+ * holding an address for them.
+ *
+ * Deliberately only reported, never copied automatically: an address that
+ * has never been confirmed against this account should not silently become
+ * the one we mail, and one of the six is plainly a test address.
+ *
+ * @return string '' when there is nothing useful to offer.
+ */
+function mfa_member_unused_cct_email( $user_id ) {
+	global $wpdb;
+
+	$user = get_userdata( (int) $user_id );
+	if ( ! $user || ! function_exists( 'mfa_is_placeholder_email' ) ) {
 		return '';
 	}
 
-	return 'https://wa.me/' . $phone . '?text=' . rawurlencode( 'EMAIL' );
+	// Only interesting while the account itself has no usable address.
+	if ( ! mfa_is_placeholder_email( $user->user_email ) ) {
+		return '';
+	}
+
+	$cct = trim( (string) $wpdb->get_var( $wpdb->prepare(
+		"SELECT email FROM {$wpdb->prefix}jet_cct_member WHERE user_id = %d",
+		(int) $user_id
+	) ) );
+
+	if ( '' === $cct || mfa_is_placeholder_email( $cct ) ) {
+		return '';
+	}
+
+	return $cct;
 }
 
 /**

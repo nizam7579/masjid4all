@@ -255,6 +255,24 @@ guard makes all of that idempotent.
   When joining those sources, note **`wp_nwa_*` is GMT while the activity log
   and `jet_cct_contact_us` are site-local** — compared raw, a WhatsApp message
   lands eight hours out and wrongly wins "most recent".
+- **A contact has two names, and both are right.**
+  `nwa_conversations.contact_name` is the WhatsApp profile name Meta sends on
+  every inbound (often an organisation); the WordPress account carries what
+  the member registered as. The inbox profile column leads with the account
+  name and shows the WhatsApp one beneath only when they differ. **Do not
+  overwrite either** — `contact_name` is refreshed from Meta on the next
+  inbound, so an edit is undone within a message.
+- **A duplicate account is the normal case.** Someone registers on the web,
+  then messages Sofia from a number the WhatsApp side does not recognise. The
+  account flow handles it: it sends the code, finds the address already
+  registered, and offers "link your WhatsApp number to that account?"
+  **Linking is not activation** — such a member keeps an empty
+  `mfa_registration_route` and no `mfa_original_registered`, because only the
+  channel was added. Do not read "became a member today" from a linking event.
+
+  Left unhandled, this is what produces a second account, an orphaned
+  `jet_cct_member` row and a conversation attached to the wrong user — see the
+  `delete_user` cleanup below.
 - **Test accounts are excluded from campaigns via the explicit `mfa_test_account`
   meta** (`mfa_user_is_test_account()`), never by matching a login or email pattern —
   a pattern would eventually catch a real member and drop them from every follow-up

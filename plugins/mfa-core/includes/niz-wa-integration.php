@@ -176,6 +176,87 @@ function niz_wa_action_update_email( $user_id, $context ) {
 }
 
 /**
+ * The "what else can I do" menu.
+ *
+ * Sent straight after the one-line answers (prayer times, find a mosque,
+ * more info) so that a template button tap becomes a conversation instead
+ * of a dead end - the point of the marketing template is to get people
+ * talking to Sofia, and the open-ended Q&A is the thing that brings them
+ * back, so the body says so explicitly rather than burying it in a row.
+ *
+ * A list rather than buttons: buttons cap at three and the aim here is to
+ * show breadth.
+ *
+ * EVERY row title below must be a keyword on an enabled action. A list tap
+ * arrives as the row's TITLE, matched whole-string and case-insensitively
+ * by NWA_DB::get_action_by_keyword() - the same trap that sent a template's
+ * "Find a mosque" button into the Add-Mosque flow. Check the keyword exists
+ * before adding a row, or the tap falls through to the AI.
+ *
+ * @return bool Whether the menu actually went out.
+ */
+function niz_wa_sofia_menu( $user_id, $wa_number ) {
+	if ( ! function_exists( 'nwa_send_list' ) ) {
+		return false;
+	}
+
+	$body = "Masjid4All is free for the community — prayer times, mosque and halal business directories, and Islamic resources.\n\n"
+		. "*You can also just ask me anything* — prayer, fiqh, or how Masjid4All works. I'll answer.\n\n"
+		. "Or pick something below 👇";
+
+	$sections = array(
+		array(
+			'title' => 'Prayer & travel',
+			'rows'  => array(
+				array( 'id' => 'menu_prayer',   'title' => 'Prayer Times',    'description' => "Today's prayer times" ),
+				array( 'id' => 'menu_travel',   'title' => 'Solat Planner',   'description' => 'Plan your solat across a journey' ),
+				array( 'id' => 'menu_find',     'title' => 'Find a Mosque',   'description' => 'Mosques, suraus and musollas near you' ),
+			),
+		),
+		array(
+			'title' => 'Add to Masjid4All',
+			'rows'  => array(
+				array( 'id' => 'menu_mosque',   'title' => 'Add Mosque',      'description' => 'List your mosque, free' ),
+				array( 'id' => 'menu_business', 'title' => 'Add Business',    'description' => 'List your halal-friendly business, free' ),
+				array( 'id' => 'menu_website',  'title' => 'Add Website',     'description' => 'Share a useful Islamic website' ),
+				array( 'id' => 'menu_claim',    'title' => 'Claim Business',  'description' => 'Manage a business already listed' ),
+			),
+		),
+		array(
+			'title' => 'More',
+			'rows'  => array(
+				array( 'id' => 'menu_info',     'title' => 'More Info',       'description' => 'What Masjid4All offers' ),
+				array( 'id' => 'menu_founding', 'title' => 'Founding Member', 'description' => 'Early access and lifetime membership' ),
+			),
+		),
+	);
+
+	$res = nwa_send_list( $user_id, $wa_number, $body, 'What can Sofia do?', $sections );
+
+	return ! empty( $res['success'] );
+}
+
+/**
+ * Send a short answer, then the menu.
+ *
+ * Falls back to returning the answer as a plain string when there is no
+ * conversation to send into, so the caller still gets its link out through
+ * the router's own send. The menu failing (outside the 24-hour window, say)
+ * is not worth surfacing: the answer has already gone.
+ */
+function niz_wa_answer_then_menu( $user_id, $answer ) {
+	$conversation = NWA_DB::get_conversation_by_user( $user_id );
+	if ( ! $conversation ) {
+		return $answer;
+	}
+
+	nwa_send_message( $user_id, $conversation->wa_number, $answer );
+	niz_wa_sofia_menu( $user_id, $conversation->wa_number );
+
+	return '';
+}
+
+/**
  * Prayer times / find a mosque / more info / not now.
  *
  * These four exist because they are the quick-reply buttons on the approved
@@ -188,23 +269,23 @@ function niz_wa_action_update_email( $user_id, $context ) {
  * needs a deterministic handler here, not an AI guess.
  */
 function niz_wa_action_prayer_times( $user_id, $context ) {
-	return "🕌 *Prayer Times*\n\nCheck today's prayer times here:\nhttps://masjid4all.com/prayer-times/";
+	return niz_wa_answer_then_menu( $user_id, "🕌 *Prayer Times*\n\nCheck today's prayer times here:\nhttps://masjid4all.com/prayer-times/" );
 }
 
 function niz_wa_action_find_mosque( $user_id, $context ) {
 	// /masjid/ is the published Masjid Directory. Not /mosque/, which is an
 	// unpublished draft, and not /admin/mosque/, which is the staff screen.
-	return "🕌 *Find a Mosque*\n\nBrowse mosques, suraus and musollas in the Masjid4All directory:\nhttps://masjid4all.com/masjid/";
+	return niz_wa_answer_then_menu( $user_id, "🕌 *Find a Mosque*\n\nBrowse mosques, suraus and musollas in the Masjid4All directory:\nhttps://masjid4all.com/masjid/" );
 }
 
 function niz_wa_action_more_info( $user_id, $context ) {
-	return "*Masjid4All* — free tools for the Muslim community:\n\n"
+	return niz_wa_answer_then_menu( $user_id, "*Masjid4All* — free tools for the Muslim community:\n\n"
 		. "🕌 Mosque directory & prayer times\n"
 		. "🧭 Qibla direction\n"
 		. "🏪 Halal-friendly business directory\n"
 		. "🌐 Islamic websites & resources\n\n"
 		. "Have a look: https://masjid4all.com/\n\n"
-		. "You can also add your mosque, business or website for free — just reply *directory*.";
+		. "You can also add your mosque, business or website for free — just reply *directory*." );
 }
 
 function niz_wa_action_not_now( $user_id, $context ) {

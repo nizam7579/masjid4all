@@ -352,9 +352,15 @@ function mfa_place_listing_where( $place_id, $table_alias = '' ) {
 	if ( '' === $geo['country'] ) {
 		return null;
 	}
-	if ( ! $geo['is_root'] && ! mfa_place_has_bbox( $geo ) ) {
-		return null;
-	}
+	// NB: the bounding box is NOT required here. It used to be checked up
+	// front, from when every non-root hub matched by rectangle. State (depth 1)
+	// and city (depth 2) hubs now match on the `state` and `city` columns, so
+	// demanding a box became a stale precondition - and a damaging one: the
+	// first twelve Indonesian city hubs geocoded to nothing (Nominatim knows
+	// "Kabupaten Aceh Besar", not the English "Aceh Besar Regency" the data
+	// uses), which made this return null and rendered "no map boundary" on a
+	// hub holding 225 mosques. The check now sits immediately above the only
+	// branch that reads the box.
 
 	$p        = $table_alias ? $table_alias . '.' : '';
 	$statuses = mfa_place_excluded_statuses();
@@ -416,6 +422,13 @@ function mfa_place_listing_where( $place_id, $table_alias = '' ) {
 
 	// Anything deeper (a sub-district, if one is ever added) still falls back
 	// to the bounding box, and would need its own attribution column first.
+	// This is the only branch that reads the box, so it is the only one that
+	// may refuse for want of one - returning null so the caller shows an empty
+	// state rather than silently listing a whole country under a district.
+	if ( ! mfa_place_has_bbox( $geo ) ) {
+		return null;
+	}
+
 	$sql .= " AND {$p}latitude BETWEEN %f AND %f AND {$p}longitude BETWEEN %f AND %f";
 
 	$args[] = $geo['south'];

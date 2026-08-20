@@ -128,6 +128,15 @@ function niz_wa_action_help( $user_id, $context ) {
    applied once the account is ready. */
 
 function niz_wa_action_register( $user_id, $context ) {
+	// One tap for a prospect: nothing is asked, the link activates them on
+	// arrival and the member page collects the rest. An existing member falls
+	// through to niz_wa_account_start(), which hands them a login link anyway -
+	// same destination, and it keeps the `then` follow-up the claim flow relies
+	// on.
+	if ( ! niz_wa_is_member( $user_id ) ) {
+		return niz_wa_one_tap_activate( $user_id );
+	}
+
 	return niz_wa_account_start( $user_id );
 }
 
@@ -151,6 +160,10 @@ function niz_wa_action_reset_password( $user_id, $context ) {
  * their email is asking to type one in.
  */
 function niz_wa_action_update_email( $user_id, $context ) {
+	return niz_wa_one_tap_activate( $user_id );
+}
+
+function niz_wa_action_update_email_chat( $user_id, $context ) {
 	$conversation = NWA_DB::get_conversation_by_user( $user_id );
 	if ( ! $conversation ) {
 		return "Please try again in a moment.";
@@ -769,6 +782,36 @@ function niz_wa_send_email_code( $email, $code ) {
 	wp_mail( sanitize_email( $email ), $subject, $body );
 }
 
+/**
+ * One-tap activation: instructions plus a magic-login link.
+ *
+ * Replaces the name -> email -> 6-digit-code interrogation for the button
+ * paths. The chat flow asked four things before anyone became a member and
+ * lost people at the first (observed live on 2026-08-20); this asks nothing,
+ * activates on arrival, and lets the member page collect the email - where a
+ * form beats typing an address into a chat, and the completion state is
+ * visible.
+ *
+ * Activation happens when the link is REDEEMED, not when the button is
+ * tapped, so a tap alone mints no Barakah points.
+ */
+function niz_wa_one_tap_activate( $user_id ) {
+	$conversation = NWA_DB::get_conversation_by_user( $user_id );
+	if ( ! $conversation ) {
+		return "Please try again in a moment.";
+	}
+
+	$url = niz_wa_magic_login_url( $user_id, '/member/', true );
+
+	nwa_send_message( $user_id, $conversation->wa_number,
+		"Tap below to open your Masjid4All member page — you'll be signed in automatically, no password needed:\n"
+		. $url
+		. "\n\nOnce you're in you can add your email, set a password, and explore prayer times, the mosque directory and your Barakah points.\n\n"
+		. "_The link works once and expires in 20 minutes._" );
+
+	return '';
+}
+
 /* ---------------- One-time magic-login link (WhatsApp -> web) -----------------
    AUTH-SENSITIVE. Logs the WhatsApp user into /member without a password:
    160-bit random token, stored only as a SHA-256 hash in a 20-minute
@@ -777,11 +820,14 @@ function niz_wa_send_email_code( $email, $code ) {
    Meta-verified number, whose only real risk is being forwarded within 20
    minutes. */
 
-function niz_wa_magic_login_url( $user_id, $redirect_path = '/member/' ) {
+function niz_wa_magic_login_url( $user_id, $redirect_path = '/member/', $activate = false ) {
 	$token = bin2hex( random_bytes( 20 ) );
 	set_transient(
 		'niz_wa_magic_' . hash( 'sha256', $token ),
-		array( 'user_id' => (int) $user_id, 'redirect' => $redirect_path ),
+		// $activate carries privilege elevation: redeeming this link promotes a
+		// prospect to member. Held server-side in the transient, never in the
+		// URL, so the link itself cannot be edited into an activation.
+		array( 'user_id' => (int) $user_id, 'redirect' => $redirect_path, 'activate' => (bool) $activate ),
 		20 * MINUTE_IN_SECONDS
 	);
 	return add_query_arg( 'niz_wa_login', $token, home_url( '/' ) );
@@ -806,6 +852,20 @@ function niz_wa_magic_login_handler() {
 		wp_safe_redirect( home_url( '/member/' ) );
 		exit;
 	}
+	// Promote on ARRIVAL, not on the tap that produced the link, so a tap
+	// alone awards nothing. niz_user_complete_registration() is the single
+	// chokepoint for becoming a member and returns early for an existing one,
+	// so a replayed request cannot double-award.
+	if ( ! empty( $data['activate'] ) && function_exists( 'niz_user_complete_registration' ) ) {
+		niz_user_complete_registration( $user->ID, array( 'route' => 'whatsapp_one_tap' ) );
+	}
+
+	// wp_set_auth_cookie() does not fire wp_login, so the Welcome Bonus check
+	// that hook carries has to be called directly here too.
+	if ( function_exists( 'mfa_maybe_award_welcome_bonus' ) ) {
+		mfa_maybe_award_welcome_bonus( $user->ID );
+	}
+
 	wp_set_current_user( $user->ID );
 	wp_set_auth_cookie( $user->ID, false );
 	$redirect = ( is_array( $data ) && ! empty( $data['redirect'] ) ) ? $data['redirect'] : '/member/';

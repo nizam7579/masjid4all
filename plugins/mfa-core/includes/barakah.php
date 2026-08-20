@@ -198,3 +198,41 @@ function mfa_has_barakah_award( $user_id, $description ) {
 // which replaced the dashboard's Fluent Form 17 embed 2026-08-08 (avoiding
 // a 3rd-party form-plugin dependency). No fluentform/before_insert_submission
 // hook needed here anymore.
+
+/**
+ * A member who has logged in should have their Welcome Bonus.
+ *
+ * Checked on login, not only at registration: 16 of the 29 members on
+ * production have none - they registered before the bonus existed, or by a
+ * route that never awarded it - and a member who can see their balance with
+ * no welcome bonus in it is a support question, not a saving.
+ *
+ * Safe to call on every login: mfa_award_points() dedupes on the exact
+ * (user_id, description) pair, so a second call is a no-op rather than a
+ * second award.
+ */
+function mfa_maybe_award_welcome_bonus( $user_id ) {
+	$user_id = (int) $user_id;
+	if ( $user_id <= 0 || ! function_exists( 'mfa_award_points' ) ) {
+		return;
+	}
+
+	// Members only. A prospect has not activated, and giving them the joining
+	// bonus would make the ledger disagree with their status.
+	$status = strtolower( (string) get_user_meta( $user_id, 'user_status', true ) );
+	if ( ! in_array( $status, array( 'member', 'premium' ), true ) ) {
+		return;
+	}
+
+	mfa_award_points( $user_id, 'Welcome Bonus', 50 );
+}
+
+// Priority 20: after the activity log, so the ledger row lands on a session
+// that is already recorded as a login.
+add_action( 'wp_login', 'mfa_award_welcome_bonus_on_login', 20, 2 );
+
+function mfa_award_welcome_bonus_on_login( $user_login, $user ) {
+	if ( $user instanceof WP_User ) {
+		mfa_maybe_award_welcome_bonus( $user->ID );
+	}
+}

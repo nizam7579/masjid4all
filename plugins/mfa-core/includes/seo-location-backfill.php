@@ -101,6 +101,23 @@ function mfa_seo_parse_address( $address, $country = '' ) {
 		$state = '';
 	}
 
+	// Canonicalise for countries with an alias table, so re-running this
+	// backfill cannot reintroduce the language variants that were merged out
+	// of the data on 2026-08-21 ("East Java" -> "Jawa Timur"). Without this,
+	// the merge is a one-off cleanup sitting in front of a writer that still
+	// emits the old forms.
+	//
+	// An unrecognised value is passed through UNCHANGED, never blanked: it is
+	// evidence of a parse error worth seeing, and hub generation reads
+	// mfa_state_canonical_list() rather than DISTINCT, so it can never become
+	// a page regardless.
+	if ( '' !== $state && function_exists( 'mfa_normalize_state_name' ) ) {
+		$canonical = mfa_normalize_state_name( $country, $state );
+		if ( '' !== $canonical ) {
+			$state = $canonical;
+		}
+	}
+
 	return array( $city, $state );
 }
 

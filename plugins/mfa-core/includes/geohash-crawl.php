@@ -380,7 +380,20 @@ function mfa_malaysia_state_aliases() {
  * expect an empty string to mean "couldn't tell."
  */
 function mfa_geohash_guess_state( $address, $country ) {
-	if ( 'Malaysia' !== $country || '' === $address ) {
+	if ( '' === $address || '' === $country ) {
+		return '';
+	}
+
+	// Countries carrying a canonical alias table (Indonesia, India - see
+	// state-normalize.php) share Malaysia's address shape: the state is the
+	// comma segment before the trailing country name. Generalising is safe
+	// here specifically because mfa_normalize_state_name() returns '' for
+	// anything it does not recognise, so a wrong guess writes NOTHING rather
+	// than a junk state - which is what previously left Indonesian rows with
+	// no state at all, keeping new mosques out of their own province hub.
+	$has_table = function_exists( 'mfa_state_country_supported' ) && mfa_state_country_supported( $country );
+
+	if ( 'Malaysia' !== $country && ! $has_table ) {
 		return '';
 	}
 
@@ -390,7 +403,7 @@ function mfa_geohash_guess_state( $address, $country ) {
 	}
 
 	$last = end( $parts );
-	if ( false !== stripos( $last, 'malaysia' ) ) {
+	if ( false !== stripos( $last, $country ) ) {
 		array_pop( $parts );
 	}
 
@@ -412,7 +425,14 @@ function mfa_geohash_guess_state( $address, $country ) {
 	// from state - strip a leading postcode before matching.
 	$candidate = preg_replace( '/^\d{4,6}\s+/', '', trim( $candidate ) );
 
-	return mfa_malaysia_normalize_state_name( $candidate );
+	if ( 'Malaysia' === $country ) {
+		return mfa_malaysia_normalize_state_name( $candidate );
+	}
+
+	// A trailing postcode ("Daerah Khusus Ibukota Jakarta 12160", "Tamil Nadu
+	// 600001") needs no stripping: the matcher compares on a prefix boundary,
+	// so the province name still matches with the number left on the end.
+	return mfa_normalize_state_name( $country, $candidate );
 }
 
 /**

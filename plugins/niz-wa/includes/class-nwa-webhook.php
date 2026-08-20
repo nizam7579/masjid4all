@@ -144,6 +144,29 @@ class NWA_Webhook {
 		NWA_DB::complete_message( $message_id, $user_id, $conversation->id, $type, $content );
 		NWA_DB::touch_inbound( $conversation->id, $row->created_at );
 
+		// Media is only a short-lived id on Meta's side (~30 days), so it is
+		// pulled into the media library now rather than when someone looks.
+		// Bounded and non-fatal by design - see class-nwa-media.php.
+		if ( class_exists( 'NWA_Media' ) && in_array( $type, NWA_Media::types(), true ) ) {
+			$media_id = $message[ $type ]['id'] ?? '';
+			if ( $media_id ) {
+				$attachment = NWA_Media::download( $media_id, array(
+					'type'      => $type,
+					'wa_number' => $wa_number,
+					'user_id'   => $user_id,
+				) );
+
+				if ( is_wp_error( $attachment ) ) {
+					// Logged, not raised: a reply still has to go out, and the
+					// id stays in raw_payload so it can be fetched by hand.
+					error_log( 'Niz WA: media download failed — media_id=' . $media_id
+						. ' type=' . $type . ' error=' . $attachment->get_error_message() );
+				} else {
+					NWA_DB::set_message_attachment( $message_id, $attachment );
+				}
+			}
+		}
+
 		$conversation = NWA_DB::get_conversation_by_user( $user_id );
 
 		NWA_Router::handle_message( $user_id, $wa_number, $conversation, $content, $type, $message['id'] ?? null );
@@ -188,7 +211,21 @@ class NWA_Webhook {
 			case 'video':
 			case 'document':
 			case 'audio':
-				return $message[ $type ]['id'] ?? '';
+			case 'sticker':
+				// The caption used to be thrown away and the bare media id kept,
+				// which meant "here's my business licence" reached the router and
+				// the AI as an opaque 32-character id. The caption is the part
+				// with meaning; the id is preserved in raw_payload and the file
+				// itself is downloaded to the media library, so nothing is lost
+				// by not putting it here.
+				$caption = trim( (string) ( $message[ $type ]['caption'] ?? '' ) );
+				if ( '' !== $caption ) {
+					return $caption;
+				}
+
+				$filename = trim( (string) ( $message[ $type ]['filename'] ?? '' ) );
+
+				return $filename ? '[' . $type . ': ' . $filename . ']' : '[' . $type . ']';
 			case 'location':
 				return wp_json_encode( $message['location'] ?? array() );
 			default:

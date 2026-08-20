@@ -133,6 +133,29 @@ class NWA_Shortcodes {
 					<div class="nwa-inbox-messages">
 						<?php foreach ( $messages as $m ) : ?>
 							<div class="nwa-message-bubble is-<?php echo esc_attr( $m->direction ); ?>">
+								<?php
+								// Downloaded media renders inline; without an attachment
+								// (download failed, or the message predates it) the row
+								// still shows its caption, so nothing looks blank.
+								$attachment_id = isset( $m->media_attachment_id ) ? (int) $m->media_attachment_id : 0;
+								if ( $attachment_id ) :
+									$media_url  = wp_get_attachment_url( $attachment_id );
+									$media_mime = get_post_mime_type( $attachment_id );
+									?>
+									<?php if ( $media_url && 0 === strpos( (string) $media_mime, 'image/' ) ) : ?>
+										<a href="<?php echo esc_url( $media_url ); ?>" target="_blank" rel="noopener">
+											<?php echo wp_get_attachment_image( $attachment_id, 'medium', false, array( 'class' => 'nwa-message-media' ) ); ?>
+										</a>
+									<?php elseif ( $media_url && 0 === strpos( (string) $media_mime, 'video/' ) ) : ?>
+										<video class="nwa-message-media" controls preload="none" src="<?php echo esc_url( $media_url ); ?>"></video>
+									<?php elseif ( $media_url && 0 === strpos( (string) $media_mime, 'audio/' ) ) : ?>
+										<audio class="nwa-message-media" controls preload="none" src="<?php echo esc_url( $media_url ); ?>"></audio>
+									<?php elseif ( $media_url ) : ?>
+										<a class="nwa-message-file" href="<?php echo esc_url( $media_url ); ?>" target="_blank" rel="noopener">
+											&#128206; <?php echo esc_html( basename( get_attached_file( $attachment_id ) ) ); ?>
+										</a>
+									<?php endif; ?>
+								<?php endif; ?>
 								<?php echo esc_html( $m->content ); ?>
 								<?php // Stored in GMT; shown in the site timezone so the thread reads in local time. ?>
 								<br><small><?php echo esc_html( get_date_from_gmt( $m->created_at, 'Y-m-d H:i:s' ) ); ?> &middot; <?php echo esc_html( $m->msg_type ); ?></small>

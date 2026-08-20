@@ -274,3 +274,24 @@
   color: #666;
   font-weight: 600;
 }
+
+/* Inbound media rendered in the thread. Constrained so a tall photo can't
+   push the rest of the conversation off screen. */
+.nwa-message-media {
+  display: block;
+  max-width: 100%;
+  max-height: 260px;
+  height: auto;
+  margin-bottom: 6px;
+  border-radius: 6px;
+}
+
+.nwa-message-file {
+  display: inline-block;
+  margin-bottom: 6px;
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 6px;
+  font-size: 13px;
+  text-decoration: none;
+}

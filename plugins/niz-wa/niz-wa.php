@@ -16,13 +16,14 @@ define( 'NWA_VERSION', '1.0.0' );
 // table / column / index). nwa_init() re-runs dbDelta on load when it differs
 // from the stored nwa_db_version option, so a plain plugin-file update
 // auto-syncs the schema in production without touching data.
-define( 'NWA_DB_VERSION', '1.0.0' );
+define( 'NWA_DB_VERSION', '1.1.0' );
 define( 'NWA_PATH', plugin_dir_path( __FILE__ ) );
 define( 'NWA_URL', plugin_dir_url( __FILE__ ) );
 
 require_once NWA_PATH . 'includes/class-nwa-config.php';
 require_once NWA_PATH . 'includes/class-nwa-db.php';
 require_once NWA_PATH . 'includes/class-nwa-sender.php';
+require_once NWA_PATH . 'includes/class-nwa-media.php';
 require_once NWA_PATH . 'includes/class-nwa-ai.php';
 require_once NWA_PATH . 'includes/class-nwa-router.php';
 require_once NWA_PATH . 'includes/class-nwa-webhook.php';

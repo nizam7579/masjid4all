@@ -51,6 +51,7 @@ class NWA_DB {
 			content LONGTEXT DEFAULT NULL,
 			status VARCHAR(20) DEFAULT NULL,
 			meta_message_id VARCHAR(191) DEFAULT NULL,
+			media_attachment_id BIGINT UNSIGNED DEFAULT NULL,
 			raw_payload LONGTEXT,
 			processed TINYINT(1) NOT NULL DEFAULT 0,
 			created_at DATETIME NOT NULL,
@@ -234,6 +235,24 @@ class NWA_DB {
 			array( 'user_id' => $user_id, 'conversation_id' => $conversation_id, 'msg_type' => $msg_type, 'content' => $content, 'processed' => 1 ),
 			array( 'id' => $message_id ),
 			array( '%d', '%d', '%s', '%s', '%d' ),
+			array( '%d' )
+		);
+	}
+
+	/**
+	 * Links a stored message to the attachment its media was saved as.
+	 *
+	 * Separate from complete_message() because the download happens after the
+	 * row exists and is allowed to fail without taking the message with it.
+	 */
+	public static function set_message_attachment( $message_id, $attachment_id ) {
+		global $wpdb;
+
+		return $wpdb->update(
+			self::messages_table(),
+			array( 'media_attachment_id' => (int) $attachment_id ),
+			array( 'id' => (int) $message_id ),
+			array( '%d' ),
 			array( '%d' )
 		);
 	}

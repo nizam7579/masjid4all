@@ -898,7 +898,7 @@ function niz_business_ai_updater_shortcode() {
     ob_start();
     ?>
     <div class="niz-ai-update-wrapper" style="margin: 20px 0;">
-        <button type="button" class="niz-ai-update-btn" 
+        <button type="button" class="mfa-btn mfa-btn-secondary mfa-biz-action-btn niz-ai-update-btn" 
                 data-post-id="<?php echo esc_attr($post_id); ?>" 
                 data-nonce="<?php echo esc_attr($nonce); ?>" 
                 data-ajaxurl="<?php echo esc_url($ajax_url); ?>" 

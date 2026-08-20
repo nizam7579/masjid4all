@@ -227,7 +227,7 @@ function mfa_website_update_shortcode() {
 
         <button 
             type="button"
-            class="niz-web-update-btn"
+            class="mfa-btn mfa-btn-secondary mfa-web-action-btn niz-web-update-btn"
             data-post-id="<?php echo esc_attr($post_id); ?>"
             data-nonce="<?php echo esc_attr($nonce); ?>"
             data-ajaxurl="<?php echo admin_url('admin-ajax.php'); ?>">

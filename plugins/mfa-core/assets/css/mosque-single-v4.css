@@ -77,3 +77,59 @@
     gap: 20px;
   }
 }
+/* ---------- Modal form (Edit Mosque) ----------
+   The Edit Mosque popup renders the same .mfa-modal-form markup as the
+   business and website Update Info popups, but only those two stylesheets
+   carried the rules - so on a mosque single the fields fell back to browser
+   defaults while everything around them was styled. Same declarations,
+   kept here rather than moved to global because the modal only appears on
+   these three templates. */
+.mfa-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mfa-space-4, 16px);
+}
+.mfa-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--mfa-space-4, 16px);
+}
+.mfa-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.mfa-form-group label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--mfa-muted, #56655f);
+}
+.mfa-form-group input,
+.mfa-form-group select,
+.mfa-form-group textarea {
+  border: 1px solid var(--mfa-border, #d7e4e1);
+  border-radius: var(--mfa-radius-sm, 8px);
+  padding: 10px 12px;
+  font-size: 14px;
+  color: var(--mfa-ink, #12181f);
+  font-family: inherit;
+  background: var(--mfa-white, #ffffff);
+}
+.mfa-form-group textarea { resize: vertical; }
+.mfa-form-group input:focus,
+.mfa-form-group select:focus,
+.mfa-form-group textarea:focus {
+  outline: 2px solid var(--mfa-teal, #0d8f83);
+  outline-offset: 1px;
+}
+.mfa-modal-submit { width: 100%; margin-top: 4px; }
+.mfa-modal-message {
+  margin: 0;
+  font-size: 13px;
+  min-height: 18px;
+  color: #b3261e;
+}
+.mfa-modal-message.is-success { color: var(--mfa-teal-dark, #0d4d47); }
+@media (max-width: 480px) {
+  .mfa-form-row { grid-template-columns: 1fr; }
+}

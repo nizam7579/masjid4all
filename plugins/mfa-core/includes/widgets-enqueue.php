@@ -399,8 +399,8 @@ function mfa_core_enqueue_widget_assets() {
 	// anywhere (verified via DB query 2026-08-13) - Upload Image was the
 	// only modal this template ever had, and it's [mfa_modal]-based now.
 	if ( $post && 'masjid' === $post->post_type ) {
-		$css = MFA_CORE_PATH . 'assets/css/mosque-single-v3.css';
-		wp_enqueue_style( 'mfa-core-mosque-single', MFA_CORE_URL . 'assets/css/mosque-single-v3.css', array(), $get_version( $css ) );
+		$css = MFA_CORE_PATH . 'assets/css/mosque-single-v4.css';
+		wp_enqueue_style( 'mfa-core-mosque-single', MFA_CORE_URL . 'assets/css/mosque-single-v4.css', array(), $get_version( $css ) );
 
 		// [mfa_mosque_update_form]'s AJAX submit (Edit Mosque modal,
 		// Administrator/Editor only). Its .mfa-form-group/.mfa-form-row/
@@ -492,7 +492,7 @@ function mfa_core_litespeed_css_excludes( $excludes ) {
 	$excludes[] = 'mfa-core/assets/css/legal-page-v3.css';
 	$excludes[] = 'mfa-core/assets/css/site-chrome-v1.css';
 	$excludes[] = 'mfa-core/assets/css/business-single-v5.css';
-	$excludes[] = 'mfa-core/assets/css/mosque-single-v3.css';
+	$excludes[] = 'mfa-core/assets/css/mosque-single-v4.css';
 	$excludes[] = 'mfa-core/assets/css/website-single-v2.css';
 	$excludes[] = 'mfa-core/assets/css/knowledge-single-v1.css';
 	$excludes[] = 'mfa-core/assets/css/member-shell-v1.css';

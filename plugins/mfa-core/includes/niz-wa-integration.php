@@ -2058,12 +2058,47 @@ function niz_wa_seed_actions() {
 			'enabled'               => true,
 		),
 		array(
-			'intent_key'            => 'travel_prayer',
+			'intent_key'            => 'founding_member',
 			'keywords'              => 'founding member,founding,waitlist,join waitlist,early access,premium,lifetime,ahli pengasas,senarai menunggu',
 			'description'           => 'User is interested in becoming a Founding Member, joining the waitlist, or asks about premium/lifetime membership',
 			'requires_confirmation' => false,
 			'confirm_message'       => '',
 			'callback_function'     => 'niz_wa_action_founding_member',
+			'enabled'               => true,
+		),
+		array(
+			// Was code-unseeded until 2026-08-20: the row had been inserted by
+			// hand on staging and production, so it worked on both but would
+			// never exist in a fresh environment. 'solat planner' is included
+			// because that is the label users see for this feature.
+			'intent_key'            => 'travel_prayer',
+			'keywords'              => 'travel,travelling,traveling,journey,musafir,plan my solat,solat planner,solat for travel,prayer for travel,jamak,qasar,flight,perjalanan',
+			'description'           => 'User is travelling and wants their prayer times planned across the journey, including qasar/jamak and time zone changes',
+			'requires_confirmation' => false,
+			'confirm_message'       => '',
+			'callback_function'     => 'niz_wa_action_travel_prayer',
+			'enabled'               => true,
+		),
+		array(
+			// Also code-unseeded until 2026-08-20 - which is why production had
+			// this row and staging did not.
+			//
+			// The callback is the DIRECTORY handler, not a claim_business one:
+			// 'niz_wa_action_claim_business' has never existed in any plugin,
+			// so this row answered every "claim business" / "tuntut bisnes"
+			// with "Sorry, something went wrong on our end" (a missing callback
+			// is caught by NWA_Router::execute_action). It outranks the
+			// directory action - which lists the same keywords - purely by
+			// having a lower id, since get_action_by_keyword() has no ORDER BY.
+			// niz_wa_action_directory() reads the triggering text and jumps
+			// straight into the business-claim branch, which is what this was
+			// always meant to do.
+			'intent_key'            => 'claim_business',
+			'keywords'              => 'claim business,claim listing,claim bisnes,tuntut bisnes',
+			'description'           => 'User wants to claim or manage their business listing',
+			'requires_confirmation' => false,
+			'confirm_message'       => '',
+			'callback_function'     => 'niz_wa_action_directory',
 			'enabled'               => true,
 		),
 	);
@@ -2110,6 +2145,22 @@ function niz_wa_seed_actions() {
 		"UPDATE {$table} SET keywords = %s WHERE intent_key = 'update_email' AND keywords NOT LIKE %s",
 		'email,my email,update email,change email,add email,add my email,emel,tukar emel,tambah emel',
 		'%add my email%'
+	) );
+
+	// Repair the broken claim_business row described in the seeding block
+	// above: it pointed at a function that has never existed, so every
+	// "claim business" / "tuntut bisnes" got an error message. Seeding only
+	// inserts, so an existing row needs this. Idempotent. (2026-08-20)
+	$wpdb->query( "UPDATE {$table} SET callback_function = 'niz_wa_action_directory', requires_confirmation = 0, confirm_message = '' WHERE intent_key = 'claim_business' AND callback_function <> 'niz_wa_action_directory'" );
+
+	// 'solat planner' is the label users see for this feature (and a list-row
+	// title, which arrives as the row's TEXT and so must be a keyword). The
+	// existing travel_prayer rows predate it and seeding only inserts.
+	// Idempotent. (2026-08-20)
+	$wpdb->query( $wpdb->prepare(
+		"UPDATE {$table} SET keywords = %s WHERE intent_key = 'travel_prayer' AND keywords NOT LIKE %s",
+		'travel,travelling,traveling,journey,musafir,plan my solat,solat planner,solat for travel,prayer for travel,jamak,qasar,flight,perjalanan',
+		'%solat planner%'
 	) );
 }
 

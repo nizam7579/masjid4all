@@ -19,6 +19,15 @@ class NWA_Sender {
 			return array( 'success' => false, 'error' => 'outside_window', 'message_id' => null );
 		}
 
+		/**
+		 * Last chance to rewrite outbound copy - used by mfa-core to answer in
+		 * the recipient's language. Deliberately covers plain text and the BODY
+		 * of interactive messages only, never button or list row titles: a tap
+		 * sends the title back as the message and it is matched whole-string
+		 * against the action keywords, so a translated title breaks routing.
+		 */
+		$text = apply_filters( 'nwa_outbound_text', $text, $user_id );
+
 		$text = self::format_for_whatsapp( $text );
 
 		$body = array(
@@ -114,6 +123,8 @@ class NWA_Sender {
 				. ' conversation_found=' . ( $conversation ? 'yes' : 'no' ) );
 			return array( 'success' => false, 'error' => 'outside_window', 'message_id' => null );
 		}
+
+		$body_text = apply_filters( 'nwa_outbound_text', $body_text, $user_id );
 
 		$reply_buttons = array();
 		foreach ( array_slice( array_values( $buttons ), 0, 3 ) as $button ) {
@@ -279,6 +290,8 @@ class NWA_Sender {
 				. ' now_gmt=' . current_time( 'mysql', true ) );
 			return array( 'success' => false, 'error' => 'outside_window', 'message_id' => null );
 		}
+
+		$body_text = apply_filters( 'nwa_outbound_text', $body_text, $user_id );
 
 		$clean_sections = array();
 		$row_budget     = 10;

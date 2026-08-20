@@ -1242,7 +1242,12 @@ function niz_wa_directory_route( $override, $user_id, $wa_number, $message_text,
 		$name  = $place['title'] ?? 'this place';
 		$t     = strtolower( $text );
 
-		if ( false !== strpos( $t, 'yes' ) || false !== strpos( $t, 'add' ) ) {
+		// 'si'/'sí' as well: the confirm buttons stay in English because their
+		// titles are routing keywords, but a Spanish speaker types the Spanish
+		// word - which used to fall through and re-prompt, as it did on
+		// 2026-08-19.
+		if ( false !== strpos( $t, 'yes' ) || false !== strpos( $t, 'add' )
+			|| in_array( $t, array( 'si', 'sí', 'claro', 'vale' ), true ) ) {
 			NWA_DB::set_pending_action( $conversation->id, null );
 
 			if ( ! $place || ! function_exists( 'mfa_geohash_upsert_place' ) ) {
@@ -1937,6 +1942,17 @@ function niz_wa_place_add_from_link( $user_id, $wa_number, $conversation, $type,
 		return '';
 	}
 
+	// A shared pin can resolve to infrastructure - the nearest bus stop, a car
+	// park - which belongs in neither directory. Caught BEFORE the confirm,
+	// because the confirm asks "add this to the business directory?" and people
+	// say yes to it; that is how a Dublin bus stop became a published business
+	// listing. The session is left intact so a corrected link continues the flow.
+	if ( niz_wa_place_is_infrastructure( $place ) ) {
+		nwa_send_message( $user_id, $wa_number,
+			"That link points to *" . $place['title'] . "*, which looks like a bus stop or other public place rather than a mosque or business.\n\nPlease open the *mosque or business itself* in Google Maps, tap *Share* → *Copy link*, and send that link." );
+		return '';
+	}
+
 	// The place's actual nature decides the directory, not what was asked:
 	// a mosque/surau/etc. only goes in the mosque directory, everything else
 	// in the business directory. If that differs from what the user asked,
@@ -1994,6 +2010,183 @@ function niz_wa_dir_store_submission( $user_id, $type, $link ) {
 		'time' => current_time( 'mysql' ),
 	) );
 	error_log( "niz-wa directory submission: user_id={$user_id} type={$type} link={$link}" );
+}
+
+/* ---------------- Flow language (first slice: Spanish) ---------------- */
+
+/**
+ * Which language is this person writing in?
+ *
+ * Deliberately a cheap word/accent heuristic rather than an AI call: this
+ * runs on every inbound message inside a synchronous webhook, and getting it
+ * wrong costs nothing worse than English copy, which is what we sent before.
+ * Only languages we actually have strings for are worth detecting.
+ */
+function niz_wa_detect_lang( $text ) {
+	$t = " " . strtolower( trim( (string) $text ) ) . " ";
+
+	if ( "" === trim( $t ) ) {
+		return "";
+	}
+
+	$es = 0;
+	foreach ( array(
+		// Function words carry the signal: content words like "mezquita" are
+		// too rare in a two-word reply to be worth much, and the failure this
+		// widening fixes was a full Spanish sentence containing none of the
+		// obvious religious vocabulary at all.
+		" que ", " porque ", " donde ", " dónde ", " hay ", " cerca ", " para ", " como ", " cómo ",
+		" puede ", " pueden ", " quiero ", " quisiera ", " tengo ", " gracias ", " por favor ",
+		" los ", " las ", " del ", " una ", " con ", " sin ", " por ", " son ", " pero ", " muy ",
+		" cuando ", " también ", " tambien ", " aquí ", " aqui ", " hola ", " buenas ",
+		" mezquita ", " oracion ", " oración ", " rezo ", " sí ", " es ", " esta ", " está ",
+		" soy ", " dime ", " cual ", " cuál ", " ser ", " estar ", " tiene ", " bien ",
+		" todo ", " nada ", " más ", " mas ", " ya ", " desde ",
+	) as $w ) {
+		if ( false !== strpos( $t, $w ) ) {
+			$es++;
+		}
+	}
+	// Characters that essentially do not occur in our English or Malay copy.
+	if ( preg_match( "/[ñ¿¡áéíóú]/u", $t ) ) {
+		$es += 2;
+	}
+
+	return $es >= 2 ? "es" : "";
+}
+
+/**
+ * The language to answer this person in, remembered across messages.
+ *
+ * Stored rather than re-detected per message because a flow is a sequence of
+ * very short replies ("Mezquita", "Si", a pasted link) that carry no language
+ * signal at all - detecting per message would flip back to English mid-flow,
+ * which is exactly the mixed-language experience this is meant to fix.
+ */
+function niz_wa_user_lang( $user_id ) {
+	$lang = get_user_meta( (int) $user_id, "nwa_lang", true );
+
+	return $lang ? $lang : "en";
+}
+
+function niz_wa_remember_lang( $user_id, $message_text ) {
+	$detected = niz_wa_detect_lang( $message_text );
+	if ( "" === $detected ) {
+		return; // No signal - keep whatever we already believe.
+	}
+	if ( $detected !== niz_wa_user_lang( $user_id ) ) {
+		update_user_meta( (int) $user_id, "nwa_lang", $detected );
+	}
+}
+
+// Priority 1: sniff the language before any flow route runs, and never claim
+// the message - this always returns $override untouched.
+add_filter( "nwa_route_message_override", "niz_wa_sniff_lang", 1, 5 );
+
+function niz_wa_sniff_lang( $override, $user_id, $wa_number, $message_text, $conversation ) {
+	niz_wa_remember_lang( $user_id, $message_text );
+
+	return $override;
+}
+
+/**
+ * English -> target-language phrases for the scripted flow copy.
+ *
+ * Applied with strtr(), so phrases are replaced wherever they appear. That
+ * matters because the flow composes its replies ("Hmm, that didn't look like
+ * a link. " . the prompt), and a whole-string table would miss every
+ * concatenation. Keep the keys long and specific for the same reason - a
+ * short key would match inside unrelated copy.
+ *
+ * Only PLAIN TEXT and interactive BODY text is translated. Button and list
+ * row titles are deliberately left in English because they are ROUTING
+ * KEYWORDS: a tap sends the title back as the message, matched whole-string
+ * against wp_nwa_actions. Translating a title silently breaks the button.
+ */
+function niz_wa_flow_strings( $lang ) {
+	$map = array(
+		"es" => array(
+			// Headings. Safe to translate even though "Add Mosque" is also a
+			// button title, because these keys carry the emoji and asterisks and
+			// so cannot match a bare title.
+			"📍 *Add Mosque*"                                     => "📍 *Añadir Mezquita*",
+			"📍 *Add Business*"                                   => "📍 *Añadir Negocio*",
+			"🕌 *Masjid4All Directory*"                           => "🕌 *Directorio Masjid4All*",
+			"You can add any of these to Masjid4All for *free*:"  => "Puedes añadir cualquiera de estos a Masjid4All *gratis*:",
+			"*Mosque* — so the community can find its prayer times & location" => "*Mezquita* — para que la comunidad encuentre sus horarios de oración y ubicación",
+			"*Business* — list your halal-friendly business for Muslims to discover" => "*Negocio* — publica tu negocio halal para que los musulmanes lo descubran",
+			"*Website* — share a useful Islamic website or resource" => "*Sitio web* — comparte un sitio web o recurso islámico útil",
+			"Which one would you like to add?"                    => "¿Cuál te gustaría añadir?",
+			"Please send the *Google Maps link* of your mosque:"   => "Envía el *enlace de Google Maps* de tu mezquita:",
+			"Please send the *Google Maps link* of your business:" => "Envía el *enlace de Google Maps* de tu negocio:",
+			"1. Open Google Maps"                                 => "1. Abre Google Maps",
+			"2. Search for your mosque"                           => "2. Busca tu mezquita",
+			"2. Search for your business"                         => "2. Busca tu negocio",
+			"3. Tap *Share* and copy the link"                    => "3. Toca *Compartir* y copia el enlace",
+			"4. Paste the link here"                              => "4. Pega el enlace aquí",
+			"Hmm, that didn't look like a link. "                 => "Mmm, eso no parecía un enlace. ",
+			"I found:"                                            => "He encontrado:",
+			"Add this to the Masjid4All mosque directory?"        => "¿Lo añado al directorio de mezquitas de Masjid4All?",
+			"Add this to the Masjid4All business directory?"      => "¿Lo añado al directorio de negocios de Masjid4All?",
+			"Please tap *Yes, add it* or *No*."                   => "Toca *Yes, add it* o *No*.",
+			"No problem, I've cancelled that. 👍"                 => "Sin problema, lo he cancelado. 👍",
+			"Send *directory* anytime to start again, or just tell me what you need." => "Envía *directory* cuando quieras para empezar de nuevo, o dime qué necesitas.",
+		),
+	);
+
+	return isset( $map[ $lang ] ) ? $map[ $lang ] : array();
+}
+
+/**
+ * Translate an outbound message into the recipient's language.
+ *
+ * Hooked on niz-wa's nwa_outbound_text filter, which covers plain text plus
+ * the body of interactive messages - one place, so every flow benefits
+ * rather than only the ones somebody remembered to wrap. Anything not in the
+ * table passes through untouched, so an untranslated string degrades to
+ * today's behaviour instead of breaking.
+ */
+add_filter( "nwa_outbound_text", "niz_wa_translate_outbound", 10, 2 );
+
+function niz_wa_translate_outbound( $text, $user_id ) {
+	if ( ! is_string( $text ) || "" === $text || ! $user_id ) {
+		return $text;
+	}
+
+	$strings = niz_wa_flow_strings( niz_wa_user_lang( $user_id ) );
+
+	return $strings ? strtr( $text, $strings ) : $text;
+}
+
+/**
+ * Places that are infrastructure, not listings.
+ *
+ * Checked against Google's own place TYPE and never the name: several real
+ * halal businesses in the directory are called things like "Hamza Doner -
+ * Railway Station Skopje", and a name filter would reject them. The type
+ * field is what said "Bus stop" for the Dublin pin that reached the business
+ * directory on 2026-08-19, after a Spanish-speaking user asking *where* a
+ * mosque was got steered into the *add* flow.
+ */
+function niz_wa_place_is_infrastructure( $place ) {
+	$hay = strtolower( ( $place["type"] ?? "" ) . " " . implode( " ", (array) ( $place["types"] ?? array() ) ) );
+
+	if ( "" === trim( $hay ) ) {
+		return false; // No type information - let the normal flow decide.
+	}
+
+	foreach ( array(
+		"bus stop", "bus station", "bus interchange", "transit station", "transit stop",
+		"train station", "railway station", "railroad station", "subway station",
+		"metro station", "light rail station", "tram stop", "taxi stand",
+		"parking", "toll", "intersection", "bridge", "rest area",
+	) as $kw ) {
+		if ( false !== strpos( $hay, $kw ) ) {
+			return true;
+		}
+	}
+
+	return false;
 }
 
 /* ---------------- Action registry seeding ---------------- */
@@ -2101,7 +2294,7 @@ function niz_wa_seed_actions() {
 		),
 		array(
 			'intent_key'            => 'find_mosque',
-			'keywords'              => 'find a mosque,find mosque,nearest mosque,mosque near me,cari masjid,masjid berdekatan,find masjid',
+			'keywords'              => 'find a mosque,find mosque,nearest mosque,mosque near me,cari masjid,masjid berdekatan,find masjid,mezquita,mezquitas,mezquita cercana,donde hay mezquita,buscar mezquita',
 			'description'           => 'User wants to FIND or browse an existing mosque in the directory - not to add or claim one',
 			'requires_confirmation' => false,
 			'confirm_message'       => '',
@@ -2242,6 +2435,15 @@ function niz_wa_seed_actions() {
 		"UPDATE {$table} SET keywords = %s WHERE intent_key = 'travel_prayer' AND keywords NOT LIKE %s",
 		'travel,travelling,traveling,journey,musafir,plan my solat,solat planner,solat for travel,prayer for travel,jamak,qasar,flight,perjalanan',
 		'%solat planner%'
+	) );
+
+	// find_mosque gained Spanish keywords after a Spanish speaker asking where
+	// a mosque was got the ADD flow twice (2026-08-19). Seeding only inserts,
+	// so the existing row needs this. Idempotent.
+	$wpdb->query( $wpdb->prepare(
+		"UPDATE {$table} SET keywords = %s WHERE intent_key = 'find_mosque' AND keywords NOT LIKE %s",
+		'find a mosque,find mosque,nearest mosque,mosque near me,cari masjid,masjid berdekatan,find masjid,mezquita,mezquitas,mezquita cercana,donde hay mezquita,buscar mezquita',
+		'%mezquita%'
 	) );
 }
 

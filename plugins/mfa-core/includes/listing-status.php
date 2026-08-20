@@ -127,13 +127,28 @@ function mfa_listing_sync_verified( $post_id, $post_type = 'business' ) {
 }
 
 /**
+ * How many community members activate a mosque.
+ *
+ * One (decided 2026-08-20), deliberately: the purpose of Active is
+ * operational, not ceremonial. A mosque with a single member is a mosque
+ * with somebody we can contact - the team wants it surfaced so they can
+ * reach that person and help them grow the community, which cannot happen
+ * while it sits invisible waiting for a tenth join.
+ *
+ * The original 10 came from the "Pioneer Phase" framing on the community
+ * page, whose copy is driven by this same value so the two cannot disagree.
+ */
+function mfa_community_activation_threshold() {
+	return max( 1, (int) apply_filters( 'mfa_community_activation_threshold', 1 ) );
+}
+
+/**
  * Brings one mosque's status in line with whether its community is active.
  *
- * The activation threshold is NOT decided here. community.php already owns
- * it - it recomputes member_count on every join and writes community_status
- * as 'active' (10 or more members), 'pending' (1 to 9) or 'not_created'.
- * Reading that column rather than counting members again means the two can
- * never disagree, and moving the threshold stays a one-place change.
+ * The threshold is applied by community.php when it writes community_status
+ * on each join, from mfa_community_activation_threshold() above. Reading
+ * that column rather than counting members again means the two can never
+ * disagree, and moving the threshold stays a one-place change.
  *
  * @param int $cct_mosque_id jet_cct_mosque._ID.
  * @return string active | inactive | unchanged | missing

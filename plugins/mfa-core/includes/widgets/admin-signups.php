@@ -102,8 +102,8 @@ function mfa_signup_routes() {
  * prospects who actually reached out - NOT the imported contacts. The
  * imports are a mailing list, not traction; counting them here made the
  * headline read 109,407 and buried the handful of people who genuinely
- * turned up. They still exist and are still the campaign target (see the
- * note under the card), they just are not what this panel measures.
+ * turned up. They still exist and are still the campaign target, counted at
+ * /admin/prospects - they just are not what this panel measures.
  *
  * The "reached out" predicate is shared with the list page
  * (mfa_admin_member_reached_out_sql) so the two always agree.
@@ -212,27 +212,6 @@ function mfa_overview_listing( $table ) {
 		}
 
 		return $counts;
-	} );
-}
-
-/**
- * Mosques whose community has at least one member.
- *
- * The lifecycle says such a mosque is Active, but nothing in the codebase
- * ever writes that status - so the condition and the status can disagree,
- * and only this tells you by how much.
- */
-function mfa_overview_mosque_with_members() {
-	return mfa_overview_cached( 'mosque_members', function () {
-		global $wpdb;
-
-		$cct = $wpdb->prefix . 'jet_cct_mosque';
-
-		return (int) $wpdb->get_var(
-			"SELECT COUNT(*) FROM {$cct}
-			 WHERE member_count IS NOT NULL AND member_count <> ''
-			   AND CAST(member_count AS UNSIGNED) > 0"
-		);
 	} );
 }
 
@@ -472,19 +451,26 @@ function mfa_admin_signups_shortcode() {
 	$business_order = function_exists( 'mfa_admin_business_status_options' ) ? mfa_admin_business_status_options() : array();
 	$website_order  = function_exists( 'mfa_admin_website_status_options' ) ? mfa_admin_website_status_options() : array();
 
-	$with_members = mfa_overview_mosque_with_members();
-	$active_now   = isset( $mosque['buckets']['Active'] ) ? $mosque['buckets']['Active'] : 0;
-	$mosque_flag  = ( $with_members > $active_now )
-		? sprintf(
-			/* translators: %d: number of mosques with at least one member. */
-			'%d have a member but are not marked Active.',
-			$with_members - $active_now
-		)
-		: '';
-
 	ob_start();
 	?>
 	<section class="mfa-signups">
+
+		<?php // First on the page: this is the only part of the dashboard with anything to act on today. ?>
+		<h2 class="mfa-ov-title">Needs follow-up</h2>
+		<div class="mfa-signups-stats mfa-signups-stats--followup">
+			<div class="mfa-signups-stat<?php echo $follow['open_window'] ? ' mfa-signups-stat--urgent' : ''; ?>">
+				<span class="mfa-signups-num"><?php echo esc_html( number_format_i18n( $follow['open_window'] ) ); ?></span>
+				<span class="mfa-signups-lbl">WhatsApp window open <small>reply free-form now</small></span>
+			</div>
+			<a class="mfa-signups-stat" href="<?php echo esc_url( home_url( '/admin/inquiry/' ) ); ?>">
+				<span class="mfa-signups-num"><?php echo esc_html( number_format_i18n( $follow['open_inquiries'] ) ); ?></span>
+				<span class="mfa-signups-lbl">Inquiries not replied</span>
+			</a>
+			<a class="mfa-signups-stat" href="<?php echo esc_url( $member_url ); ?>">
+				<span class="mfa-signups-num"><?php echo esc_html( number_format_i18n( $follow['no_email'] ) ); ?></span>
+				<span class="mfa-signups-lbl">Members with no real email</span>
+			</a>
+		</div>
 
 		<h2 class="mfa-ov-title">Overview</h2>
 		<div class="mfa-ov-grid">
@@ -494,24 +480,20 @@ function mfa_admin_signups_shortcode() {
 			$people_rows .= mfa_overview_row( 'Prospects', $people['prospects'], $member_url, 'reached out to us' );
 			$people_rows .= mfa_overview_row( 'Members', $people['members'], add_query_arg( 'status', 'Member', $member_url ) );
 			$people_rows .= mfa_overview_row( 'Premium', $people['premium'], add_query_arg( 'status', 'Premium Member', $member_url ) );
-			$people_flag = $people['imported']
+			// A row with no status is listed by neither /admin/member nor
+			// /admin/prospects, so this line is the only place it can surface.
+			// Kept when the explanatory notes were removed because it is a
+			// data-integrity alarm, not a note - it shows nothing at zero.
+			$people_flag = $people['unset'] > 0
 				? sprintf(
-					/* translators: %s: formatted count of imported contacts. */
-					'Excludes %s imported contacts, counted at /admin/prospects.',
-					number_format_i18n( $people['imported'] )
+					/* translators: %d: number of member rows with no status. */
+					'%d row(s) have no status and appear in no list.',
+					$people['unset']
 				)
 				: '';
-			if ( $people['unset'] > 0 ) {
-				// Listed by neither page, so it can only be surfaced here.
-				$people_flag .= sprintf(
-					/* translators: %d: number of member rows with no status. */
-					' %d row(s) have no status and appear in no list.',
-					$people['unset']
-				);
-			}
 			echo mfa_overview_card( 'Members', $people_rows, $people['total'], '', $people_flag ); // phpcs:ignore WordPress.Security.EscapeOutput
 
-			echo mfa_overview_card( 'Mosque', $render_listing( $mosque, 'mosque', $mosque_order ), $mosque['total'], home_url( '/admin/mosque/' ), $mosque_flag ); // phpcs:ignore WordPress.Security.EscapeOutput
+			echo mfa_overview_card( 'Mosque', $render_listing( $mosque, 'mosque', $mosque_order ), $mosque['total'], home_url( '/admin/mosque/' ) ); // phpcs:ignore WordPress.Security.EscapeOutput
 			echo mfa_overview_card( 'Business', $render_listing( $business, 'business', $business_order ), $business['total'], home_url( '/admin/business/' ) ); // phpcs:ignore WordPress.Security.EscapeOutput
 			echo mfa_overview_card( 'Website', $render_listing( $website, 'website', $website_order ), $website['total'], home_url( '/admin/website/' ) ); // phpcs:ignore WordPress.Security.EscapeOutput
 			?>
@@ -538,12 +520,6 @@ function mfa_admin_signups_shortcode() {
 				<span class="mfa-signups-lbl">From a prospect</span>
 			</div>
 		</div>
-		<p class="mfa-ov-foot">
-			&ldquo;From a prospect&rdquo; counts members who started as one of the
-			<?php echo esc_html( number_format_i18n( $people['imported'] ) ); ?> imported contacts &mdash;
-			the number the ads, bulk WhatsApp and email campaigns are trying to move.
-			Route tracking began on 19 Aug, so anyone who joined earlier counts as &ldquo;Before tracking&rdquo;.
-		</p>
 
 		<?php if ( ! empty( $leads ) ) : ?>
 			<h2 class="mfa-ov-title">Interest &amp; leads</h2>
@@ -556,22 +532,6 @@ function mfa_admin_signups_shortcode() {
 				<?php endforeach; ?>
 			</div>
 		<?php endif; ?>
-
-		<h2 class="mfa-ov-title">Needs follow-up</h2>
-		<div class="mfa-signups-stats mfa-signups-stats--followup">
-			<div class="mfa-signups-stat<?php echo $follow['open_window'] ? ' mfa-signups-stat--urgent' : ''; ?>">
-				<span class="mfa-signups-num"><?php echo esc_html( number_format_i18n( $follow['open_window'] ) ); ?></span>
-				<span class="mfa-signups-lbl">WhatsApp window open <small>reply free-form now</small></span>
-			</div>
-			<a class="mfa-signups-stat" href="<?php echo esc_url( home_url( '/admin/inquiry/' ) ); ?>">
-				<span class="mfa-signups-num"><?php echo esc_html( number_format_i18n( $follow['open_inquiries'] ) ); ?></span>
-				<span class="mfa-signups-lbl">Inquiries not replied</span>
-			</a>
-			<a class="mfa-signups-stat" href="<?php echo esc_url( $member_url ); ?>">
-				<span class="mfa-signups-num"><?php echo esc_html( number_format_i18n( $follow['no_email'] ) ); ?></span>
-				<span class="mfa-signups-lbl">Members with no real email</span>
-			</a>
-		</div>
 
 	</section>
 	<?php

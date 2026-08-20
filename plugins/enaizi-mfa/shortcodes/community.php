@@ -45,6 +45,13 @@ function pewarisan_mosque_community_shortcode() {
     ) );
     
     $member_count = ! empty( $mosque_data->member_count ) ? intval( $mosque_data->member_count ) : 0;
+
+    // Same source as the write path below, so the invitation copy can never
+    // promise a number the activation rule does not use.
+    $activation_threshold = function_exists( 'mfa_community_activation_threshold' )
+        ? mfa_community_activation_threshold()
+        : 1;
+    $still_needed = max( 0, $activation_threshold - $member_count );
     $community_status = ! empty( $mosque_data->community_status ) ? $mosque_data->community_status : 'not_created';
 
     // Get current user display name to pre-fill form
@@ -113,10 +120,10 @@ function pewarisan_mosque_community_shortcode() {
                     <div class="status-box status-pending" style="background: #fffcf0; color: #856404; padding: 20px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #ffeeba;">
                         <strong style="font-size: 18px; display: block; margin-bottom: 5px; color: #b7791f;">🚀 Pioneer Phase</strong>
                         <p style="margin: 0 0 15px 0; font-size: 14px; color: #555;">
-                            We need <strong><?php echo ( 10 - $member_count ); ?> more pioneers</strong> to activate the official space for this mosque. Help us spread the word!
+                            We need <strong><?php echo esc_html( $still_needed ); ?> more <?php echo esc_html( _n( 'pioneer', 'pioneers', $still_needed, 'mfa' ) ); ?></strong> to activate the official space for this mosque. Help us spread the word!
                         </p>
                     
-                        <?php $progress_percentage = min( ( $member_count / 10 ) * 100, 100 ); ?>
+                        <?php $progress_percentage = $activation_threshold > 0 ? min( ( $member_count / $activation_threshold ) * 100, 100 ) : 100; ?>
                         <div style="background: #e2e8f0; border-radius: 10px; height: 12px; width: 100%; margin-bottom: 25px; overflow: hidden; box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);">
                             <div style="background: #00a859; width: <?php echo $progress_percentage; ?>%; height: 100%; transition: width 0.5s ease;"></div>
                         </div>
@@ -283,11 +290,16 @@ function pewarisan_handle_mosque_join_request() {
         $cct_mosque_id
     ) ) );
 
-    // C. Threshold status configuration
+    // C. Threshold status configuration. The number lives in mfa-core so the
+    // copy above, the progress bar and listing_status all move together.
+    $threshold = function_exists( 'mfa_community_activation_threshold' )
+        ? mfa_community_activation_threshold()
+        : 1;
+
     $new_status = 'not_created';
-    if ( $total_members >= 10 ) {
+    if ( $total_members >= $threshold ) {
         $new_status = 'active';
-    } elseif ( $total_members > 0 && $total_members < 10 ) {
+    } elseif ( $total_members > 0 ) {
         $new_status = 'pending';
     }
 

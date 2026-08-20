@@ -384,16 +384,38 @@ function mfa_place_listing_where( $place_id, $table_alias = '' ) {
 	// while remaining on the country hub. That is deliberate: undercounting
 	// one listing is a far smaller error than counting it in four states, and
 	// it stays visible where it matters. Re-running the backfills picks it up.
-	if ( 1 === count( get_post_ancestors( $place_id ) ) ) {
+	$ancestors = get_post_ancestors( $place_id );
+
+	if ( 1 === count( $ancestors ) ) {
 		$sql   .= " AND {$p}state = %s";
 		$args[] = get_the_title( $place_id );
 
 		return array( 'sql' => $sql, 'args' => $args );
 	}
 
-	// Deeper hubs (district level) still fall back to the bounding box. No such
-	// hubs exist yet; if they are ever added they will need the same
-	// single-attribution treatment, at a finer granularity than `state`.
+	// A city hub (depth 2) gets the same single-attribution treatment, one
+	// level finer: its parent state AND its own city name, both as equality.
+	//
+	// BOTH columns, not city alone. Eight Indonesian city names sit under two
+	// different states - Kabupaten Kediri, Kota Depok, Kabupaten Klaten, Kota
+	// Sorong among them - so `city = %s` on its own would pull a neighbouring
+	// state's rows into the wrong hub. Pairing it with the parent's state
+	// costs nothing and makes that impossible.
+	//
+	// This matters more here than at state level, not less: city boxes are
+	// small and dense, so bounding-box overlap at this granularity would
+	// double-count far more aggressively than the ~74% inflation it caused
+	// across the 16 Malaysian states.
+	if ( 2 === count( $ancestors ) ) {
+		$sql   .= " AND {$p}state = %s AND {$p}city = %s";
+		$args[] = get_the_title( $ancestors[0] );
+		$args[] = get_the_title( $place_id );
+
+		return array( 'sql' => $sql, 'args' => $args );
+	}
+
+	// Anything deeper (a sub-district, if one is ever added) still falls back
+	// to the bounding box, and would need its own attribution column first.
 	$sql .= " AND {$p}latitude BETWEEN %f AND %f AND {$p}longitude BETWEEN %f AND %f";
 
 	$args[] = $geo['south'];

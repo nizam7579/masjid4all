@@ -65,6 +65,22 @@ function mfa_schema_maybe_add_cct_index() {
 		if ( ! $has ) {
 			$wpdb->query( "ALTER TABLE {$full} ADD INDEX idx_cct_single_post_id (cct_single_post_id)" );
 		}
+
+		// The /places/ hub membership query filters on country + state + city
+		// together (mfa_place_listing_where), and `city` was indexed nowhere:
+		// EXPLAIN reported type ALL over 136,880 rows at ~35ms for a single
+		// city lookup. Composite rather than a bare city index because all
+		// three columns are in the same WHERE. Prefix lengths keep the key
+		// under InnoDB's limit, matching the idx_state (state(50)) precedent.
+		if ( 'jet_cct_web' === $table ) {
+			continue; // No state/city columns on this one.
+		}
+		$has_geo = $wpdb->get_var(
+			$wpdb->prepare( "SHOW INDEX FROM {$full} WHERE Key_name = %s", 'idx_country_state_city' )
+		);
+		if ( ! $has_geo ) {
+			$wpdb->query( "ALTER TABLE {$full} ADD INDEX idx_country_state_city (country(50), state(50), city(80))" );
+		}
 	}
 
 	if ( get_option( 'mfa_schema_cct_index_version' ) !== MFA_SCHEMA_CCT_INDEX_VERSION ) {

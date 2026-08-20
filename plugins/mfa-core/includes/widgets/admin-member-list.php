@@ -150,7 +150,9 @@ function mfa_admin_member_list_shortcode( $atts = array() ) {
 	// filter from what's actually in the data, not a hardcoded list.
 	// Countries present in this view's own slice of the table.
 	if ( '' !== $status_filter && in_array( $status_filter, $status_options, true ) ) {
-		$country_scope = $wpdb->prepare( 'status = %s', $status_filter );
+		$country_scope = ( 'Prospect' === $status_filter && ! $prospect_view )
+			? mfa_admin_member_reached_out_sql()
+			: $wpdb->prepare( 'status = %s', $status_filter );
 	} elseif ( $is_restricted ) {
 		$country_scope = $wpdb->prepare( 'status IN (' . implode( ',', array_fill( 0, count( $restrict ), '%s' ) ) . ')', $restrict );
 	} else {
@@ -174,8 +176,18 @@ function mfa_admin_member_list_shortcode( $atts = array() ) {
 	}
 
 	if ( '' !== $status_filter && in_array( $status_filter, $status_options, true ) ) {
-		$where[]  = 'status = %s';
-		$params[] = $status_filter;
+		if ( 'Prospect' === $status_filter && ! $prospect_view ) {
+			// On a members-oriented page, "Prospect" means the ones worth
+			// following up - someone who messaged Sofia - not all 109K, of which
+			// 34,582 are imported directory contacts nobody has spoken to. That
+			// is already what this page shows when no filter is chosen; choosing
+			// the filter explicitly should narrow the view, not widen it by four
+			// orders of magnitude. The Prospects page still lists them all.
+			$where[] = mfa_admin_member_reached_out_sql();
+		} else {
+			$where[]  = 'status = %s';
+			$params[] = $status_filter;
+		}
 	} elseif ( $is_restricted ) {
 		// No explicit filter chosen, so bound the table to the allowed set.
 		$status_in = 'status IN (' . implode( ',', array_fill( 0, count( $restrict ), '%s' ) ) . ')';

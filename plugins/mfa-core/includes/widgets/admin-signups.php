@@ -96,25 +96,40 @@ function mfa_signup_routes() {
 /* ---------------- Overview: people ---------------- */
 
 /**
- * Member/prospect counts, straight off jet_cct_member.status - the same
- * column /admin/member and /admin/prospects filter on.
+ * Member/prospect counts for the traction view.
+ *
+ * Scoped to exactly what /admin/member lists: members, premium members, and
+ * prospects who actually reached out - NOT the imported contacts. The
+ * imports are a mailing list, not traction; counting them here made the
+ * headline read 109,407 and buried the handful of people who genuinely
+ * turned up. They still exist and are still the campaign target (see the
+ * note under the card), they just are not what this panel measures.
+ *
+ * The "reached out" predicate is shared with the list page
+ * (mfa_admin_member_reached_out_sql) so the two always agree.
  */
 function mfa_overview_members() {
 	return mfa_overview_cached( 'members', function () {
 		global $wpdb;
 
 		$cct    = $wpdb->prefix . 'jet_cct_member';
-		$counts = array( 'prospects' => 0, 'members' => 0, 'premium' => 0, 'unset' => 0, 'total' => 0 );
+		$counts = array( 'prospects' => 0, 'members' => 0, 'premium' => 0, 'unset' => 0, 'total' => 0, 'imported' => 0 );
+
+		$reached = function_exists( 'mfa_admin_member_reached_out_sql' )
+			? mfa_admin_member_reached_out_sql()
+			: "( status = 'Prospect' AND 1 = 0 )";
+
+		$counts['prospects'] = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$cct} WHERE {$reached}" );
 
 		$rows = $wpdb->get_results( "SELECT status, COUNT(*) AS n FROM {$cct} GROUP BY status", ARRAY_A );
 
 		foreach ( $rows as $row ) {
 			$n = (int) $row['n'];
-			$counts['total'] += $n;
 
 			switch ( (string) $row['status'] ) {
 				case 'Prospect':
-					$counts['prospects'] += $n;
+					// Counted above by the reached-out predicate instead.
+					$counts['imported'] += $n;
 					break;
 				case 'Member':
 					$counts['members'] += $n;
@@ -128,12 +143,20 @@ function mfa_overview_members() {
 					// /admin/member restricts to member statuses and
 					// /admin/prospects is locked to Prospect - so nobody would
 					// ever find these people. Surfacing the count is the only
-					// thing standing between them and being lost, and it keeps
-					// the rows adding up to the total printed beneath them.
+					// thing standing between them and being lost.
 					$counts['unset'] += $n;
 					break;
 			}
 		}
+
+		// The imported pool minus the ones who have since reached out.
+		$counts['imported'] = max( 0, $counts['imported'] - $counts['prospects'] );
+
+		// Deliberately excludes 'unset': the total has to tally with what
+		// /admin/member lists, and a row with no status is listed nowhere.
+		// It is reported in the card's caveat line instead of being silently
+		// dropped - see the render.
+		$counts['total'] = $counts['prospects'] + $counts['members'] + $counts['premium'];
 
 		// Members converted today: user_registered is reset at activation, so
 		// it is real for these rows specifically. GMT, like the column.
@@ -468,13 +491,25 @@ function mfa_admin_signups_shortcode() {
 			<?php
 			// --- People
 			$people_rows  = mfa_overview_row( 'Today', $people['today'], '', sprintf( '%d members, %d prospects', $people['members_today'], $people['prospects_today'] ) );
-			$people_rows .= mfa_overview_row( 'Prospects', $people['prospects'], $prospect_url );
+			$people_rows .= mfa_overview_row( 'Prospects', $people['prospects'], $member_url, 'reached out to us' );
 			$people_rows .= mfa_overview_row( 'Members', $people['members'], add_query_arg( 'status', 'Member', $member_url ) );
 			$people_rows .= mfa_overview_row( 'Premium', $people['premium'], add_query_arg( 'status', 'Premium Member', $member_url ) );
+			$people_flag = $people['imported']
+				? sprintf(
+					/* translators: %s: formatted count of imported contacts. */
+					'Excludes %s imported contacts, counted at /admin/prospects.',
+					number_format_i18n( $people['imported'] )
+				)
+				: '';
 			if ( $people['unset'] > 0 ) {
-				$people_rows .= mfa_overview_row( 'No status', $people['unset'], '', 'not in either list' );
+				// Listed by neither page, so it can only be surfaced here.
+				$people_flag .= sprintf(
+					/* translators: %d: number of member rows with no status. */
+					' %d row(s) have no status and appear in no list.',
+					$people['unset']
+				);
 			}
-			echo mfa_overview_card( 'Members', $people_rows, $people['total'] ); // phpcs:ignore WordPress.Security.EscapeOutput
+			echo mfa_overview_card( 'Members', $people_rows, $people['total'], '', $people_flag ); // phpcs:ignore WordPress.Security.EscapeOutput
 
 			echo mfa_overview_card( 'Mosque', $render_listing( $mosque, 'mosque', $mosque_order ), $mosque['total'], home_url( '/admin/mosque/' ), $mosque_flag ); // phpcs:ignore WordPress.Security.EscapeOutput
 			echo mfa_overview_card( 'Business', $render_listing( $business, 'business', $business_order ), $business['total'], home_url( '/admin/business/' ) ); // phpcs:ignore WordPress.Security.EscapeOutput
@@ -505,7 +540,7 @@ function mfa_admin_signups_shortcode() {
 		</div>
 		<p class="mfa-ov-foot">
 			&ldquo;From a prospect&rdquo; counts members who started as one of the
-			<?php echo esc_html( number_format_i18n( mfa_overview_members()['prospects'] ) ); ?> imported contacts &mdash;
+			<?php echo esc_html( number_format_i18n( $people['imported'] ) ); ?> imported contacts &mdash;
 			the number the ads, bulk WhatsApp and email campaigns are trying to move.
 			Route tracking began on 19 Aug, so anyone who joined earlier counts as &ldquo;Before tracking&rdquo;.
 		</p>

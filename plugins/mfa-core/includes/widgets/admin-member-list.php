@@ -17,6 +17,31 @@ function mfa_admin_member_status_options() {
 	return array( 'Prospect', 'Member', 'Premium Member', 'Premium Lifetime' );
 }
 
+/**
+ * SQL predicate for "a prospect who actually reached out".
+ *
+ * Someone who messaged Sofia is a real lead, not a name on an imported
+ * list, and they are who the team follows up. Imported contacts are
+ * excluded by the lead_source meta the importer wrote (34,582 of them);
+ * a Sofia-created contact has none. Note the test is on the VALUE, not on
+ * the meta being present - Sofia contacts carry lead_source too, so
+ * testing presence would exclude every real lead and look correct because
+ * the count would not move.
+ *
+ * Shared with the dashboard Overview, which must show the same number this
+ * list shows - the two disagreeing about how many real prospects exist is
+ * exactly the confusion this whole panel is meant to remove.
+ */
+function mfa_admin_member_reached_out_sql() {
+	global $wpdb;
+
+	return "( status = 'Prospect' AND user_id IN ("
+		. " SELECT c.user_id FROM {$wpdb->prefix}nwa_conversations c"
+		. " WHERE c.user_id > 0 AND c.user_id NOT IN ("
+		. " SELECT um.user_id FROM {$wpdb->usermeta} um WHERE um.meta_key = 'lead_source' AND um.meta_value LIKE 'directory:%'"
+		. " ) ) )";
+}
+
 add_shortcode( 'mfa_admin_member_list', 'mfa_admin_member_list_shortcode' );
 
 /**
@@ -124,18 +149,7 @@ function mfa_admin_member_list_shortcode( $atts = array() ) {
 		$status_in = 'status IN (' . implode( ',', array_fill( 0, count( $restrict ), '%s' ) ) . ')';
 
 		if ( $includes_reached_out ) {
-			// The Members view also shows prospects who actually reached out.
-			// Someone who messaged Sofia is a real lead, not a name on an
-			// imported list, and they are who the team follows up. Imported
-			// contacts are excluded by the lead_source meta the importer wrote
-			// (34,618 of them); a Sofia-created contact has none.
-			$reached_out = "( status = 'Prospect' AND user_id IN ("
-				. " SELECT c.user_id FROM {$wpdb->prefix}nwa_conversations c"
-				. " WHERE c.user_id > 0 AND c.user_id NOT IN ("
-				. " SELECT um.user_id FROM {$wpdb->usermeta} um WHERE um.meta_key = 'lead_source' AND um.meta_value LIKE 'directory:%'"
-				. " ) ) )";
-
-			$where[] = '( ' . $status_in . ' OR ' . $reached_out . ' )';
+			$where[] = '( ' . $status_in . ' OR ' . mfa_admin_member_reached_out_sql() . ' )';
 		} else {
 			$where[] = $status_in;
 		}

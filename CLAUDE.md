@@ -585,6 +585,26 @@ their actual status as of the 2026-08-04 cutover:
   beat `directory` and answered every "claim business" with "Sorry, something
   went wrong on our end" until 2026-08-20. After any action work, re-check
   that every enabled action's `callback_function` actually exists.
+- **The `/admin/whatsapp/` inbox** — the conversation list marks anyone still
+  inside the 24-hour window with a green ✓ and a left border (the tick
+  carries the meaning; colour alone is not an accessible signal), read from
+  the row `get_conversations()` already returns. The reply box is **always
+  rendered and disabled outside the window, never hidden** — a control that
+  vanishes leaves staff guessing, an inert one explains itself.
+
+  mfa-core's action bar renders under the profile, limited to Send WhatsApp +
+  Send Template, so the prepared messages work from the inbox and not only
+  from Member Info. **The window rule lives in
+  `mfa_admin_member_contact_state()` alone** — the inbox does not restate it.
+  The inline template picker is now only a fallback for when mfa-core is
+  absent, since niz-wa running standalone is a supported setup that would
+  otherwise lose its only way to send a template.
+
+  `mfa_admin_member_actions_render( $row, $user_id, $only )` gates the **modal
+  markup as well as the buttons** — a hidden overlay nobody can open is still
+  markup, and the edit modal costs a `DISTINCT country` query. Any new caller
+  also needs the action CSS/JS enqueued for its page: `widgets-enqueue.php`
+  keys them by `post_name`.
 - **Admin-sent button messages** — `/admin/member/info/` → Send WhatsApp can
   send interactive messages, so a member is activated or verifies an email
   inside WhatsApp rather than being sent to `/member/`. Options: Free-form,

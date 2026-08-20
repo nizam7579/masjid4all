@@ -285,6 +285,33 @@ guard makes all of that idempotent.
   explicit decision, 2026-08-19) so Google and Sofia members — who never had one —
   can set one. Compensating control is a notification email on every change; keep it.
 
+## Staff roles on `/admin/` — two questions, not one
+
+Which **pages** a role may open, and what it sees **on** them, are separate
+gates. Both live in `admin-access-control.php`; keep them there rather than
+scattering role checks into widgets.
+
+- `mfa_user_can_access_admin_section()` — page access. Administrator/Editor
+  get every section, Helpline everything except `reports`, Author only
+  `knowledge`. It **always returns true for `dashboard`**, which is why the
+  second gate exists.
+- `mfa_admin_dashboard_shows_metrics()` — Administrator/Editor only. Gates the
+  dashboard's **Overview**, **How the new members arrived** and **Interest &
+  leads**.
+- `mfa_admin_dashboard_shows_followup()` — the above **plus Helpline**. Gates
+  **Needs follow-up**.
+
+So Helpline sees only the follow-up queue — that is the role, and the rest is
+management reporting it cannot act on — and Author sees nothing, with
+`mfa_admin_signups_shortcode()` returning `''` rather than an empty
+`<section>` that would leave a gap.
+
+Two conventions worth keeping when adding a role check: call the helpers
+through `function_exists()` so a missing access-control file renders the page
+in full instead of blanking it for everyone, and match **`nwa_helpline` by
+string** — role membership is plain usermeta, so nothing here should
+hard-depend on niz-wa being active.
+
 ## Security — Non-Negotiable
 - **No hardcoded credentials, API keys, or secrets in plugin code.** This was already
   cleaned up across all four `enaizi-*` plugins — do not reintroduce this pattern.

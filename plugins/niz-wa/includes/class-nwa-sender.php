@@ -136,6 +136,219 @@ class NWA_Sender {
 	}
 
 	/**
+	 * Media message — image, video, document or audio. Inside the 24h window
+	 * only, same as the other free-form types.
+	 *
+	 * $source is either a publicly reachable URL or a Meta media id. It is
+	 * told apart by looking for a scheme, so a caller never has to say which
+	 * it has. A URL is the usual case here: everything we send (a rate card,
+	 * a promo image) already lives in wp-content/uploads and is public, and
+	 * Meta fetches it itself. Uploading a private file to Meta's /media
+	 * endpoint to obtain an id is NOT implemented; if that is ever needed,
+	 * it is a separate multipart request, and this method already accepts
+	 * the id it would return.
+	 *
+	 * Meta's own limits, worth knowing because it rejects rather than
+	 * truncates: image 5MB (jpeg/png), video 16MB (mp4/3gpp), audio 16MB,
+	 * document 100MB. A caption is allowed on image, video and document but
+	 * NOT audio, and `filename` applies only to a document - passing either
+	 * where it doesn't belong is an error, so both are dropped rather than
+	 * forwarded blindly.
+	 *
+	 * @param string $type image|video|document|audio
+	 */
+	public static function send_media( $user_id, $to, $type, $source, $caption = '', $filename = '' ) {
+		$allowed = array( 'image', 'video', 'document', 'audio' );
+		$type    = strtolower( (string) $type );
+
+		if ( ! in_array( $type, $allowed, true ) ) {
+			return array( 'success' => false, 'error' => 'unsupported_media_type', 'message_id' => null );
+		}
+
+		$source = trim( (string) $source );
+		if ( '' === $source ) {
+			return array( 'success' => false, 'error' => 'missing_media_source', 'message_id' => null );
+		}
+
+		$conversation = NWA_DB::get_conversation_by_user( $user_id );
+
+		if ( ! $conversation || ! NWA_DB::is_within_window( $conversation ) ) {
+			error_log( 'Niz WA: send_media blocked — user_id=' . $user_id . ' to=' . $to
+				. ' type=' . $type
+				. ' conversation_found=' . ( $conversation ? 'yes' : 'no' )
+				. ' window_expires_at=' . ( $conversation->window_expires_at ?? 'n/a' )
+				. ' now_gmt=' . current_time( 'mysql', true ) );
+			return array( 'success' => false, 'error' => 'outside_window', 'message_id' => null );
+		}
+
+		// A URL goes as `link`, anything else is treated as an already-uploaded
+		// media id. wp_http_validate_url() also rejects a local/private host,
+		// which matters because Meta has to be able to fetch it.
+		$media = ( 0 === strpos( $source, 'http' ) )
+			? array( 'link' => $source )
+			: array( 'id' => $source );
+
+		if ( isset( $media['link'] ) && ! wp_http_validate_url( $source ) ) {
+			return array( 'success' => false, 'error' => 'invalid_media_url', 'message_id' => null );
+		}
+
+		$caption = trim( (string) $caption );
+		if ( '' !== $caption && 'audio' !== $type ) {
+			// Meta caps captions at 1024 characters.
+			$media['caption'] = mb_substr( $caption, 0, 1024 );
+		}
+
+		if ( 'document' === $type && '' !== trim( (string) $filename ) ) {
+			$media['filename'] = sanitize_file_name( $filename );
+		}
+
+		$body = array(
+			'messaging_product' => 'whatsapp',
+			'to'                => $to,
+			'type'              => $type,
+			$type               => $media,
+		);
+
+		$response = self::api_request( $body );
+
+		if ( $response['success'] ) {
+			// The thread stores what was sent, not the bytes: the caption if
+			// there is one, otherwise the source, so the inbox row is
+			// recognisable rather than blank.
+			NWA_DB::insert_outbound_message( array(
+				'user_id'         => $user_id,
+				'conversation_id' => $conversation->id,
+				'wa_number'       => $to,
+				'msg_type'        => $type,
+				'content'         => '' !== $caption ? $caption : $source,
+				'meta_message_id' => $response['message_id'],
+			) );
+			NWA_DB::touch_outbound( $conversation->id, current_time( 'mysql', true ) );
+		}
+
+		return $response;
+	}
+
+	/**
+	 * Interactive list message — a tappable menu of up to 10 rows. Inside the
+	 * 24h window only.
+	 *
+	 * Use this instead of send_buttons() when there are more than three
+	 * choices; buttons cap at three, a list at ten (in total, across all
+	 * sections).
+	 *
+	 * $sections is an array of:
+	 *   array( 'title' => 'Section name', 'rows' => array(
+	 *       array( 'id' => 'x', 'title' => 'Row', 'description' => 'optional' ),
+	 *   ) )
+	 *
+	 * Meta's limits are enforced here by truncation rather than left to the
+	 * API, which rejects the whole message instead: button 20 chars, section
+	 * title 24, row title 24, row description 72, row id 200, 10 rows total.
+	 *
+	 * Note how the reply comes back: NWA_Webhook reads `list_reply` and
+	 * returns the row's TITLE, exactly as it does for buttons - so a router
+	 * matching on the tap should compare titles, not ids.
+	 */
+	public static function send_list( $user_id, $to, $body_text, $button_label, $sections, $header = '', $footer = '' ) {
+		$conversation = NWA_DB::get_conversation_by_user( $user_id );
+
+		if ( ! $conversation || ! NWA_DB::is_within_window( $conversation ) ) {
+			error_log( 'Niz WA: send_list blocked — user_id=' . $user_id . ' to=' . $to
+				. ' conversation_found=' . ( $conversation ? 'yes' : 'no' )
+				. ' window_expires_at=' . ( $conversation->window_expires_at ?? 'n/a' )
+				. ' now_gmt=' . current_time( 'mysql', true ) );
+			return array( 'success' => false, 'error' => 'outside_window', 'message_id' => null );
+		}
+
+		$clean_sections = array();
+		$row_budget     = 10;
+
+		foreach ( (array) $sections as $section ) {
+			if ( $row_budget < 1 ) {
+				break;
+			}
+
+			$rows = array();
+			foreach ( (array) ( $section['rows'] ?? array() ) as $row ) {
+				if ( $row_budget < 1 ) {
+					break;
+				}
+
+				$title = trim( (string) ( $row['title'] ?? '' ) );
+				if ( '' === $title ) {
+					continue; // A row with no title is not tappable.
+				}
+
+				$entry = array(
+					'id'    => substr( (string) ( $row['id'] ?? $title ), 0, 200 ),
+					'title' => mb_substr( $title, 0, 24 ),
+				);
+
+				$description = trim( (string) ( $row['description'] ?? '' ) );
+				if ( '' !== $description ) {
+					$entry['description'] = mb_substr( $description, 0, 72 );
+				}
+
+				$rows[] = $entry;
+				$row_budget--;
+			}
+
+			if ( ! $rows ) {
+				continue; // Meta rejects an empty section.
+			}
+
+			$clean_sections[] = array(
+				'title' => mb_substr( (string) ( $section['title'] ?? '' ), 0, 24 ),
+				'rows'  => $rows,
+			);
+		}
+
+		if ( ! $clean_sections ) {
+			return array( 'success' => false, 'error' => 'no_list_rows', 'message_id' => null );
+		}
+
+		$interactive = array(
+			'type'   => 'list',
+			'body'   => array( 'text' => mb_substr( self::format_for_whatsapp( $body_text ), 0, 1024 ) ),
+			'action' => array(
+				'button'   => mb_substr( (string) $button_label, 0, 20 ),
+				'sections' => $clean_sections,
+			),
+		);
+
+		if ( '' !== trim( (string) $header ) ) {
+			$interactive['header'] = array( 'type' => 'text', 'text' => mb_substr( $header, 0, 60 ) );
+		}
+		if ( '' !== trim( (string) $footer ) ) {
+			$interactive['footer'] = array( 'text' => mb_substr( $footer, 0, 60 ) );
+		}
+
+		$body = array(
+			'messaging_product' => 'whatsapp',
+			'to'                => $to,
+			'type'              => 'interactive',
+			'interactive'       => $interactive,
+		);
+
+		$response = self::api_request( $body );
+
+		if ( $response['success'] ) {
+			NWA_DB::insert_outbound_message( array(
+				'user_id'         => $user_id,
+				'conversation_id' => $conversation->id,
+				'wa_number'       => $to,
+				'msg_type'        => 'interactive',
+				'content'         => $body_text,
+				'meta_message_id' => $response['message_id'],
+			) );
+			NWA_DB::touch_outbound( $conversation->id, current_time( 'mysql', true ) );
+		}
+
+		return $response;
+	}
+
+	/**
 	 * Interactive WhatsApp Flow message — opens a native in-chat form. Like
 	 * send_message()/send_buttons(), only valid inside the 24h window. The
 	 * flow must already be published in Meta's WhatsApp Manager; $screen_id
@@ -296,6 +509,14 @@ function nwa_send_template( $to, $template_name, $lang_code = 'en_US', $componen
 
 function nwa_send_buttons( $user_id, $to, $body_text, $buttons ) {
 	return NWA_Sender::send_buttons( $user_id, $to, $body_text, $buttons );
+}
+
+function nwa_send_media( $user_id, $to, $type, $source, $caption = '', $filename = '' ) {
+	return NWA_Sender::send_media( $user_id, $to, $type, $source, $caption, $filename );
+}
+
+function nwa_send_list( $user_id, $to, $body_text, $button_label, $sections, $header = '', $footer = '' ) {
+	return NWA_Sender::send_list( $user_id, $to, $body_text, $button_label, $sections, $header, $footer );
 }
 
 function nwa_send_flow( $user_id, $to, $body_text, $flow_id, $flow_cta, $screen_id, $flow_token = null ) {

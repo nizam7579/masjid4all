@@ -458,13 +458,33 @@ working copy: `C:\projects\masjid4all`.
 ### `niz-wa` feature scope — status
 Full WhatsApp management plugin, not just a messaging shim. Core capabilities and
 their actual status as of the 2026-08-04 cutover:
-- **Sending messages** — ✅ done. Text via `nwa_send_message()`, templates via
-  `nwa_send_template()`, both in `includes/class-nwa-sender.php`. AI-generated
-  replies are passed through `NWA_Sender::format_for_whatsapp()` to convert
-  Markdown (`**bold**`, `### headers`) into WhatsApp's own formatting before sending.
-- **Template management** — ❌ not built. Sending a template message works, but
-  there's no UI/API flow to create templates or submit them to Meta for approval.
-  Still a gap against the original scope if that's needed.
+- **Sending messages** — ✅ done, all six WhatsApp types, every one in
+  `includes/class-nwa-sender.php`:
+  `nwa_send_message()` (text), `nwa_send_buttons()` (max 3 reply buttons),
+  `nwa_send_list()` (up to 10 rows across sections), `nwa_send_media()`
+  (image/video/document/audio), `nwa_send_flow()` (native in-chat form) and
+  `nwa_send_template()`. AI-generated replies pass through
+  `NWA_Sender::format_for_whatsapp()`, which converts Markdown (`**bold**`,
+  `### headers`) into WhatsApp's own formatting first.
+  **Only `nwa_send_template()` works outside the 24-hour window** — the other
+  five check `NWA_DB::is_within_window()` themselves and return
+  `error => 'outside_window'` rather than letting Meta reject it.
+  **Watch the argument order:** `nwa_send_template()` takes the phone number
+  first (`$to, $template, $lang, $components, $user_id`), unlike every other
+  sender, which takes `$user_id` first.
+  Meta's limits are enforced locally by truncation (button title 20 chars,
+  list row title 24, description 72, caption 1024) because Meta rejects the
+  whole message rather than trimming. `nwa_send_media()` takes a public URL
+  **or** a Meta media id and tells them apart itself; uploading a private
+  file to `/media` for an id is not implemented.
+- **Template management** — ⚠️ partial. **Sending** an approved template is
+  done, and `/admin/whatsapp/` offers a template picker in place of the reply
+  box once the window closes (names come from `mfa_admin_member_templates()`
+  when mfa-core is present, so the inbox and the member admin screen cannot
+  disagree; filterable as `nwa_message_templates`). What is still **not**
+  built is creating templates or submitting them to Meta for approval — and
+  **no template has been approved in Meta yet**, so every send currently
+  fails with Meta's own error, shown on screen rather than swallowed.
 - **User/contact management** — ✅ done, via `mfa-core`'s identity functions
   (moved from `enaizi-user` — see Plugin Architecture above), hooked through
   `nwa_resolve_user_id`. **Note:** `niz-wa` is intentionally standalone now —
@@ -476,6 +496,25 @@ their actual status as of the 2026-08-04 cutover:
   noted above. Signature verification (`x-hub-signature-256` HMAC), dedupe, and a
   "typing…" indicator (`NWA_Sender::mark_read_with_typing()`) shown while a reply is
   generated are all implemented. No opt-out/unsubscribe flow has been built.
+- **Inbound media** — ✅ downloaded into the WordPress media library at receipt
+  (`includes/class-nwa-media.php`, 2026-08-20), with the attachment id on
+  `wp_nwa_messages.media_attachment_id` and the file rendered inline in the
+  inbox. **It has to happen at receipt**: an inbound media id stops resolving
+  after ~30 days, so fetching lazily would lose anything nobody opened in a
+  month. Because the webhook is synchronous on this host, the download is
+  bounded — size checked from Meta's metadata *before* the bytes are fetched,
+  capped at 8MB (`nwa_media_max_bytes`), short timeouts, and any failure is
+  logged and ignored so a reply still goes out. The file extension comes from
+  Meta's reported MIME through an allow-list, never a sender-supplied
+  filename. A media message's `content` is now its **caption**, or a marker
+  like `[image]` / `[document: invoice.pdf]` — it used to be the bare media
+  id, which reached the router and the AI as an opaque string while the
+  caption was discarded.
+- **`wp_nwa_*` schema changes** — bump `NWA_DB_VERSION` in `niz-wa.php` and
+  edit `NWA_DB::create_tables()`. The plugin compares the constant against
+  the `nwa_db_version` option on load and re-runs `dbDelta()` itself, so a
+  plain file update applies the migration with no activation step. Adding
+  `media_attachment_id` this way left all 371 production rows untouched.
 - **Action registry** — a data-driven system not in the original scope doc:
   `wp_nwa_actions` holds keyword-triggered and AI-intent-classified actions
   (`start`, `register`, `reset_password`, `claim_business`, `membership_price`,

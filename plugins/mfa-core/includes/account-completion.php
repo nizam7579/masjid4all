@@ -140,3 +140,27 @@ function mfa_completion_after_password_reset( $user, $new_pass ) {
 		update_user_meta( $user->ID, 'mfa_password_set', 'yes' );
 	}
 }
+
+/**
+ * Don't email a change-of-address notice to an address that doesn't exist.
+ *
+ * WordPress notifies the OLD address when someone changes their email. For
+ * the members this matters to, the old address is a <phone>@mfa.com or
+ * @noemail.com placeholder on a domain we don't own - so the notice is a
+ * guaranteed hard bounce, on a sending domain with no history, which is the
+ * exact reputation damage mfa_is_placeholder_email() exists to avoid.
+ *
+ * Only suppressed when the OLD address was a placeholder; a real address
+ * changing to another real address still gets the notice, which is a
+ * genuine security signal.
+ */
+add_filter( 'send_email_change_email', 'mfa_skip_change_notice_to_placeholder', 10, 3 );
+function mfa_skip_change_notice_to_placeholder( $send, $user, $userdata ) {
+	$old = isset( $user['user_email'] ) ? $user['user_email'] : '';
+
+	if ( $old && mfa_is_placeholder_email( $old ) ) {
+		return false;
+	}
+
+	return $send;
+}

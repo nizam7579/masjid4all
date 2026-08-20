@@ -169,6 +169,22 @@ function mfa_admin_member_list_shortcode( $atts = array() ) {
 		$params[] = $rank_filter;
 	}
 
+	// "Needs email": the working list for capturing real addresses. Matched on
+	// the WP user's email, not the CCT's - wp_users is what everything else
+	// reads, and the two can disagree. The domains come from the same filter
+	// mfa_is_placeholder_email() uses, so adding a third placeholder domain
+	// there does not leave this query behind.
+	$needs_email = isset( $_GET['needs'] ) && 'email' === $_GET['needs'];
+	if ( $needs_email ) {
+		$domains = apply_filters( 'mfa_placeholder_email_domains', array( 'mfa.com', 'noemail.com' ) );
+		$likes   = array();
+		foreach ( $domains as $domain ) {
+			$likes[]  = 'u.user_email LIKE %s';
+			$params[] = '%@' . $wpdb->esc_like( $domain );
+		}
+		$where[] = 'user_id IN ( SELECT u.ID FROM ' . $wpdb->users . ' u WHERE ' . implode( ' OR ', $likes ) . ' )';
+	}
+
 	$where_sql = implode( ' AND ', $where );
 
 	$count_sql = "SELECT COUNT(*) FROM {$cct_table} WHERE {$where_sql}";
@@ -223,9 +239,15 @@ function mfa_admin_member_list_shortcode( $atts = array() ) {
 			</select>
 			<?php endif; ?>
 
+			<?php // A checkbox inside the form so it survives alongside the other filters. ?>
+			<label class="mfa-admin-member-needs">
+				<input type="checkbox" name="needs" value="email" <?php checked( $needs_email ); ?>>
+				Needs email
+			</label>
+
 			<button type="submit" class="mfa-btn mfa-btn-primary mfa-admin-member-filter-btn">Filter</button>
-			<?php if ( '' !== $search || '' !== $status_filter || '' !== $rank_filter || '' !== $country_filter ) : ?>
-				<a href="<?php echo esc_url( remove_query_arg( array( 'member_search', 'status', 'rank', 'mcountry', 'paged' ) ) ); ?>" class="mfa-admin-member-clear">Clear</a>
+			<?php if ( '' !== $search || '' !== $status_filter || '' !== $rank_filter || '' !== $country_filter || $needs_email ) : ?>
+				<a href="<?php echo esc_url( remove_query_arg( array( 'member_search', 'status', 'rank', 'mcountry', 'needs', 'paged' ) ) ); ?>" class="mfa-admin-member-clear">Clear</a>
 			<?php endif; ?>
 		</form>
 
@@ -285,6 +307,20 @@ function mfa_admin_member_list_shortcode( $atts = array() ) {
 								<td data-label="" class="mfa-admin-member-actions">
 									<?php if ( ! empty( $row['user_id'] ) ) : ?>
 										<a href="<?php echo esc_url( add_query_arg( 'id', (int) $row['user_id'], home_url( '/admin/member/info/' ) ) ); ?>" target="_blank" rel="noopener" class="mfa-btn mfa-btn-solid-dark mfa-admin-member-view-btn">View</a>
+										<?php
+										// The only way to reach someone with no usable address: a
+										// link THEY tap, which opens the 24-hour window and starts
+										// Sofia's email flow. Staff send it themselves, because the
+										// platform cannot message these people at all.
+										$ask_user  = get_userdata( (int) $row['user_id'] );
+										$ask_email = $ask_user ? $ask_user->user_email : '';
+										$ask_link  = ( $ask_email && function_exists( 'mfa_is_placeholder_email' ) && mfa_is_placeholder_email( $ask_email ) && function_exists( 'mfa_member_email_capture_link' ) )
+											? mfa_member_email_capture_link( (int) $row['user_id'] )
+											: '';
+										if ( $ask_link ) :
+											?>
+											<a href="<?php echo esc_url( $ask_link ); ?>" target="_blank" rel="noopener" class="mfa-btn mfa-btn-secondary mfa-admin-member-ask-btn" title="Opens WhatsApp with a prefilled message for them to send">Ask for email</a>
+										<?php endif; ?>
 									<?php endif; ?>
 								</td>
 							</tr>

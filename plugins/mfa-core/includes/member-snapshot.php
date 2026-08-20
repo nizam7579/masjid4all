@@ -185,6 +185,40 @@ function mfa_member_milestones( $user_id ) {
 }
 
 /**
+ * A wa.me link that starts the email-capture conversation.
+ *
+ * Sofia cannot message anyone who has never written to her, and none of the
+ * 18 members missing an address ever has - so there is no window to reply
+ * into and no approved template to open one. The way round it is the same
+ * one WhatsApp verification uses: a link the MEMBER taps, which sends
+ * "EMAIL" from their phone. That both opens the 24-hour window and matches
+ * the update_email intent, so Sofia asks for the address on arrival.
+ *
+ * Staff send this link by whatever means they already have - their own
+ * WhatsApp, SMS - because the platform itself cannot reach these people.
+ *
+ * @return string Empty when there is no number to send to.
+ */
+function mfa_member_email_capture_link( $user_id ) {
+	$phone = trim( (string) get_user_meta( (int) $user_id, 'user_phone', true ) );
+
+	if ( '' === $phone ) {
+		global $wpdb;
+		$phone = (string) $wpdb->get_var( $wpdb->prepare(
+			"SELECT phone FROM {$wpdb->prefix}jet_cct_member WHERE user_id = %d",
+			(int) $user_id
+		) );
+	}
+
+	$phone = preg_replace( '/[^0-9]/', '', $phone );
+	if ( '' === $phone ) {
+		return '';
+	}
+
+	return 'https://wa.me/' . $phone . '?text=' . rawurlencode( 'EMAIL' );
+}
+
+/**
  * What FluentCRM knows about this member - so staff can see which
  * automation someone is already in before sending them anything by hand.
  *

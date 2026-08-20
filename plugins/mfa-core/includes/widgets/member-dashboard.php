@@ -160,7 +160,22 @@ function mfa_member_dashboard_shortcode() {
 	// it's done, it's the only active next step - Edit Profile and WhatsApp
 	// verification are locked below, so every member ends up with a
 	// verified email. Order after that: profile -> WhatsApp.
-	if ( ! $email_verified ) {
+	// Ahead of "verify your email": a member on a <phone>@mfa.com or
+	// @noemail.com placeholder has no address to verify, so the verify step
+	// would ask them to confirm something that cannot receive anything.
+	// 18 members on production are in exactly this state, and since none of
+	// them has ever messaged Sofia, this page is the only place we can ask.
+	$needs_real_email = function_exists( 'mfa_is_placeholder_email' )
+		&& mfa_is_placeholder_email( $user->user_email );
+
+	if ( $needs_real_email ) {
+		$next_step = array(
+			'title' => 'Add your email address',
+			'body'  => "We don't have a real email address for your account yet, so we can't send you anything — including anything you'd need to recover your account. Adding one takes a moment.",
+			'cta'   => 'Add Email',
+			'href'  => '#mfa-dash-email',
+		);
+	} elseif ( ! $email_verified ) {
 		$next_step = array(
 			'intro' => "Congratulations! You've earned 50 Barakah points for joining Masjid4All as a member.",
 			'title' => 'Verify your email address',
@@ -248,7 +263,19 @@ function mfa_member_dashboard_shortcode() {
 			<div class="mfa-dash-action-cards">
 				<div class="mfa-card mfa-dash-security-card" id="mfa-dash-email">
 					<h3 class="mfa-h3">Email</h3>
-					<?php if ( $email_verified ) : ?>
+					<?php if ( $needs_real_email ) : ?>
+						<?php
+						// Deliberately NOT the "not verified" branch below: that offers
+						// Resend Email, which for a placeholder address means sending to
+						// a domain we don't own. It would bounce every time, and the
+						// member would be told to check an inbox that doesn't exist.
+						?>
+						<div class="mfa-dash-card-row">
+							<span class="mfa-body-muted">No email address yet</span>
+							<button type="button" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm" data-mfa-modal-open="mfa-update-email-modal">Add Email</button>
+						</div>
+						<p class="mfa-dash-card-note">We'll send a confirmation link to whichever address you add.</p>
+					<?php elseif ( $email_verified ) : ?>
 						<div class="mfa-dash-card-row">
 							<span class="mfa-dash-verified">&#10003; Verified</span>
 							<button type="button" class="mfa-btn mfa-btn-primary mfa-dash-btn-sm" data-mfa-modal-open="mfa-update-email-modal">Change Email</button>

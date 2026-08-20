@@ -222,3 +222,29 @@
   background: #e6f4f2;
   color: var(--mfa-teal-dark, #0d4d47);
 }
+
+/* ---------- No email address panel ---------- */
+
+.mfa-admin-member-needs-email {
+  margin-top: var(--mfa-space-5, 20px);
+  padding: var(--mfa-space-4, 16px);
+  background: #fdeceb;
+  border: 1px solid #f5c2c0;
+  border-radius: var(--mfa-radius-md, 12px);
+}
+
+.mfa-admin-member-needs-email h2 {
+  margin: 0 0 var(--mfa-space-2, 8px);
+  color: #8c2018;
+}
+
+.mfa-admin-member-capture-link {
+  width: 100%;
+  margin: var(--mfa-space-2, 8px) 0;
+  padding: 7px 10px;
+  border: 1px solid var(--mfa-border, #d7e4e1);
+  border-radius: var(--mfa-radius-sm, 8px);
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: var(--mfa-white, #fff);
+}

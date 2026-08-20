@@ -135,8 +135,39 @@ function niz_wa_action_reset_password( $user_id, $context ) {
 	return niz_wa_account_start( $user_id );
 }
 
+/**
+ * "email" - add or change the address on an account.
+ *
+ * Its own intent rather than folding into `register`, because it is the
+ * word a member will actually use, and because it is what the wa.me deep
+ * link on the admin member page prefills. Tapping that link both opens the
+ * 24-hour window (Sofia cannot message first) and lands straight in the
+ * capture flow.
+ */
+function niz_wa_action_update_email( $user_id, $context ) {
+	return niz_wa_account_start( $user_id );
+}
+
 function niz_wa_is_member( $user_id ) {
 	return in_array( get_user_meta( $user_id, 'user_status', true ), array( 'member', 'premium' ), true );
+}
+
+/**
+ * Does this account still have a placeholder address rather than a real one?
+ *
+ * The single test used by every part of the email-capture flow, so the
+ * question is answered the same way in Sofia, on the member dashboard and
+ * in the admin list.
+ */
+function niz_wa_needs_real_email( $user_id ) {
+	$user = get_userdata( (int) $user_id );
+	if ( ! $user ) {
+		return false;
+	}
+
+	return function_exists( 'mfa_is_placeholder_email' )
+		? mfa_is_placeholder_email( $user->user_email )
+		: false;
 }
 
 /**
@@ -152,8 +183,25 @@ function niz_wa_account_start( $user_id, $then = null ) {
 	}
 	$wa = $conversation->wa_number;
 
-	if ( niz_wa_is_member( $user_id ) ) {
+	// A member who already has a real address gets straight through. One on a
+	// placeholder (<phone>@mfa.com / @noemail.com) is asked for a real one
+	// instead: this used to congratulate them and stop, so the 18 members on
+	// production who most need an email were the exact group the flow refused
+	// to collect one from.
+	if ( niz_wa_is_member( $user_id ) && ! niz_wa_needs_real_email( $user_id ) ) {
 		niz_wa_account_finish( $user_id, $wa, "You're a Masjid4All member. 🎉", $then );
+		return '';
+	}
+
+	if ( niz_wa_is_member( $user_id ) ) {
+		$ctx = array( 'step' => 'await_email' );
+		if ( is_array( $then ) ) {
+			$ctx['then'] = $then;
+		}
+		nwa_send_message( $user_id, $wa,
+			"We don't have a real email address for your Masjid4All account yet, so we can't send you anything.\n\nWhat's your *email address*?" . niz_wa_dir_stop_hint() );
+		NWA_DB::set_pending_action( $conversation->id, 'account_flow', $ctx, 20 );
+
 		return '';
 	}
 
@@ -195,7 +243,16 @@ function niz_wa_account_route( $override, $user_id, $wa_number, $message_text, $
 
 	if ( 'await_email' === $step ) {
 		$email = sanitize_email( $text );
-		if ( ! is_email( $email ) || false !== stripos( $email, '@mfa.com' ) ) {
+
+		// Was a hardcoded '@mfa.com' test, which let the OTHER placeholder
+		// domain through - so 9 of the 18 members on a <phone>@noemail.com
+		// address could have "updated" to the very address we are trying to
+		// replace, and it would have been accepted.
+		$is_placeholder = function_exists( 'mfa_is_placeholder_email' )
+			? mfa_is_placeholder_email( $email )
+			: ( false !== stripos( $email, '@mfa.com' ) );
+
+		if ( ! is_email( $email ) || $is_placeholder ) {
 			nwa_send_message( $user_id, $wa_number,
 				"That doesn't look like a valid email. Please send a real email address (for example you@example.com)." . niz_wa_dir_stop_hint() );
 			return '';

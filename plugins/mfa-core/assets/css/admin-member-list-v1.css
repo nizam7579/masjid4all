@@ -356,3 +356,20 @@
     display: none;
   }
 }
+
+/* "Needs email" filter + the per-row ask link (2026-08-20). */
+.mfa-admin-member-needs {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--mfa-muted, #56655f);
+  white-space: nowrap;
+}
+
+.mfa-admin-member-ask-btn {
+  margin-left: 6px;
+  padding: 5px 10px;
+  font-size: 12px;
+  white-space: nowrap;
+}

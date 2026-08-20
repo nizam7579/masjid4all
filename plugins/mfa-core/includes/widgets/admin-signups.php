@@ -331,7 +331,7 @@ function mfa_overview_followup() {
 		global $wpdb;
 
 		$cct = $wpdb->prefix . 'jet_cct_member';
-		$out = array( 'open_window' => 0, 'no_email' => 0, 'open_inquiries' => 0 );
+		$out = array( 'open_window' => 0, 'no_email' => 0, 'open_inquiries' => 0, 'verified' => 0 );
 
 		$conv = $wpdb->prefix . 'nwa_conversations';
 		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $conv ) ) ) {
@@ -360,6 +360,14 @@ function mfa_overview_followup() {
 				"SELECT COUNT(*) FROM {$inq} WHERE cct_status IS NULL OR cct_status NOT IN ('Replied','Archived')"
 			);
 		}
+
+		// The upsell queue: somebody claimed these, so there is a named owner
+		// to talk to about a premium listing. Shrinks as they convert.
+		$out['verified'] = (int) $wpdb->get_var(
+			"SELECT COUNT(*) FROM {$wpdb->prefix}jet_cct_business WHERE listing_status = 'Verified'"
+		) + (int) $wpdb->get_var(
+			"SELECT COUNT(*) FROM {$wpdb->prefix}jet_cct_web WHERE listing_status = 'Verified'"
+		);
 
 		return $out;
 	} );
@@ -469,6 +477,14 @@ function mfa_admin_signups_shortcode() {
 			<a class="mfa-signups-stat" href="<?php echo esc_url( $member_url ); ?>">
 				<span class="mfa-signups-num"><?php echo esc_html( number_format_i18n( $follow['no_email'] ) ); ?></span>
 				<span class="mfa-signups-lbl">Members with no real email</span>
+			</a>
+			<a class="mfa-signups-stat" href="<?php echo esc_url( add_query_arg( 'status', 'Verified', home_url( '/admin/business/' ) ) ); ?>">
+				<span class="mfa-signups-num"><?php echo esc_html( number_format_i18n( $follow['verified'] ) ); ?></span>
+				<span class="mfa-signups-lbl">Verified listings <small>claimed &mdash; upsell to premium</small></span>
+			</a>
+			<a class="mfa-signups-stat" href="<?php echo esc_url( add_query_arg( 'status', 'Active', home_url( '/admin/mosque/' ) ) ); ?>">
+				<span class="mfa-signups-num"><?php echo esc_html( number_format_i18n( isset( $mosque['buckets']['Active'] ) ? $mosque['buckets']['Active'] : 0 ) ); ?></span>
+				<span class="mfa-signups-lbl">Active communities <small>reach the members</small></span>
 			</a>
 		</div>
 

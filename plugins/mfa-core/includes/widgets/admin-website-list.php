@@ -185,6 +185,7 @@ function mfa_admin_website_list_shortcode() {
 									<?php endif; ?>
 								</td>
 								<td data-label="" class="mfa-admin-website-actions">
+									<a href="<?php echo esc_url( add_query_arg( 'id', (int) $row['_ID'], home_url( '/admin/website/info/' ) ) ); ?>" class="mfa-btn mfa-btn-secondary mfa-admin-website-info-btn">Info</a>
 									<?php if ( $view_url ) : ?>
 										<a href="<?php echo esc_url( $view_url ); ?>" target="_blank" rel="noopener" class="mfa-btn mfa-btn-solid-dark mfa-admin-website-view-btn">View</a>
 									<?php endif; ?>

@@ -1,0 +1,173 @@
+/* /admin/{mosque,business,website}/info/ — one listing and the people
+   attached to it. Loads alongside the matching list stylesheet, which is
+   where .mfa-admin-status-* badges are defined, so this file carries only
+   what is unique to the detail page.
+
+   .mfa-admin-check-badge is redefined here rather than reached for from
+   admin-inquiry-info-v3.css: that sheet loads only on the inquiry page, so
+   depending on it would style these badges on one page and not the other. */
+
+.mfa-admin-listing-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--mfa-space-4);
+  margin-bottom: var(--mfa-space-5);
+}
+
+.mfa-admin-listing-head .mfa-h2 {
+  margin: 4px 0 0;
+}
+
+.mfa-admin-listing-back {
+  display: inline-block;
+  font-size: 13px;
+  color: var(--mfa-muted);
+  text-decoration: none;
+}
+
+.mfa-admin-listing-back:hover,
+.mfa-admin-listing-back:focus-visible {
+  color: var(--mfa-teal-dark);
+}
+
+.mfa-admin-listing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--mfa-space-4);
+  padding: var(--mfa-space-5);
+  margin-bottom: var(--mfa-space-6);
+  background: var(--mfa-white);
+  border: 1px solid var(--mfa-border);
+  border-radius: var(--mfa-radius-md);
+}
+
+.mfa-admin-listing-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+/* Long values (URLs, addresses) wrap instead of stretching the grid. */
+.mfa-admin-listing-item .mfa-body {
+  overflow-wrap: anywhere;
+}
+
+/* ---------- people ---------- */
+
+.mfa-admin-listing-people .mfa-h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--mfa-space-2);
+  margin: 0 0 var(--mfa-space-4);
+}
+
+.mfa-admin-listing-tablewrap {
+  overflow-x: auto;
+  background: var(--mfa-white);
+  border: 1px solid var(--mfa-border);
+  border-radius: var(--mfa-radius-md);
+}
+
+.mfa-admin-listing-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.mfa-admin-listing-table th {
+  padding: var(--mfa-space-3) var(--mfa-space-4);
+  text-align: left;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mfa-muted);
+  border-bottom: 1px solid var(--mfa-border);
+  white-space: nowrap;
+}
+
+.mfa-admin-listing-table td {
+  padding: var(--mfa-space-3) var(--mfa-space-4);
+  border-bottom: 1px solid var(--mfa-border);
+  vertical-align: middle;
+}
+
+.mfa-admin-listing-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.mfa-admin-listing-contact {
+  white-space: nowrap;
+}
+
+.mfa-admin-listing-note {
+  margin: var(--mfa-space-4) 0 0;
+  font-size: 12px;
+  color: var(--mfa-muted);
+}
+
+/* ---------- reachability badges ---------- */
+
+.mfa-admin-check-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 6px;
+  padding: 3px 10px;
+  border-radius: var(--mfa-radius-pill);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.mfa-admin-check-badge.is-ok {
+  background: #e6f4f2;
+  color: var(--mfa-teal-dark);
+}
+
+/* Reachable, but only through an approved template — the 24-hour window
+   has closed. Distinct from both "fine" and "cannot reach". */
+.mfa-admin-check-badge.is-warn {
+  background: #fff7e6;
+  color: #8a6100;
+}
+
+.mfa-admin-check-badge.is-no {
+  background: #fdeceb;
+  color: #8c2018;
+}
+
+@media (max-width: 640px) {
+  .mfa-admin-listing-table thead {
+    display: none;
+  }
+
+  .mfa-admin-listing-table tr {
+    display: block;
+    padding: var(--mfa-space-3) 0;
+    border-bottom: 1px solid var(--mfa-border);
+  }
+
+  .mfa-admin-listing-table td {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--mfa-space-3);
+    padding: 5px var(--mfa-space-4);
+    border: 0;
+  }
+
+  .mfa-admin-listing-table td::before {
+    content: attr(data-label);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--mfa-muted);
+  }
+
+  .mfa-admin-listing-table td:empty {
+    display: none;
+  }
+}

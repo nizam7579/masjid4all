@@ -105,6 +105,28 @@ function mfa_core_enqueue_widget_assets() {
 			wp_enqueue_style( 'mfa-core-admin-member-list', MFA_CORE_URL . 'assets/css/admin-member-list-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell' ), $get_version( $admin_member_list_css ) );
 		}
 
+		// /admin/{mosque,business,website}/info/ - the listing detail pages.
+		// Matched on the parent's slug, not a hardcoded post id: staging and
+		// production assign different ids to the same /admin/* page, so an id
+		// here would silently load nothing on one of them.
+		if ( $post && 'info' === $post->post_name && $post->post_parent ) {
+			$parent_slug = get_post_field( 'post_name', $post->post_parent );
+			$listing_map = array(
+				'mosque'   => 'admin-mosque-list-v1.css',
+				'business' => 'admin-business-list-v1.css',
+				'website'  => 'admin-website-list-v2.css',
+			);
+
+			if ( isset( $listing_map[ $parent_slug ] ) ) {
+				// The list sheet owns the .mfa-admin-status-* badges this page reuses.
+				$listing_list_css = MFA_CORE_PATH . 'assets/css/' . $listing_map[ $parent_slug ];
+				wp_enqueue_style( 'mfa-core-admin-listing-list', MFA_CORE_URL . 'assets/css/' . $listing_map[ $parent_slug ], array( 'mfa-core-global', 'mfa-core-admin-shell' ), $get_version( $listing_list_css ) );
+
+				$listing_info_css = MFA_CORE_PATH . 'assets/css/admin-listing-info-v1.css';
+				wp_enqueue_style( 'mfa-core-admin-listing-info', MFA_CORE_URL . 'assets/css/admin-listing-info-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell', 'mfa-core-admin-listing-list' ), $get_version( $listing_info_css ) );
+			}
+		}
+
 		// /admin/member/info/ - child of the Members page, reuses its
 		// .mfa-admin-status-* badge classes plus its own small layout CSS.
 		if ( $post && 'info' === $post->post_name && 217771 === (int) $post->post_parent ) {
@@ -510,6 +532,7 @@ function mfa_core_litespeed_css_excludes( $excludes ) {
 	$excludes[] = 'mfa-core/assets/css/admin-signups-v2.css';
 	$excludes[] = 'mfa-core/assets/css/admin-member-list-v1.css';
 	$excludes[] = 'mfa-core/assets/css/admin-member-info-v3.css';
+	$excludes[] = 'mfa-core/assets/css/admin-listing-info-v1.css';
 	$excludes[] = 'mfa-core/assets/css/admin-member-actions-v1.css';
 	$excludes[] = 'mfa-core/assets/css/admin-mosque-list-v1.css';
 	$excludes[] = 'mfa-core/assets/css/admin-business-list-v1.css';

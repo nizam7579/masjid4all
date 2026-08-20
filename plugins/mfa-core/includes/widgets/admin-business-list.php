@@ -154,6 +154,7 @@ function mfa_admin_business_list_shortcode() {
 									<?php endif; ?>
 								</td>
 								<td data-label="" class="mfa-admin-business-actions">
+									<a href="<?php echo esc_url( add_query_arg( 'id', (int) $row['_ID'], home_url( '/admin/business/info/' ) ) ); ?>" class="mfa-btn mfa-btn-secondary mfa-admin-business-info-btn">Info</a>
 									<?php if ( ! empty( $row['page_url'] ) ) : ?>
 										<a href="<?php echo esc_url( $row['page_url'] ); ?>" target="_blank" rel="noopener" class="mfa-btn mfa-btn-solid-dark mfa-admin-business-view-btn">View</a>
 									<?php endif; ?>

@@ -152,6 +152,7 @@ function mfa_admin_mosque_list_shortcode() {
 									<?php endif; ?>
 								</td>
 								<td data-label="" class="mfa-admin-mosque-actions">
+									<a href="<?php echo esc_url( add_query_arg( 'id', (int) $row['_ID'], home_url( '/admin/mosque/info/' ) ) ); ?>" class="mfa-btn mfa-btn-secondary mfa-admin-mosque-info-btn">Info</a>
 									<?php if ( ! empty( $row['page_url'] ) ) : ?>
 										<a href="<?php echo esc_url( $row['page_url'] ); ?>" target="_blank" rel="noopener" class="mfa-btn mfa-btn-solid-dark mfa-admin-mosque-view-btn">View</a>
 									<?php endif; ?>

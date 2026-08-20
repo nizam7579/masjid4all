@@ -154,7 +154,10 @@ function mfa_admin_member_list_shortcode( $atts = array() ) {
 			? mfa_admin_member_reached_out_sql()
 			: $wpdb->prepare( 'status = %s', $status_filter );
 	} elseif ( $is_restricted ) {
-		$country_scope = $wpdb->prepare( 'status IN (' . implode( ',', array_fill( 0, count( $restrict ), '%s' ) ) . ')', $restrict );
+		$scope_statuses = $prospect_view ? $restrict : array_values( array_diff( $restrict, array( 'Prospect' ) ) );
+		$country_scope = $scope_statuses
+			? $wpdb->prepare( 'status IN (' . implode( ',', array_fill( 0, count( $scope_statuses ), '%s' ) ) . ')', $scope_statuses )
+			: '1=0';
 	} else {
 		$country_scope = '1=1';
 	}
@@ -189,8 +192,18 @@ function mfa_admin_member_list_shortcode( $atts = array() ) {
 			$params[] = $status_filter;
 		}
 	} elseif ( $is_restricted ) {
-		// No explicit filter chosen, so bound the table to the allowed set.
-		$status_in = 'status IN (' . implode( ',', array_fill( 0, count( $restrict ), '%s' ) ) . ')';
+		// No explicit filter chosen, so bound the table to the allowed set -
+		// except that on a members page the bare 'Prospect' status is dropped
+		// from it. Offering the filter put Prospect in the allowed set, which
+		// turned "All statuses" into all 109K; the reached-out clause beside
+		// it already carries the prospects this page is about.
+		$in_statuses = $prospect_view
+			? $restrict
+			: array_values( array_diff( $restrict, array( 'Prospect' ) ) );
+
+		$status_in = $in_statuses
+			? 'status IN (' . implode( ',', array_fill( 0, count( $in_statuses ), '%s' ) ) . ')'
+			: '1=0';
 
 		if ( $includes_reached_out ) {
 			$where[] = '( ' . $status_in . ' OR ' . mfa_admin_member_reached_out_sql() . ' )';
@@ -198,7 +211,7 @@ function mfa_admin_member_list_shortcode( $atts = array() ) {
 			$where[] = $status_in;
 		}
 
-		foreach ( $restrict as $allowed_status ) {
+		foreach ( $in_statuses as $allowed_status ) {
 			$params[] = $allowed_status;
 		}
 	}
@@ -261,7 +274,13 @@ function mfa_admin_member_list_shortcode( $atts = array() ) {
 			<input type="text" name="member_search" value="<?php echo esc_attr( $search ); ?>" placeholder="Search name, phone, or email" class="mfa-admin-member-search">
 
 			<select name="status" class="mfa-admin-member-select">
-				<option value="">All statuses</option>
+				<?php
+				// Named for what it returns, not for the empty value behind it: on
+				// a members page it means members plus prospects who reached out,
+				// not all 109K rows in the table.
+				$all_label = $prospect_view ? 'All statuses' : 'Members + active prospects';
+				?>
+				<option value=""><?php echo esc_html( $all_label ); ?></option>
 				<?php foreach ( $status_options as $status_option ) : ?>
 					<option value="<?php echo esc_attr( $status_option ); ?>" <?php selected( $status_filter, $status_option ); ?>><?php echo esc_html( $status_option ); ?></option>
 				<?php endforeach; ?>

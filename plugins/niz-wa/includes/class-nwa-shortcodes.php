@@ -219,6 +219,28 @@ class NWA_Shortcodes {
 			<?php if ( $active ) : ?>
 				<div class="nwa-inbox-profile">
 					<?php
+					// The WhatsApp name and the account name are BOTH correct and
+					// frequently differ: contact_name is the profile name Meta
+					// sends on every inbound (often an organisation), while the
+					// account carries whatever they registered as. Shown together
+					// because seeing "Iqra Wa Rattel Institute" in the list and
+					// "Eslam Adel" on the member page reads as a mismatch when it
+					// is one person. Neither is overwritten - the WhatsApp one
+					// would be restored on their next message anyway.
+					$account      = get_userdata( $selected_id );
+					$account_name = $account ? trim( (string) $account->display_name ) : '';
+					$wa_name      = trim( (string) $active->contact_name );
+					?>
+					<?php if ( '' !== $account_name ) : ?>
+						<p class="nwa-inbox-identity">
+							<strong><?php echo esc_html( $account_name ); ?></strong>
+							<?php if ( '' !== $wa_name && 0 !== strcasecmp( $wa_name, $account_name ) ) : ?>
+								<br><small>WhatsApp name: <?php echo esc_html( $wa_name ); ?></small>
+							<?php endif; ?>
+							<br><small><?php echo esc_html( $active->wa_number ); ?></small>
+						</p>
+					<?php endif; ?>
+					<?php
 					// Links into mfa-core's /admin/member/info/?id={user_id} - same
 					// hardcoded-to-this-site caveat as site-integration.php's action
 					// replies (see the "Not yet portable" note in CLAUDE.md); $selected_id

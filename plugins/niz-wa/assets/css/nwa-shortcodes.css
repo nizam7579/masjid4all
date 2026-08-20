@@ -334,3 +334,13 @@
 .nwa-inbox-actions h3 {
   margin: 0 0 8px;
 }
+
+/* Both names for one person: account name first, WhatsApp profile name under
+   it when they differ. */
+.nwa-inbox-identity {
+  margin: 0 0 12px;
+  line-height: 1.4;
+}
+.nwa-inbox-identity small {
+  color: #666;
+}

@@ -84,3 +84,78 @@
 .mfa-admin-inquiry-whatsapp-note {
   margin-top: var(--mfa-space-5);
 }
+
+/* ---------- Channel validity badges (2026-08-20) ----------
+   Sits under the Email / WhatsApp values on the detail page. The page used
+   to just hide an unavailable reply button, which left staff guessing; the
+   badge states the reason instead. */
+
+.mfa-admin-check {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--mfa-space-2, 8px);
+  margin-top: 6px;
+}
+
+.mfa-admin-check-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--mfa-radius-pill, 999px);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.mfa-admin-check-badge.is-ok {
+  background: #e6f4f2;
+  color: var(--mfa-teal-dark, #0d4d47);
+}
+
+.mfa-admin-check-badge.is-no {
+  background: #fdeceb;
+  color: #8c2018;
+}
+
+.mfa-admin-check-reason {
+  font-size: 12px;
+  color: var(--mfa-muted, #56655f);
+}
+
+/* ---------- Generate with AI ---------- */
+
+.mfa-admin-inquiry-reply-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mfa-space-2, 8px);
+  margin-bottom: 6px;
+}
+
+.mfa-admin-inquiry-reply-head label {
+  margin: 0;
+}
+
+.mfa-admin-inquiry-ai-btn {
+  font-size: 12px;
+  padding: 5px 14px;
+}
+
+.mfa-admin-inquiry-ai-btn[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.mfa-admin-inquiry-ai-note {
+  margin: 6px 0 0;
+  font-size: 12px;
+  min-height: 16px;
+  color: var(--mfa-muted, #56655f);
+}
+
+.mfa-admin-inquiry-ai-note.is-error {
+  color: #b3261e;
+}

@@ -127,7 +127,7 @@ function niz_wa_action_travel_prayer( $user_id, $context = array() ) {
 	nwa_send_message(
 		$user_id,
 		$conversation->wa_number,
-		"Assalamualaikum! 🕋\n\nLet's plan your solat for the journey. I'll ask five short questions — reply *stop* anytime to cancel.\n\nFirst, which *city* are you travelling *from*?"
+		"Assalamualaikum! 🕋\n\nLet's plan your solat for the journey. I'll ask five short questions — reply *cancel* anytime.\n\nFirst, which *city* are you travelling *from*?"
 	);
 
 	NWA_DB::set_pending_action( $conversation->id, 'travel_flow', array( 'step' => 'from' ), 30 );

@@ -696,7 +696,7 @@ function mfa_lead_route( $override, $user_id, $wa_number, $message_text, $conver
 		$said_yes = ( '' !== $yes && $low === $yes ) || niz_wa_contact_is_affirmative( $text );
 		if ( ! $said_yes ) {
 			$prompt = ! empty( $cfg['buttons'] )
-				? "Just tap *{$cfg['buttons']['yes']}* or *{$cfg['buttons']['no']}* above — or type *stop* to cancel."
+				? "Just tap *{$cfg['buttons']['yes']}* or *{$cfg['buttons']['no']}* above — or type *cancel*."
 				: "Reply *YES* to continue, or *STOP* if you'd rather not.";
 			nwa_send_message( $user_id, $wa_number, $prompt );
 			return '';

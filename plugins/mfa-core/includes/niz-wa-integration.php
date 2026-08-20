@@ -710,7 +710,7 @@ function niz_wa_contact_start( $user_id, $context ) {
 
 	$known_name = niz_wa_contact_known_name( $user_id );
 
-	$intro = "I'd be glad to pass your message to the Masjid4All team. 📝\n\nLet's put it together — you can reply *stop* anytime to cancel.\n\n";
+	$intro = "I'd be glad to pass your message to the Masjid4All team. 📝\n\nLet's put it together — you can reply *cancel* anytime.\n\n";
 
 	if ( '' !== $known_name ) {
 		nwa_send_message( $user_id, $wa_number,
@@ -1124,7 +1124,7 @@ function niz_wa_directory_route( $override, $user_id, $wa_number, $message_text,
 		if ( false !== strpos( $t, 'no' ) ) {
 			NWA_DB::set_pending_action( $conversation->id, 'directory_flow', array( 'step' => 'await_link', 'type' => $ptype ), 30 );
 			nwa_send_message( $user_id, $wa_number,
-				"No problem — paste a different Google Maps link, or type *stop* to cancel." );
+				"No problem — paste a different Google Maps link, or type *cancel*." );
 			return '';
 		}
 

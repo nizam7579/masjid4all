@@ -128,3 +128,15 @@
   font-size: 11px;
   color: var(--mfa-muted, #56655f);
 }
+
+/* Opt-out notice above the action bar. */
+.mfa-mact-optout {
+  margin: var(--mfa-space-3, 12px) 0 0;
+  padding: 8px 12px;
+  background: #fdeceb;
+  border: 1px solid #f5c2c0;
+  border-radius: var(--mfa-radius-sm, 8px);
+  font-size: 12px;
+  line-height: 1.5;
+  color: #8c2018;
+}

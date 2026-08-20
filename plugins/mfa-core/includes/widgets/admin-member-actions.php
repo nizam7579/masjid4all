@@ -156,6 +156,7 @@ function mfa_admin_member_contact_state( $user_id ) {
 		'can_template'   => false,
 		'template_reason'=> '',
 		'window_expires' => '',
+		'opted_out'      => false,
 	);
 
 	if ( ! $user ) {
@@ -180,8 +181,17 @@ function mfa_admin_member_contact_state( $user_id ) {
 		return $state;
 	}
 
-	// A number is enough for a template; a plain message also needs the window.
-	$state['can_template'] = true;
+	// An opt-out blocks the template outright - it is the business-initiated
+	// channel, and niz-wa refuses it in the sender too, so offering the button
+	// would only produce a failure. Free-form stays available: that window
+	// exists because they messaged us, and answering someone who just wrote in
+	// is not what they opted out of.
+	if ( function_exists( 'nwa_is_opted_out' ) && nwa_is_opted_out( $user_id ) ) {
+		$state['opted_out']       = true;
+		$state['template_reason'] = 'They replied STOP — templates are blocked. Free-form replies inside an open window are still allowed.';
+	} else {
+		$state['can_template'] = true;
+	}
 
 	if ( ! class_exists( 'NWA_DB' ) ) {
 		$state['wa_reason'] = 'WhatsApp plugin unavailable.';
@@ -243,6 +253,11 @@ function mfa_admin_member_actions_render( $row, $user_id ) {
 
 	ob_start();
 	?>
+	<?php if ( ! empty( $state['opted_out'] ) ) : ?>
+		<?php // Stated plainly above the buttons - a disabled button explains itself only on hover. ?>
+		<p class="mfa-mact-optout">This member replied <strong>STOP</strong>. Templates are blocked; don't market to them.</p>
+	<?php endif; ?>
+
 	<div class="mfa-admin-member-actions-bar" data-user="<?php echo $uid; ?>" data-nonce="<?php echo esc_attr( $nonce ); ?>">
 		<button type="button" class="mfa-btn mfa-btn-secondary mfa-mact-btn" data-mact-open="mfa-mact-edit-<?php echo $uid; ?>">Update Info</button>
 		<button type="button" class="mfa-btn mfa-btn-secondary mfa-mact-btn" data-mact-open="mfa-mact-email-<?php echo $uid; ?>" <?php disabled( ! $state['can_email'] ); ?> title="<?php echo esc_attr( $state['email_reason'] ); ?>">Send Email</button>

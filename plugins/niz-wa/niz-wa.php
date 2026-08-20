@@ -24,6 +24,7 @@ require_once NWA_PATH . 'includes/class-nwa-config.php';
 require_once NWA_PATH . 'includes/class-nwa-db.php';
 require_once NWA_PATH . 'includes/class-nwa-sender.php';
 require_once NWA_PATH . 'includes/class-nwa-media.php';
+require_once NWA_PATH . 'includes/class-nwa-optout.php';
 require_once NWA_PATH . 'includes/class-nwa-ai.php';
 require_once NWA_PATH . 'includes/class-nwa-router.php';
 require_once NWA_PATH . 'includes/class-nwa-webhook.php';

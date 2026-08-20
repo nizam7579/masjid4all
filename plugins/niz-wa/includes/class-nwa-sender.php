@@ -51,6 +51,15 @@ class NWA_Sender {
 	 * an existing conversation yet.
 	 */
 	public static function send_template( $to, $template_name, $lang_code = 'en_US', $components = array(), $user_id = null ) {
+		// Enforced here rather than only in the UI: a template is the
+		// business-INITIATED channel, so this is the one send that must not
+		// happen after somebody opts out, whoever calls it and from wherever.
+		if ( $user_id && class_exists( 'NWA_OptOut' ) && NWA_OptOut::is_opted_out( $user_id ) ) {
+			error_log( 'Niz WA: template blocked — user_id=' . $user_id . ' opted out at ' . NWA_OptOut::opted_out_at( $user_id ) );
+
+			return array( 'success' => false, 'error' => 'opted_out', 'message_id' => null );
+		}
+
 		$body = array(
 			'messaging_product' => 'whatsapp',
 			'to'                => $to,

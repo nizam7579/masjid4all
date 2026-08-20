@@ -47,6 +47,47 @@
   color: #664d03;
 }
 
+.nwa-notice-success {
+  background: #e6f4f2;
+  border: 1px solid #b7e0d9;
+  color: #0d4d47;
+}
+.nwa-notice-error {
+  background: #fdeceb;
+  border: 1px solid #f5c2c0;
+  color: #8c2018;
+}
+
+/* Template picker, shown in place of the reply box once the 24-hour
+   window has closed. */
+.nwa-template-form {
+  margin-top: 12px;
+  padding: 14px;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+}
+.nwa-template-form label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #666;
+}
+.nwa-template-form select {
+  width: 100%;
+  max-width: 320px;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}
+.nwa-template-form p {
+  margin: 12px 0 0;
+}
+
 /* ---------- Inbox ---------- */
 
 .nwa-inbox {

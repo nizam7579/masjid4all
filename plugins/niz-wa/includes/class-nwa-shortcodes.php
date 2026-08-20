@@ -38,6 +38,47 @@ class NWA_Shortcodes {
 		wp_enqueue_style( 'nwa-shortcodes', NWA_URL . 'assets/css/nwa-shortcodes.css', array(), file_exists( $css ) ? filemtime( $css ) : NWA_VERSION );
 	}
 
+	/**
+	 * Approved templates offered in the inbox picker.
+	 *
+	 * Prefers the site's own list when one is registered, so the inbox and
+	 * the member admin screen cannot offer different templates - but falls
+	 * back to its own default, because niz-wa has to keep working on a site
+	 * that provides no list at all.
+	 *
+	 * These are names only. Meta must have approved a template of the same
+	 * name or the send is rejected; the handler reports that plainly rather
+	 * than pretending it worked.
+	 */
+	public static function templates() {
+		$templates = function_exists( 'mfa_admin_member_templates' )
+			? mfa_admin_member_templates()
+			: array( 'mfa_welcome' => 'Welcome', 'mfa_followup' => 'Follow-up' );
+
+		return apply_filters( 'nwa_message_templates', $templates );
+	}
+
+	/**
+	 * One-shot notice across the POST-redirect-GET the forms below use.
+	 *
+	 * Kept out of the query string: an API error can be long, and a redirect
+	 * carrying it would both look alarming in the address bar and risk being
+	 * truncated. Keyed per user so two staff cannot see each other's result.
+	 */
+	private static function set_notice( $type, $message ) {
+		set_transient( 'nwa_notice_' . get_current_user_id(), array( 'type' => $type, 'message' => $message ), MINUTE_IN_SECONDS );
+	}
+
+	private static function take_notice() {
+		$key    = 'nwa_notice_' . get_current_user_id();
+		$notice = get_transient( $key );
+		if ( $notice ) {
+			delete_transient( $key );
+		}
+
+		return is_array( $notice ) ? $notice : null;
+	}
+
 	private static function access_denied_message() {
 		if ( ! is_user_logged_in() ) {
 			return '<p class="nwa-access-denied">Please log in to view this page.</p>';
@@ -82,6 +123,13 @@ class NWA_Shortcodes {
 				<?php else : ?>
 					<h2><?php echo esc_html( $active->contact_name ?: $active->wa_number ); ?></h2>
 
+					<?php $notice = self::take_notice(); ?>
+					<?php if ( $notice ) : ?>
+						<div class="nwa-notice nwa-notice-<?php echo esc_attr( 'ok' === $notice['type'] ? 'success' : 'error' ); ?>">
+							<?php echo esc_html( $notice['message'] ); ?>
+						</div>
+					<?php endif; ?>
+
 					<div class="nwa-inbox-messages">
 						<?php foreach ( $messages as $m ) : ?>
 							<div class="nwa-message-bubble is-<?php echo esc_attr( $m->direction ); ?>">
@@ -100,7 +148,27 @@ class NWA_Shortcodes {
 							<p><button type="submit" class="nwa-btn nwa-btn-primary">Send</button></p>
 						</form>
 					<?php else : ?>
-						<div class="nwa-notice nwa-notice-warning">24-hour window closed &mdash; free-text replies aren't allowed. Send a template instead.</div>
+						<div class="nwa-notice nwa-notice-warning">
+							24-hour window closed<?php
+							// window_expires_at is GMT (see CLAUDE.md) - converted for
+							// display only, never compared in local time.
+							if ( ! empty( $active->window_expires_at ) ) {
+								echo ' on ' . esc_html( date_i18n( 'j M, g:i a', strtotime( get_date_from_gmt( $active->window_expires_at ) ) ) );
+							}
+							?> &mdash; free-text replies aren't allowed. Send an approved template instead.
+						</div>
+
+						<form method="post" class="nwa-template-form">
+							<?php wp_nonce_field( 'nwa_template', 'nwa_template_nonce' ); ?>
+							<input type="hidden" name="nwa_active_user_id" value="<?php echo esc_attr( $selected_id ); ?>">
+							<label for="nwa-template-<?php echo esc_attr( $selected_id ); ?>">Template</label>
+							<select id="nwa-template-<?php echo esc_attr( $selected_id ); ?>" name="nwa_template_name" required>
+								<?php foreach ( self::templates() as $key => $label ) : ?>
+									<option value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></option>
+								<?php endforeach; ?>
+							</select>
+							<p><button type="submit" class="nwa-btn nwa-btn-primary" onclick="return confirm('Send this template to <?php echo esc_js( $active->contact_name ?: $active->wa_number ); ?>?');">Send Template</button></p>
+						</form>
 					<?php endif; ?>
 				<?php endif; ?>
 			</div>
@@ -200,9 +268,54 @@ class NWA_Shortcodes {
 			$user_id = isset( $_POST['nwa_active_user_id'] ) ? (int) $_POST['nwa_active_user_id'] : 0;
 			$active  = $user_id ? NWA_DB::get_conversation_by_user( $user_id ) : null;
 			$text    = sanitize_textarea_field( wp_unslash( $_POST['nwa_reply_text'] ?? '' ) );
-			if ( $active && $text ) {
-				nwa_send_message( $active->user_id, $active->wa_number, $text );
+			if ( ! $active || '' === $text ) {
+				self::set_notice( 'err', 'Nothing was sent - no message text.' );
+			} else {
+				// The window can lapse between loading the page and pressing
+				// Send, and Meta rejects a free-text message the moment it
+				// does. Re-checked here so the refusal is explained rather
+				// than looking like the reply silently vanished.
+				if ( ! NWA_DB::is_within_window( $active ) ) {
+					self::set_notice( 'err', 'The 24-hour window closed while this page was open. Send an approved template instead.' );
+				} else {
+					$result = nwa_send_message( $active->user_id, $active->wa_number, $text );
+					if ( empty( $result['success'] ) ) {
+						self::set_notice( 'err', 'Failed to send: ' . ( $result['error'] ?? 'unknown error' ) );
+					} else {
+						self::set_notice( 'ok', 'Reply sent.' );
+					}
+				}
 			}
+			wp_safe_redirect( add_query_arg( 'nwa_user_id', $user_id ) );
+			exit;
+		}
+
+		if ( isset( $_POST['nwa_template_nonce'] ) && wp_verify_nonce( $_POST['nwa_template_nonce'], 'nwa_template' ) ) {
+			$user_id  = isset( $_POST['nwa_active_user_id'] ) ? (int) $_POST['nwa_active_user_id'] : 0;
+			$active   = $user_id ? NWA_DB::get_conversation_by_user( $user_id ) : null;
+			$template = sanitize_text_field( wp_unslash( $_POST['nwa_template_name'] ?? '' ) );
+			$allowed  = self::templates();
+
+			if ( ! $active ) {
+				self::set_notice( 'err', 'That conversation no longer exists.' );
+			} elseif ( ! isset( $allowed[ $template ] ) ) {
+				// Only names from the registered list, so a tampered form
+				// cannot ask Meta to send an arbitrary template.
+				self::set_notice( 'err', 'That template is not on the approved list.' );
+			} else {
+				// Note the argument order: nwa_send_template() takes the phone
+				// number first, unlike nwa_send_message() which takes the user id.
+				$result = nwa_send_template( $active->wa_number, $template, 'en_US', array(), $active->user_id );
+
+				if ( empty( $result['success'] ) ) {
+					self::set_notice( 'err', 'Template not sent: ' . ( $result['error'] ?? 'unknown error' ) . ' (a template must be approved in Meta under this exact name).' );
+				} else {
+					// A template does NOT reopen the 24-hour window - only an
+					// inbound message does - so the free-text box stays closed.
+					self::set_notice( 'ok', 'Template "' . $allowed[ $template ] . '" sent. The window reopens only when they reply.' );
+				}
+			}
+
 			wp_safe_redirect( add_query_arg( 'nwa_user_id', $user_id ) );
 			exit;
 		}

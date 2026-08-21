@@ -61,15 +61,35 @@ running total in the tens of thousands. Left deliberately. Listed so it is not
 
 ## Testing
 
-### 5. Google sign-in — end-to-end test
-Configuration validated (consent screen renders "to continue to
-masjid4all.com"); the flow itself has never been run since first login became a
-registration route.
+### 5. Google sign-in — REGISTRATION proven, LINK branch still untested
+**The registration half is done.** User **123923** (`admin@pewarisan.com`,
+login `admin`) carries `mfa_registration_route = google` and
+`niz_google_connected = Yes`, registered 2026-08-21 07:54 GMT. Production
+counters moved with it: `route='google'` 0 → 1, members 29 → 30,
+`niz_google_connected='Yes'` 11 → 12.
 
-Baselines recorded 2026-08-21 on production: `google_linked=11`, `members=29`,
-**`mfa_registration_route='google'` = 0**, `max user ID = 123916`.
-A successful test moves that route count to 1. **Use a Google account that is
-not one of the 11 already linked**, or it tests the linking path instead.
+What is still unproven is the **other branch**. `Niz_Google_Provider` resolves
+by `get_user_by( 'email', … )`:
+
+- **no user with that address** → `mfa_register()`, route `google`, new member
+- **user exists** → links only: sets `niz_google_connected` / `niz_google_id`
+  and signs them in. Per `CLAUDE.md` this is **not** activation — such a member
+  keeps an empty `mfa_registration_route` and no `mfa_original_registered`.
+
+`nemkad7579@gmail.com` (user **14553**, Member since 8 Aug, CCT row 228) is
+already in exactly the right state to test that: `niz_google_connected = "No"`,
+no WhatsApp history, nothing authored. Signing in with it needs **no reset and
+no deletion** — the account existing is precisely what makes it a link test.
+
+Only if the registration path needs re-running with that same address: change
+the account's email to `nemkad7579+kept@gmail.com` first (reversible), rather
+than deleting user 14553. Deleting works — `mfa_cleanup_records_for_deleted_user`
+removes the CCT row and barakah rows, FluentCRM cleans up too — but it is
+irreversible and drops the member count.
+
+Side note worth tidying: user 123923's login is literally `admin`, derived from
+the email local part by `mfa_register()`. Harmless but confusing in support
+screens.
 
 ### 6. Karen (user 14461) — was the STOP accidental?
 Her opt-out was cleared 2026-08-21 on your instruction and a reply was sent. She

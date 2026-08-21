@@ -135,6 +135,51 @@ uploaded to R2, then a one-line change in `knowledge.php`.
 
 ---
 
+## Next up
+
+### 15. Stripe — reconnect, sandbox and live
+Flagged 2026-08-21 as the next piece of work. The previous version was
+reportedly connected to **both sandbox and live** and working; the current
+build is not in that shape, so establish what changed before rebuilding
+anything.
+
+**State on both environments, checked 2026-08-21 (values never read, only
+presence and mode):**
+
+| | staging | production |
+|---|---|---|
+| `STRIPE_SECRET_KEY` | set, **TEST** | set, **TEST** |
+| `STRIPE_PUBLISHABLE_KEY` | set, **TEST** | set, **TEST** |
+| `MFA_STRIPE_WEBHOOK_SECRET` | set | set |
+| `mfa_founding_member_enabled()` | **false** | **false** |
+
+Two things follow that are worth knowing before starting:
+
+1. **There is no live/test switch in the current constants.** Only ONE key
+   pair exists, and it is the test pair — on production as well as staging.
+   `STRIPE_TEST_SECRET_KEY` / `STRIPE_LIVE_SECRET_KEY` are not defined
+   anywhere. So whatever let the previous version run both modes is not
+   present in this build; that mechanism has to be found or rebuilt, and it
+   is the actual task rather than "paste the live key in".
+2. **The payment paths are switched off at the application level, not
+   missing.** `mfa_founding_member_enabled()` returns false and closes the
+   grant, the `[mfa_stripe_form]` checkout and `mfa/v1/create-session`
+   together — deliberately, so payments cannot be taken while nothing is
+   granted. The REST routes are still registered on both environments
+   (`/mfa/v1/create-session`, `/mfa/v1/stripe-webhook`), the shortcode still
+   exists and the stripe-php library still loads. Re-enabling is one filter.
+
+Code lives in `enaizi-mfa/shortcodes/stripe.php` and
+`enaizi-mfa/includes/stripe.php`, with the gate and the grant in
+`mfa-core/includes/founding-member.php` and commission handling in
+`mfa-core/includes/commission.php`.
+
+**Decide first:** is this reviving the Founding Member offer, or building a
+general payment capability that outlives it? The gate is currently welded to
+Founding Member, and that shapes where the live/test switch belongs.
+
+---
+
 ## Blocked / needs a decision
 
 ### 10. WhatsApp template creation — blocked on the WABA id

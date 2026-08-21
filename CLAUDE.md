@@ -163,13 +163,32 @@ Current custom plugins on disk, for reference:
 - **No "Sofia" branding.** The AI system prompts in `niz-wa` are generic/unbranded —
   the "Sofia" persona only existed in the old `enaizi_wa` code and was not carried
   over.
-- **User resolution is wired to `mfa-core`, read-only.** `includes/site-integration.php`
-  hooks `nwa_resolve_user_id` to call `niz_user_check()` (moved from `enaizi-user`
-  into `mfa-core` — see Plugin Architecture above) to look up already-existing
-  members. It does **not** auto-create `prospect` WordPress users anymore — that
-  `niz_user_create_prospect()` call was intentionally removed so `niz-wa` is fully
-  standalone; unrecognized numbers are tracked in `niz-wa`'s own `wp_nwa_contacts`
-  table instead. See the feature-scope status further down for the full detail.
+- **User resolution is wired to `mfa-core`, and it DOES create a WordPress user.**
+  `mfa-core/includes/niz-wa-integration.php` hooks `nwa_resolve_user_id`
+  (`niz_wa_resolve_user_id()`): it first calls `niz_user_check()` to link an
+  already-known number, and otherwise creates a real WordPress user for the
+  unrecognized one.
+
+  **This reverses the 2026-08-04 "fully standalone" cutover** — the reversal is
+  dated 2026-08-08 and recorded in that function's own comment. Identity is
+  shareable across Masjid4All-family sites, so a number gets a real account
+  rather than living only in `wp_nwa_contacts`. That table is now effectively
+  unused on this site.
+
+  **The new user is deliberately lighter than a member: NO `jet_cct_member`
+  row and no Welcome Bonus.** Those happen only when the contact explicitly
+  replies `REGISTER` (`niz_wa_action_register()`), so somebody who messages
+  Sofia once and never comes back does not become a half-built member. Treat a
+  missing member row for a WhatsApp contact as CORRECT, not as data loss —
+  `/admin/member/info/` renders such a contact from the account itself
+  (fixed 2026-08-21; before that it dead-ended on "Member not found", which
+  also hid the Send WhatsApp actions behind it).
+
+  **The login prefix tells you which path created an account:** `mfa_<phone>`
+  with `<phone>@mfa.com` is mfa-core's `niz_user_create_prospect()`;
+  `nwa_<phone>` is niz-wa's own standalone fallback in `NWA_DB::get_or_create_wp_user()`,
+  which only runs when no `nwa_resolve_user_id` filter is hooked — i.e. never
+  on this site.
 - **Hosting-specific gotcha, important for future changes:** this host (Hostinger,
   LiteSpeed) kills fire-and-forget non-blocking loopback HTTP requests before slow
   outbound calls (e.g. an AI API call) can finish — `wp_remote_post(..., 'blocking'
@@ -603,11 +622,11 @@ their actual status as of the 2026-08-04 cutover:
   Adding an `NWA_WABA_ID` constant is the unblock.
 - **User/contact management** — ✅ done, via `mfa-core`'s identity functions
   (moved from `enaizi-user` — see Plugin Architecture above), hooked through
-  `nwa_resolve_user_id`. **Note:** `niz-wa` is intentionally standalone now —
-  the resolver only does a read-only `niz_user_check()` lookup for already-
-  existing members; it no longer auto-creates `prospect` WordPress users for
-  unrecognized numbers (`niz_user_create_prospect()` call removed). New
-  numbers fall through to `niz-wa`'s own `wp_nwa_contacts` table instead.
+  `nwa_resolve_user_id`. **An unrecognized number DOES get a real WordPress
+  user** (`niz_user_create_prospect()`, `user_status = prospect`,
+  `lead_source = whatsapp`) — the 2026-08-04 "standalone, contacts-table-only"
+  design was reversed on 2026-08-08. See the fuller note in the `niz-wa` status
+  section above, including why such a user has no `jet_cct_member` row.
 - **Receiving/webhook handling** — ✅ done, with the synchronous-processing caveat
   noted above. Signature verification (`x-hub-signature-256` HMAC), dedupe, and a
   "typing…" indicator (`NWA_Sender::mark_read_with_typing()`) shown while a reply is
@@ -777,9 +796,12 @@ their actual status as of the 2026-08-04 cutover:
   overwriting, and feeds that summary back into future AI replies.
 
 Given "create new user" is in scope, this plugin touches the same territory as
-`mfa-core`'s identity functions — but per the standalone note above, `niz-wa`
-no longer calls into user-creation at all for unrecognized numbers; it only
-does a read-only lookup and otherwise manages its own contacts table.
+`mfa-core`'s identity functions. `niz-wa` itself stays untouched — the
+`nwa_resolve_user_id` filter is still the only place that decides what a
+WhatsApp number means on this site — but that hook, implemented in `mfa-core`,
+**does** create a WordPress user for an unrecognized number (2026-08-08; see
+the `niz-wa` status section above). `wp_nwa_contacts` is consequently unused
+here.
 - Don't push changes straight to production (masjid4all.com).
 - Don't reintroduce hardcoded secrets.
 - Don't rewrite auth/session code without flagging it first.

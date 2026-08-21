@@ -223,6 +223,22 @@
   color: var(--mfa-teal-dark, #0d4d47);
 }
 
+/* ---------- Contact-only notice ----------
+   Deliberately NOT the red of the no-email panel below. A WhatsApp contact
+   who has not registered is an expected state, not a fault, and colouring it
+   as an error would train staff to ignore the panel that is one. */
+
+.mfa-admin-member-contact-only {
+  margin: 0 0 var(--mfa-space-4, 16px);
+  padding: var(--mfa-space-3, 12px) var(--mfa-space-4, 16px);
+  background: var(--mfa-sand, #f6f3ec);
+  border-left: 3px solid var(--mfa-teal, #25988b);
+  border-radius: var(--mfa-radius-sm, 8px);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--mfa-ink, #14231f);
+}
+
 /* ---------- No email address panel ---------- */
 
 .mfa-admin-member-needs-email {

@@ -51,6 +51,37 @@ function mfa_admin_member_info_shortcode() {
 		} else {
 			$row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$cct_table} WHERE user_id = %d", $user_id ), ARRAY_A );
 
+			// A WhatsApp contact who has not registered has NO jet_cct_member
+			// row, and that is deliberate: niz_wa_resolve_user_id() creates the
+			// WordPress user but stops short of a member record, so somebody who
+			// messages Sofia once and never comes back does not end up as a
+			// half-built member (decision recorded there, 2026-08-08).
+			//
+			// The page still has to open for them. It is linked straight from
+			// the /admin/whatsapp/ inbox, where these contacts are precisely who
+			// staff are looking at - two of seven live conversations were
+			// hitting "Member not found" and the reply box behind it.
+			//
+			// So build the row from the account rather than refusing. Every
+			// field below is one the WordPress user genuinely carries; nothing
+			// is invented, and the banner says plainly this is not a member yet
+			// so an empty Country reads as "unknown", not as "lost".
+			$is_contact_only = false;
+			$account         = get_userdata( $user_id );
+
+			if ( ! $row && $account ) {
+				$is_contact_only = true;
+				$row             = array(
+					'name'        => $account->display_name,
+					'email'       => $account->user_email,
+					'phone'       => get_user_meta( $user_id, 'user_phone', true ),
+					'country'     => '',
+					'status'      => get_user_meta( $user_id, 'user_status', true ),
+					'rank'        => '',
+					'cct_created' => $account->user_registered,
+				);
+			}
+
 			if ( ! $row ) {
 				echo '<p class="mfa-body-muted">Member not found.</p>';
 			} else {
@@ -61,6 +92,16 @@ function mfa_admin_member_info_shortcode() {
 				<div class="mfa-admin-member-info-layout">
 					<div class="mfa-admin-member-info-col-left">
 						<h1 class="mfa-h2"><?php echo esc_html( $row['name'] ? $row['name'] : '—' ); ?></h1>
+
+						<?php if ( $is_contact_only ) : ?>
+							<p class="mfa-admin-member-contact-only">
+								<strong>Not a registered member.</strong>
+								A WhatsApp contact: the account exists so the conversation has
+								somewhere to live, but no member record is created until they
+								register. The details below come from the account itself, so
+								anything blank is simply not known yet.
+							</p>
+						<?php endif; ?>
 
 						<?php
 						// Directly under the name: these are what the page is FOR, and

@@ -245,6 +245,39 @@ function mfa_place_content_user_prompt( $facts ) {
 	return implode( "\n", $lines );
 }
 
+/**
+ * Claims the copy is not allowed to make, checked rather than merely asked for.
+ *
+ * The system prompt already forbids all of these, and two of the first 82 hubs
+ * called our listings "halal-certified" anyway. A rule that matters for
+ * accuracy and fails one time in forty should be enforced in code: the caller
+ * turns a hit into a WP_Error, so the hub is left empty and the runner picks it
+ * up again on its next load.
+ *
+ * Deliberately NOT checking years or percentages, though the prompt discourages
+ * inventing them. Jharkhand's intro said it was "carved out of southern Bihar
+ * in 2000", which is simply true - a blanket ban on digits would reject correct
+ * copy, and rejecting accurate writing to satisfy a blunt pattern is a worse
+ * outcome than the occasional date needing a human eye.
+ *
+ * @return string Empty when clean, else a description of what was matched.
+ */
+function mfa_place_content_forbidden_claim( $plain ) {
+	$checks = array(
+		'a halal certification claim' => '/halal[- ]certifi|certified halal|JAKIM[- ]certifi|halal[- ]approved|accordance with Islamic guidelines/i',
+		'a prayer time'               => '/\b\d{1,2}[:.]\d{2}\s?(?:am|pm)\b/i',
+		'a religious ruling'          => '/\bfatwa\b|is permissible|it is haram\b/i',
+	);
+
+	foreach ( $checks as $label => $pattern ) {
+		if ( preg_match( $pattern, $plain, $m ) ) {
+			return $label . ' ("' . trim( $m[0] ) . '")';
+		}
+	}
+
+	return '';
+}
+
 /** DeepSeek is told to return bare JSON and sometimes fences it anyway. */
 function mfa_place_content_strip_fences( $text ) {
 	$text = trim( (string) $text );
@@ -303,6 +336,11 @@ function mfa_place_content_generate( $post_id, $force = false ) {
 	// three-paragraph answer runs to, and well over a stub.
 	if ( mb_strlen( $plain ) < 400 ) {
 		return new WP_Error( 'mfa_place_too_short', 'Only ' . mb_strlen( $plain ) . ' characters came back - not saving.' );
+	}
+
+	$forbidden = mfa_place_content_forbidden_claim( $plain );
+	if ( '' !== $forbidden ) {
+		return new WP_Error( 'mfa_place_forbidden_claim', 'Rejected - the text made ' . $forbidden . '.' );
 	}
 
 	$excerpt = trim( wp_strip_all_tags( (string) ( $json['excerpt'] ?? '' ) ) );

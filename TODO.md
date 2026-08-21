@@ -81,25 +81,30 @@ already in exactly the right state to test that: `niz_google_connected = "No"`,
 no WhatsApp history, nothing authored. Signing in with it needs **no reset and
 no deletion** — the account existing is precisely what makes it a link test.
 
-**⚠ PRODUCTION IS CURRENTLY IN A TEMPORARY STATE (2026-08-21).** User 14553's
-address was moved to `nemkad7579+kept@gmail.com` — on `wp_users` **and** on CCT
-row 228, so the two do not disagree — so that a Google sign-in with the real
-`nemkad7579@gmail.com` takes the registration branch instead of the link one.
-`get_user_by( 'email', 'nemkad7579@gmail.com' )` now returns nothing; verified.
+**Registration re-tested deliberately and passed, 2026-08-21.** 14553's address
+was temporarily moved to a `+kept` alias so the real one resolved to nobody; the
+Google sign-in then created user 142920 (`nemkad7579_wHsLR` — the plain login
+was taken, so `mfa_person_upsert()` appended a suffix) with route `google`,
+`niz_google_connected = Yes`, `niz_email_verified = Yes`, `user_status = member`
+and a fresh CCT row. Counters moved exactly as forecast.
 
-**This must be undone after the test.** The original values are stored in the
-production option **`mfa_nemkad_email_swap`**. Restore = delete the account the
-test created, then put both emails back from that option.
+**All of it has been undone.** 142920 deleted, CCT row 128598 gone, 14553's
+address restored on both `wp_users` and CCT row 228, `mfa_nemkad_email_swap`
+cleared. Counters back at members 30 / route `google` 1 / google-connected 12,
+with zero orphaned CCT rows and zero leftover usermeta.
 
-Expected on a successful test: a new user above ID 142919 with login
-`nemkad7579_xxxxx` (the plain login is taken, so `mfa_person_upsert()` appends a
-random suffix), `mfa_registration_route = google`, `niz_google_connected = Yes`,
-`niz_email_verified = Yes`. Counters move members 30 → 31 and route `google`
-1 → 2.
+Incidental confirmation from that run: `user_registered` was `10:06:22` GMT
+while `cct_created` was `18:06:22` local — the two clocks agreeing on a real
+registration, which is the timezone work holding up in production.
 
-Deleting user 14553 outright was the alternative and was rejected as
-irreversible — `mfa_cleanup_records_for_deleted_user` drops the CCT row and
-barakah rows, and FluentCRM cleans up its contact.
+**To test the link branch, no setup is needed.** 14553 holds the real address
+again and `niz_google_connected` is still `No`. Signing in with Google as
+`nemkad7579@gmail.com` will find it and link. Watch for: meta flips to `Yes`,
+`niz_google_id` set, and `mfa_registration_route` **stays empty** with the
+member count unchanged. A route value or a new account there is a bug.
+
+A different email address is only needed to run **registration** again, not the
+link test.
 
 Side note worth tidying: user 123923's login is literally `admin`, derived from
 the email local part by `mfa_register()`. Harmless but confusing in support

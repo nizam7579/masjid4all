@@ -265,9 +265,13 @@ function mfa_core_enqueue_widget_assets() {
 		// both are plain PHP-rendered forms (no JS), sharing one stylesheet.
 		// Matched by slug, not a fixed parent ID, since staging/live created
 		// this page independently and it has a different ID on each site.
-		$is_crawler_start = $post && 'start' === $post->post_name && $post->post_parent
+		// /admin/crawler/places/ joins them: the place-intro generator follows
+		// the identical one-hub-per-load visual pattern, so it wants the same
+		// sheet rather than a second copy of the same three classes.
+		$is_crawler_child = $post && $post->post_parent
+			&& in_array( $post->post_name, array( 'start', 'places' ), true )
 			&& 'crawler' === get_post_field( 'post_name', $post->post_parent );
-		if ( $post && ( 'crawler' === $post->post_name || $is_crawler_start ) ) {
+		if ( $post && ( 'crawler' === $post->post_name || $is_crawler_child ) ) {
 			$crawler_css = MFA_CORE_PATH . 'assets/css/admin-crawler-v1.css';
 			wp_enqueue_style( 'mfa-core-admin-crawler', MFA_CORE_URL . 'assets/css/admin-crawler-v1.css', array( 'mfa-core-global', 'mfa-core-admin-shell' ), $get_version( $crawler_css ) );
 		}

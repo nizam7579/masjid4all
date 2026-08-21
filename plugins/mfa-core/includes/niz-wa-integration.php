@@ -537,6 +537,38 @@ function niz_wa_account_resume_email( $user_id, $wa_number, $conversation, $emai
 }
 
 /* ---- Account-flow session handler (override filter, priority 15) ---- */
+/**
+ * Is this whole message a "get me out of this flow" word?
+ *
+ * One list, because the same array used to be copy-pasted into three flows
+ * (account, contact, directory) and adding a word meant remembering all three.
+ *
+ * EXACT match on the whole message, never a substring — a real listing name,
+ * URL or contact-form subject must never trip it.
+ *
+ * Spanish added 2026-08-21 alongside the Spanish opt-out words, and the
+ * overlap between the two lists is deliberate, not sloppiness. `stop` has
+ * always appeared here as well as in NWA_OptOut::stop_words(), and the order
+ * is what makes that safe: the flows run at priorities 4-25 and the opt-out
+ * at 30, so inside a live flow these words CANCEL, and only outside one do
+ * they unsubscribe. `parar` and `detener` are listed for exactly that reason —
+ * without them, a Spanish speaker trying to escape a flow would have been
+ * unsubscribed instead, which is the bug that made us stop advertising *stop*
+ * as a cancel word in the first place.
+ *
+ * `batal` (Malay) was already here; `cancelar`/`cancela`/`salir` are its
+ * Spanish equivalents.
+ */
+function niz_wa_is_cancel_word( $text ) {
+	$words = apply_filters( 'niz_wa_cancel_words', array(
+		'stop', 'cancel', 'exit', 'quit',
+		'batal',
+		'cancelar', 'cancela', 'salir', 'parar', 'detener',
+	) );
+
+	return in_array( strtolower( trim( (string) $text ) ), $words, true );
+}
+
 add_filter( 'nwa_route_message_override', 'niz_wa_account_route', 15, 5 );
 
 function niz_wa_account_route( $override, $user_id, $wa_number, $message_text, $conversation ) {
@@ -577,7 +609,7 @@ function niz_wa_account_route( $override, $user_id, $wa_number, $message_text, $
 	$then = isset( $ctx['then'] ) ? $ctx['then'] : null;
 	$text = trim( (string) $message_text );
 
-	if ( in_array( strtolower( $text ), array( 'stop', 'cancel', 'exit', 'quit', 'batal' ), true ) ) {
+	if ( niz_wa_is_cancel_word( $text ) ) {
 		NWA_DB::set_pending_action( $conversation->id, null );
 		nwa_send_message( $user_id, $wa_number, "No problem, I've cancelled that. 👍" );
 		return '';
@@ -1164,7 +1196,7 @@ function niz_wa_contact_route( $override, $user_id, $wa_number, $message_text, $
 	$text = trim( (string) $message_text );
 
 	// Escape hatch at any step (exact match so a real subject/message never trips it).
-	if ( in_array( strtolower( $text ), array( 'stop', 'cancel', 'exit', 'quit', 'batal' ), true ) ) {
+	if ( niz_wa_is_cancel_word( $text ) ) {
 		NWA_DB::set_pending_action( $conversation->id, null );
 		nwa_send_message( $user_id, $wa_number, "No problem, I've cancelled that. 👍\n\nMessage *contact* anytime to reach our team." );
 		return '';
@@ -1245,7 +1277,12 @@ function niz_wa_contact_route( $override, $user_id, $wa_number, $message_text, $
 
 	if ( 'review' === $step ) {
 		$t = strtolower( $text );
-		if ( false !== strpos( $t, 'cancel' ) ) {
+		// Substring is kept alongside the shared word list because this step
+		// is answered by tapping a button whose title is "Cancel", and the
+		// title can arrive with surrounding text. The word list adds the ones
+		// substring cannot reach - salir, batal, parar - since none of them
+		// contains "cancel".
+		if ( niz_wa_is_cancel_word( $t ) || false !== strpos( $t, 'cancel' ) ) {
 			NWA_DB::set_pending_action( $conversation->id, null );
 			nwa_send_message( $user_id, $wa_number, "No problem, I've cancelled that. 👍\n\nMessage *contact* anytime to reach our team." );
 			return '';
@@ -1388,7 +1425,7 @@ function niz_wa_directory_route( $override, $user_id, $wa_number, $message_text,
 
 	// Escape hatch: let the user bail out of the flow at any step. Exact match
 	// (not substring) so a real URL or listing name never trips it.
-	if ( in_array( strtolower( $text ), array( 'stop', 'cancel', 'exit', 'quit', 'batal' ), true ) ) {
+	if ( niz_wa_is_cancel_word( $text ) ) {
 		NWA_DB::set_pending_action( $conversation->id, null );
 		nwa_send_message( $user_id, $wa_number,
 			"No problem, I've cancelled that. 👍\n\nSend *directory* anytime to start again, or just tell me what you need." );

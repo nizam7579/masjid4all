@@ -205,14 +205,39 @@ practical, and flag any breaking change to option/table names before making it.
 ## Identity model — prospect vs member (agreed 2026-08-19)
 Everyone starts a **prospect**: imported contacts, and accounts auto-created the
 first time an unknown number messages Sofia. A prospect is a contact record, not
-a conversion. They become a **member** only by completing a registration via one
-of three routes — Sofia (WhatsApp), Google, or the web form — all of which funnel
-through `niz_user_complete_registration()` in `mfa-core/includes/identity-registration.php`.
+a conversion. They become a **member** by completing a registration via one of
+**five** routes (2026-08-21) — WhatsApp `REGISTER`, the WhatsApp email flow,
+Google, the web form, and **first login** — all of which funnel through
+`niz_user_complete_registration()` in `mfa-core/includes/identity-registration.php`.
 That function is the single chokepoint: it sets `user_status`, promotes the
 `jet_cct_member` row, **resets `user_registered` to the activation moment (in GMT
 — `wp_insert_user` writes GMT and the site is UTC+8)**, records
-`mfa_registration_route`, and fires `mfa_user_activated`. Its "already a member"
-guard makes all of that idempotent.
+`mfa_registration_route`, backfills country and referrer, and fires
+`mfa_user_activated`. Its "already a member" guard makes all of that idempotent.
+
+**Creating a person goes through `mfa-core/includes/identity-register.php`**,
+which is deliberately two functions, not one:
+`mfa_person_upsert()` finds or creates and is **always** a prospect;
+`mfa_register()` is upsert **+** activate. They are split because a number that
+messages Sofia once must get an account without becoming a member — collapsing
+them into a single `register()` breaks that. Every legacy creator
+(`niz_user_create_prospect()`, `niz_wa_create_contact_user()`,
+`niz_user_register()`, `niz_user_register_email()`) now delegates, keeping its
+published signature. `member-import.php` is the one sanctioned exception: it
+must back-date `user_registered`, which the API cannot do.
+
+Two rules that are load-bearing, both learned the hard way:
+- **Never pass `phone` to `mfa_register()` from a form that has not verified
+  the number.** Resolution is by phone as well as email, so the web form would
+  otherwise log a registrant straight into a stranger's prospect account.
+- **`mfa_<phone>` logins mean "created from a phone number ALONE"** — email
+  wins when both are present, or that signal stops distinguishing a Sofia
+  contact from a web signup.
+
+Referral attribution reads **only** the `mfa_referrer` cookie (set from `?id=`
+by `mfa_capture_referrer_cookie()`), never `affiliateid` — enaizi-mfa sets that
+one to the *logged-in user's own id* for the share button, so it names the
+wrong person on any signed-in request, and activation now runs at first login.
 
 - **The member list's status filter carries meaning, not just a whitelist.**
   `[mfa_admin_member_list]` takes **`statuses`** (which filters the page
@@ -394,8 +419,18 @@ working copy: `C:\projects\masjid4all`.
   against the server's own bytes instead:
   - `mfa-core/mfa-core.php` — production's include list has **no** `knowledge-ai`
     entries (staging-only).
-  - `mfa-core/includes/widgets/admin-shell.php` — production still reads
-    **"Knowledge Base"**, local says "Knowledge Hub".
+  - `mfa-core/includes/widgets/admin-shell.php` — production now reads
+    **"Knowledge Hub"** as well (renamed 2026-08-21, together with the `<h1>`
+    and pagination aria-label in `admin-knowledge-list.php`). It still differs
+    from the mirror by an alignment space, and `admin-knowledge-list.php`
+    differs structurally — that file is three-way between repo, staging and
+    production. Note niz-wa's own **"Knowledge Base"** (Sofia's AI grounding
+    data, `/admin/whatsapp/knowledge-base/`) is a different thing and must
+    keep its name — ending that clash is why the Hub rename exists.
+  - `enaizi-user/shortcodes/user.php` — production carries **`masjid4all.com`**
+    URLs where the mirror carries **`staging.masjid4all.com`** ones (the
+    namecard product list, ~line 316). Pushing the mirror's copy repoints
+    production's links at staging.
   - **all `enaizi-identity` files** — CRLF on the server and genuinely drifted
     from the mirror.
   Dry-run every anchor for uniqueness first, abort if a count isn't exactly 1,
@@ -702,6 +737,15 @@ their actual status as of the 2026-08-04 cutover:
   inside WhatsApp rather than being sent to `/member/`. Options: Free-form,
   Activate Account, Verify Email, Invite to Add Mosque/Business/Website,
   Invite to Founding Member waitlist.
+
+  **The Founding Member paid offer is OFF (2026-08-21).**
+  `mfa_founding_member_enabled()` in `mfa-core/includes/founding-member.php`
+  returns false and is the single re-enable switch. It closes three doors at
+  once — the grant, the `[mfa_stripe_form]` checkout and the
+  `mfa/v1/create-session` route — because disabling only the grant would take
+  payments and grant nothing. Reason it is off: it was the last creator
+  bypassing the registration chokepoint. **The waitlist above is unaffected
+  and still live.** Stripe keys remain configured, so re-enabling is one flag.
 
   **Buttons come from the server-side catalogue keyed by the posted preset,
   never from the request.** A tap sends the button's *title* back as the

@@ -151,7 +151,13 @@ function niz_user_register( $phone, $name, $send_template = false ) {
 function niz_sync_cct_member_record( $user_id, $name, $phone ) {
     $country     = isset( $_COOKIE['country'] ) ? sanitize_text_field( wp_unslash( $_COOKIE['country'] ) ) : '';
     $partner_id  = isset( $_COOKIE['partnerid'] ) ? intval( $_COOKIE['partnerid'] ) : 0;
-    $referrer_id = isset( $_COOKIE['affiliateid'] ) ? intval( $_COOKIE['affiliateid'] ) : 14270;
+
+    // Same guard as niz_user_member_cct() - the affiliateid cookie names the
+    // signed-in user themselves whenever one is logged in, so reading it raw
+    // recorded self-referrals. 14270 remains the "no referrer" sentinel.
+    $referrer_id = function_exists( 'mfa_referrer_from_cookie' )
+        ? mfa_referrer_from_cookie( $user_id )
+        : 0;
 
     if ( empty( $referrer_id ) ) {
         $referrer_id = 14270;

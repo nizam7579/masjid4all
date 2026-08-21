@@ -52,7 +52,18 @@ function niz_user_member_cct($user_id) {
             $name        = !empty($current_user->display_name) ? $current_user->display_name : 'Guest';
             $country     = isset($_COOKIE['country']) ? sanitize_text_field(wp_unslash($_COOKIE['country'])) : '';
             $partner_id  = isset($_COOKIE['partnerid']) ? absint($_COOKIE['partnerid']) : 0;
-            $referrer_id = isset($_COOKIE['affiliateid']) ? absint($_COOKIE['affiliateid']) : 14270;
+
+            // Never store a self-referral. The affiliateid cookie holds the
+            // LOGGED-IN user's own id whenever one is signed in (enaizi-mfa's
+            // niz_mfa_location_init(), which needs it that way to build share
+            // links), so reading it raw here recorded people as their own
+            // referrer. mfa_referrer_from_cookie() applies that guard plus the
+            // sentinel and account-exists checks; 14270 stays the "nobody
+            // referred them" value when nothing usable is present.
+            $referrer_id = mfa_referrer_from_cookie($user_id);
+            if (!$referrer_id) {
+                $referrer_id = 14270;
+            }
 
             $insert_data = [
                 'name'        => $name,
@@ -262,4 +273,192 @@ function update_cct_member($item_id, $user_data) {
     } else {
         return "Record updated successfully.";
     }
+}
+
+/**
+ * The referring user id carried by the current request, or 0 when there
+ * isn't a usable one.
+ *
+ * Every caller used to read $_COOKIE['affiliateid'] raw, which is why a
+ * self-referral could be stored: enaizi-mfa's niz_mfa_location_init()
+ * deliberately overwrites that cookie with the LOGGED-IN user's own id, so
+ * the floating share button can build "/?id=<me>" links. That is correct for
+ * sharing and wrong for attribution - the same cookie answers two different
+ * questions. Until the two are split into separate cookies, attribution is
+ * guarded here, at the point of use.
+ *
+ * Rejects, in order: nothing set, the 14270 "no referrer" sentinel, the user
+ * referring themselves, and an id that is no longer a real account.
+ *
+ * @param int $user_id The user being attributed.
+ * @return int Referrer user id, or 0.
+ */
+function mfa_referrer_from_cookie( $user_id ) {
+    // Prefer the dedicated attribution cookie; fall back to affiliateid for
+    // visitors who arrived before mfa_capture_referrer_cookie() existed.
+    $ref = 0;
+
+    if ( ! empty( $_COOKIE['mfa_referrer'] ) ) {
+        $ref = absint( wp_unslash( $_COOKIE['mfa_referrer'] ) );
+    }
+
+    if ( ! $ref && isset( $_COOKIE['affiliateid'] ) ) {
+        $ref = absint( wp_unslash( $_COOKIE['affiliateid'] ) );
+    }
+
+    if ( ! $ref || 14270 === $ref || $ref === (int) $user_id ) {
+        return 0;
+    }
+
+    return get_userdata( $ref ) ? $ref : 0;
+}
+
+/**
+ * Remember who referred this visitor, in a cookie of our own.
+ *
+ * Attribution cannot share the affiliateid cookie, and this is worth stating
+ * plainly because it looks like a bug until you check what reads it. That
+ * cookie answers "which id should the share button put in my links", so
+ * enaizi-mfa's niz_mfa_location_init() sets it to the LOGGED-IN user's own id
+ * whenever somebody is signed in - mfa-core/assets/js/site-chrome-v1.js reads
+ * it to build "/?id=<me>". Attribution asks the opposite question: who
+ * referred THIS visitor. One cookie cannot hold both answers, which is why a
+ * referral link opened by an already-signed-in visitor was being discarded.
+ *
+ * So affiliateid is left exactly as it is - changing it would credit the
+ * referrer instead of the sharer on every share - and referrals get their own
+ * cookie here.
+ *
+ * First referrer wins: once set it is not overwritten, so somebody who
+ * arrives through one member's link and later browses in through another is
+ * still attributed to the first. Nothing is written for a visitor who never
+ * arrived on a "?id=" link.
+ */
+add_action( 'init', 'mfa_capture_referrer_cookie', 5 );
+function mfa_capture_referrer_cookie() {
+    if ( is_admin() || wp_doing_ajax() || wp_doing_cron() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
+        return;
+    }
+
+    if ( ! empty( $_COOKIE['mfa_referrer'] ) || headers_sent() ) {
+        return;
+    }
+
+    $ref = (int) filter_input( INPUT_GET, 'id', FILTER_VALIDATE_INT );
+    if ( $ref < 1 ) {
+        return;
+    }
+
+    setcookie( 'mfa_referrer', (string) $ref, array(
+        'expires'  => time() + YEAR_IN_SECONDS,
+        'path'     => '/',
+        'secure'   => is_ssl(),
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ) );
+
+    $_COOKIE['mfa_referrer'] = (string) $ref;
+}
+
+/**
+ * Record the referrer on a member row that doesn't have one yet.
+ *
+ * Only ever fills an empty value - a row that already names a real referrer
+ * is never re-attributed. No-op when the row doesn't exist yet, because
+ * niz_user_member_cct() reads the cookie itself when it creates one.
+ *
+ * Deliberately called only from niz_user_complete_registration(), which runs
+ * once per user: attributing on every login would let somebody who joined
+ * with no referrer be credited to whoever's link they happened to click
+ * months later.
+ *
+ * @return int The referrer id now on the row, or 0.
+ */
+function mfa_member_backfill_referrer( $user_id ) {
+    global $wpdb;
+
+    $user_id = absint( $user_id );
+    if ( ! $user_id ) {
+        return 0;
+    }
+
+    $table   = $wpdb->prefix . 'jet_cct_member';
+    $current = $wpdb->get_var( $wpdb->prepare(
+        "SELECT referrer_id FROM `{$table}` WHERE user_id = %d LIMIT 1",
+        $user_id
+    ) );
+
+    if ( null === $current ) {
+        return 0;
+    }
+
+    $current = (int) $current;
+
+    // 14270 counts as empty - it is the sentinel meaning "nobody referred
+    // this person", not a real account.
+    if ( $current && 14270 !== $current ) {
+        return $current;
+    }
+
+    $ref = mfa_referrer_from_cookie( $user_id );
+    if ( ! $ref ) {
+        return 0;
+    }
+
+    $wpdb->update(
+        $table,
+        array( 'referrer_id' => $ref, 'cct_modified' => current_time( 'mysql' ) ),
+        array( 'user_id' => $user_id ),
+        array( '%d', '%s' ),
+        array( '%d' )
+    );
+
+    return $ref;
+}
+
+/**
+ * Record the visitor's country on a member row that doesn't have one yet.
+ *
+ * The country cookie is written client-side by the geolocation widget
+ * (set-cookies.php), so it exists on any browser request and never on the
+ * WhatsApp or Stripe webhooks. Safe to call on every login: it only fills a
+ * blank, so a country the member set themselves is never overwritten.
+ *
+ * @return string The country now on the row, or '' if nothing was written.
+ */
+function mfa_member_backfill_country( $user_id ) {
+    global $wpdb;
+
+    $user_id = absint( $user_id );
+    if ( ! $user_id ) {
+        return '';
+    }
+
+    $table   = $wpdb->prefix . 'jet_cct_member';
+    $current = $wpdb->get_var( $wpdb->prepare(
+        "SELECT country FROM `{$table}` WHERE user_id = %d LIMIT 1",
+        $user_id
+    ) );
+
+    if ( null === $current || '' !== trim( (string) $current ) ) {
+        return (string) $current;
+    }
+
+    $country = isset( $_COOKIE['country'] )
+        ? sanitize_text_field( wp_unslash( $_COOKIE['country'] ) )
+        : '';
+
+    if ( '' === $country ) {
+        return '';
+    }
+
+    $wpdb->update(
+        $table,
+        array( 'country' => $country, 'cct_modified' => current_time( 'mysql' ) ),
+        array( 'user_id' => $user_id ),
+        array( '%s', '%s' ),
+        array( '%d' )
+    );
+
+    return $country;
 }

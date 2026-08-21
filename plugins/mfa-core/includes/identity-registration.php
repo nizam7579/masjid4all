@@ -34,7 +34,14 @@ function niz_user_complete_registration( $user_id, $args = array() ) {
 	// already safe to call twice), but skip re-running once a user is
 	// already a member so a stray re-call (e.g. a retried WhatsApp webhook)
 	// can't clobber a profile they've since edited themselves.
-	if ( 'member' === get_user_meta( $user_id, 'user_status', true ) ) {
+	//
+	// Compared case-insensitively and against the paid tiers too: production
+	// carries 'Prospect' with a capital P on 34,597 rows, and founding-member
+	// writes 'Premium Lifetime'. A strict 'member' test missed both, so an
+	// existing member logging in would have re-run this whole function and
+	// reset their user_registered date to that moment.
+	$current_status = strtolower( (string) get_user_meta( $user_id, 'user_status', true ) );
+	if ( in_array( $current_status, array( 'member', 'premium', 'premium member', 'premium lifetime' ), true ) ) {
 		return true;
 	}
 
@@ -47,6 +54,24 @@ function niz_user_complete_registration( $user_id, $args = array() ) {
 			'display_name' => $name,
 			'first_name'   => $name,
 		) );
+	}
+
+	// Fill referrer and country on a member row that PRE-DATES this
+	// registration. niz_user_member_cct() reads those cookies only when it
+	// CREATES a row, so a prospect row made weeks earlier by a WhatsApp
+	// message - or by the bulk import - carries neither. Run before it, so
+	// that when no row exists these no-op and the creation path below reads
+	// the cookies itself.
+	//
+	// Referrer is captured HERE and nowhere else. This function runs once per
+	// user (the guard above returns early afterwards), so a referral can never
+	// be re-attributed to whoever's link they happen to click months later.
+	if ( function_exists( 'mfa_member_backfill_referrer' ) ) {
+		mfa_member_backfill_referrer( $user_id );
+	}
+
+	if ( function_exists( 'mfa_member_backfill_country' ) ) {
+		mfa_member_backfill_country( $user_id );
 	}
 
 	if ( function_exists( 'niz_user_member_cct' ) ) {

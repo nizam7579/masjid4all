@@ -294,17 +294,23 @@ function update_cct_member($item_id, $user_data) {
  * @return int Referrer user id, or 0.
  */
 function mfa_referrer_from_cookie( $user_id ) {
-    // Prefer the dedicated attribution cookie; fall back to affiliateid for
-    // visitors who arrived before mfa_capture_referrer_cookie() existed.
-    $ref = 0;
-
-    if ( ! empty( $_COOKIE['mfa_referrer'] ) ) {
-        $ref = absint( wp_unslash( $_COOKIE['mfa_referrer'] ) );
-    }
-
-    if ( ! $ref && isset( $_COOKIE['affiliateid'] ) ) {
-        $ref = absint( wp_unslash( $_COOKIE['affiliateid'] ) );
-    }
+    // ONLY the dedicated attribution cookie. affiliateid is deliberately NOT
+    // consulted, not even as a fallback: enaizi-mfa sets it to the LOGGED-IN
+    // user's own id so the share button can build "/?id=<me>" links, which
+    // means that for any signed-in request it names the wrong person entirely.
+    //
+    // That is not theoretical. Attribution now also runs at first login (the
+    // prospect->member promotion), i.e. while somebody IS signed in - and on a
+    // shared or admin browser affiliateid holds whoever used it last. A test
+    // registration on staging was duly credited to the admin, user 2. The
+    // self-referral guard below cannot catch that, because the id belongs to a
+    // real and different user.
+    //
+    // Cost of dropping the fallback: a visitor who arrived on a "?id=" link
+    // before mfa_capture_referrer_cookie() shipped (2026-08-21) is not
+    // attributed. That is the right trade - affiliateid was never a reliable
+    // attribution signal, which is the whole reason mfa_referrer exists.
+    $ref = ! empty( $_COOKIE['mfa_referrer'] ) ? absint( wp_unslash( $_COOKIE['mfa_referrer'] ) ) : 0;
 
     if ( ! $ref || 14270 === $ref || $ref === (int) $user_id ) {
         return 0;

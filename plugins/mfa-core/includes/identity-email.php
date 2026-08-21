@@ -72,18 +72,24 @@ function niz_user_register_email( $email, $name, $password, $phone = '' ) {
 		}
 	}
 
-	$username = sanitize_user( current( explode( '@', $email ) ) );
-	if ( username_exists( $username ) ) {
-		$username .= wp_rand( 100, 999 );
+	// Creation itself goes through the shared path (2026-08-21) rather than a
+	// fourth wp_insert_user() with its own username convention and its own
+	// meta list. The duplicate-checks above are kept, because this is a
+	// REGISTRATION entry point where "you already have an account" is a real
+	// answer for the caller - mfa_person_upsert() would simply return the
+	// existing user, which is right for a resolver and wrong for a signup
+	// form. activate is false: email registration is only complete once the
+	// address is verified, and enaizi-identity's own flow calls
+	// niz_user_complete_registration() when it is.
+	if ( ! function_exists( 'mfa_person_upsert' ) ) {
+		return new WP_Error( 'missing_fn', 'mfa_person_upsert() is not available.' );
 	}
 
-	$user_id = wp_insert_user( array(
-		'user_login'   => $username,
-		'user_pass'    => $password,
-		'user_email'   => $email,
-		'first_name'   => $name,
-		'display_name' => $name,
-		'role'         => 'subscriber',
+	$user_id = mfa_person_upsert( array(
+		'name'     => $name,
+		'email'    => $email,
+		'phone'    => $phone,
+		'password' => $password,
 	) );
 
 	if ( is_wp_error( $user_id ) ) {
@@ -93,10 +99,6 @@ function niz_user_register_email( $email, $name, $password, $phone = '' ) {
 	update_user_meta( $user_id, 'niz_email_verified', 'No' );
 	update_user_meta( $user_id, 'niz_google_connected', 'No' );
 	update_user_meta( $user_id, 'niz_whatsapp_verified', 'No' );
-
-	if ( ! empty( $phone ) ) {
-		update_user_meta( $user_id, 'user_phone', $phone );
-	}
 
 	// NOTE: enaizi-identity's original flow also generated an email
 	// verification token and sent it via Niz_Email_Verification, which

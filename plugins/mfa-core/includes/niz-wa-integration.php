@@ -49,38 +49,30 @@ function niz_wa_resolve_user_id( $user_id, $wa_number, $contact_name ) {
  * "member" (see niz_wa_resolve_user_id() above).
  */
 function niz_wa_create_contact_user( $wa_number, $contact_name ) {
-	$phone = niz_user_normalize_phone( $wa_number );
-	if ( empty( $phone ) ) {
+	if ( ! function_exists( 'mfa_person_upsert' ) ) {
 		return 0;
 	}
 
-	$name     = sanitize_text_field( $contact_name );
-	$username = 'mfa_' . $phone;
-	if ( username_exists( $username ) ) {
-		$username .= wp_rand( 100, 999 );
-	}
-
-	$user_id = wp_create_user( $username, wp_generate_password( 20 ), $phone . '@mfa.com' );
+	// mfa_person_upsert(), NOT mfa_register(): this is exactly the case the
+	// upsert/activate split exists for. Someone who messages Sofia once must
+	// get an account so the conversation has somewhere to live, but must not
+	// become a member - no jet_cct_member row, no Welcome Bonus - until they
+	// explicitly reply REGISTER. See includes/identity-register.php.
+	$user_id = mfa_person_upsert( array(
+		'name'              => $contact_name,
+		'phone'             => $wa_number,
+		'lead_source'       => 'whatsapp',
+		// Meta only delivers a message from a number that controls that
+		// WhatsApp, so receiving one is already proof of ownership.
+		'whatsapp_verified' => true,
+	) );
 
 	if ( is_wp_error( $user_id ) ) {
-		error_log( 'niz_wa_create_contact_user: wp_create_user failed - ' . $user_id->get_error_message() );
+		error_log( 'niz_wa_create_contact_user: ' . $user_id->get_error_message() );
 		return 0;
 	}
 
-	if ( $name ) {
-		wp_update_user( array(
-			'ID'           => $user_id,
-			'display_name' => $name,
-			'first_name'   => $name,
-		) );
-	}
-
-	update_user_meta( $user_id, 'user_phone', $phone );
-	update_user_meta( $user_id, 'user_status', 'prospect' );
-	update_user_meta( $user_id, 'lead_source', 'whatsapp' );
-	update_user_meta( $user_id, 'niz_whatsapp_verified', 'Yes' );
-
-	return $user_id;
+	return (int) $user_id;
 }
 
 /* ---------------- Action callbacks ---------------- */

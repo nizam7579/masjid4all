@@ -56,88 +56,60 @@ function niz_user_check($phone) {
  * @param bool   $send_template  Whether to trigger a WhatsApp password template.
  * @return int|WP_Error          Returns user ID on success, WP_Error object on failure.
  */
+/**
+ * Phone-based registration. Name preserved as a published contract; the body
+ * now delegates to mfa_register() (includes/identity-register.php).
+ *
+ * This function was the LAST creator bypassing
+ * niz_user_complete_registration(): it set user_status itself and called
+ * niz_sync_cct_member_record() directly, so accounts made through it got no
+ * user_registered reset, no mfa_registration_route, no Welcome Bonus, no
+ * referrer award and no mfa_user_activated. Routing it through mfa_register()
+ * fixes all of that at once.
+ *
+ * Two deliberate behaviour changes, both strictly more useful:
+ *
+ *  - An existing NON-prospect no longer returns WP_Error('user_exists'); the
+ *    existing user id is returned instead. That error only existed because
+ *    the old body could not cope with an already-registered member upgrading,
+ *    and every caller had to work around it. niz_user_complete_registration()
+ *    returns early for someone already a member, so nothing is re-run.
+ *  - $send_template no longer attempts a WhatsApp password send. It could not
+ *    work anyway: niz_wa_send_password() lives only in the retired enaizi_wa,
+ *    so the generated password was set on the account and delivered to nobody
+ *    while lead_source was mislabelled 'whatsapp'. The flag now only selects
+ *    lead_source, which is all it ever really achieved here.
+ */
 function niz_user_register( $phone, $name, $send_template = false ) {
-    $phone = niz_user_normalize_phone( $phone );
-
-    if ( empty( $phone ) || strlen( $phone ) < 8 || strlen( $phone ) > 15 ) {
-        return new WP_Error( 'invalid_phone', __( 'Invalid phone number. Must be 8-15 digits.', 'enaizi-user' ) );
-    }
-
     if ( empty( $name ) ) {
         return new WP_Error( 'empty_name', __( 'Name is required.', 'enaizi-user' ) );
     }
 
-    $sanitized_name   = sanitize_text_field( $name );
-    $existing_user_id = niz_user_check( $phone );
-
-    if ( $existing_user_id ) {
-        $status = get_user_meta( $existing_user_id, 'user_status', true );
-
-        if ( $status === 'prospect' ) {
-            wp_update_user([
-                'ID'           => $existing_user_id,
-                'display_name' => $sanitized_name,
-                'first_name'   => $sanitized_name,
-            ]);
-
-            update_user_meta( $existing_user_id, 'user_status', 'member' );
-            update_user_meta( $existing_user_id, 'change_password', 'yes' );
-
-            if ( $send_template && function_exists( 'niz_wa_send_password' ) ) {
-                $temp_pass = str_pad( random_int( 0, 999999 ), 6, '0', STR_PAD_LEFT );
-                wp_set_password( $temp_pass, $existing_user_id );
-                niz_wa_send_password( $phone, $temp_pass );
-            }
-
-            niz_sync_cct_member_record( $existing_user_id, $sanitized_name, $phone );
-
-            return $existing_user_id;
-        }
-
-        return new WP_Error( 'user_exists', __( 'User already exists with this phone number.', 'enaizi-user' ) );
+    if ( ! function_exists( 'mfa_register' ) ) {
+        return new WP_Error( 'missing_fn', 'mfa_register() is not available.' );
     }
 
-    $temp_pass = str_pad( random_int( 0, 999999 ), 6, '0', STR_PAD_LEFT );
-    $username  = 'mfa_' . $phone;
-    $fake_email = $phone . '@mfa.com';
+    $phone = niz_user_normalize_phone( $phone );
 
-    $user_id = wp_create_user( $username, $temp_pass, $fake_email );
+    $user_id = mfa_register([
+        'name'              => $name,
+        'phone'             => $phone,
+        'route'             => $send_template ? 'web' : 'whatsapp',
+        'lead_source'       => $send_template ? 'website' : 'whatsapp',
+        'whatsapp_verified' => false,
+    ]);
 
     if ( is_wp_error( $user_id ) ) {
-        error_log( 'niz_user_register: wp_create_user failed - ' . $user_id->get_error_message() );
         return $user_id;
     }
 
-    wp_update_user([
-        'ID'           => $user_id,
-        'display_name' => $sanitized_name,
-        'first_name'   => $sanitized_name,
-    ]);
-
-    update_user_meta( $user_id, 'user_phone', $phone );
+    // Kept from the original: these members have never chosen a password.
     update_user_meta( $user_id, 'change_password', 'yes' );
-    update_user_meta( $user_id, 'user_status', 'member' );
 
-    if ( $send_template && function_exists( 'niz_wa_send_password' ) ) {
-        niz_wa_send_password( $phone, $temp_pass );
-        update_user_meta( $user_id, 'lead_source', 'website' );
-    } else {
-        update_user_meta( $user_id, 'lead_source', 'whatsapp' );
-    }
-
-    setcookie(
-        'user_phone',
-        $phone,
-        time() + 2592000,
-        '/',
-        '',
-        is_ssl(),
-        false
-    );
-
-    $cct_result = niz_sync_cct_member_record( $user_id, $sanitized_name, $phone );
-    if ( is_wp_error( $cct_result ) ) {
-        return $cct_result;
+    // Kept from the original: the member pages read this cookie to prefill
+    // the phone field. Guarded because this can now run from a webhook.
+    if ( ! headers_sent() ) {
+        setcookie( 'user_phone', $phone, time() + 2592000, '/', '', is_ssl(), false );
     }
 
     return $user_id;
@@ -221,56 +193,35 @@ function niz_user_password($phone) {
     return $new_password;
 }
 
+/**
+ * Kept as the published name (niz-wa and the imports call it), but the body
+ * now delegates to mfa_person_upsert() so there is ONE creation path -
+ * see includes/identity-register.php. Contract preserved exactly: user id on
+ * success, WP_Error for a bad phone number, '' if the insert itself failed.
+ */
 function niz_user_create_prospect($phone, $name = '') {
-    $phone = niz_user_normalize_phone($phone);
-
-    if (empty($phone) || strlen($phone) < 8 || strlen($phone) > 15) {
-        return new WP_Error(
-            'invalid_phone',
-            __('Invalid phone number. Must be 8-15 digits.', 'enaizi-user')
-        );
+    if ( ! function_exists('mfa_person_upsert') ) {
+        return new WP_Error('missing_fn', 'mfa_person_upsert() is not available.');
     }
 
-    $existing = niz_user_check($phone);
+    $result = mfa_person_upsert([
+        'name'        => $name,
+        'phone'       => $phone,
+        'lead_source' => 'whatsapp',
+    ]);
 
-    if ($existing) {
-        return $existing;
-    }
-
-    if (empty($name)) {
-        $name = 'Prospect ' . $phone;
-    }
-
-    $username = 'mfa_' . $phone;
-    $password = wp_generate_password(20);
-    $email    = $phone . '@mfa.com';
-
-    $user_id = wp_create_user(
-        $username,
-        $password,
-        $email
-    );
-
-    if (is_wp_error($user_id)) {
-        error_log(
-            'niz_user_create_prospect failed: ' .
-            $user_id->get_error_message()
-        );
-
+    if (is_wp_error($result)) {
+        // A bad phone number is a caller error and is reported as one; an
+        // insert failure was historically reported as '' and some callers
+        // test for that, so that distinction is preserved.
+        if ('invalid_phone' === $result->get_error_code() || 'missing_identity' === $result->get_error_code()) {
+            return $result;
+        }
+        error_log('niz_user_create_prospect failed: ' . $result->get_error_message());
         return '';
     }
 
-    wp_update_user([
-        'ID'           => $user_id,
-        'display_name' => sanitize_text_field($name),
-        'first_name'   => sanitize_text_field($name),
-    ]);
-
-    update_user_meta($user_id, 'user_phone', $phone);
-    update_user_meta($user_id, 'user_status', 'prospect');
-    update_user_meta($user_id, 'lead_source', 'whatsapp');
-
-    return $user_id;
+    return $result;
 }
 
 /**

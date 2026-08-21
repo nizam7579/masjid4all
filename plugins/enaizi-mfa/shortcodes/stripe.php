@@ -12,7 +12,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 add_shortcode( 'mfa_stripe_form', 'mfa_render_stripe_payment_form' );
 
 function mfa_render_stripe_payment_form() {
-    
+
+    // Founding Member is deactivated - see mfa_founding_member_enabled() in
+    // mfa-core/includes/founding-member.php. Returned before anything is
+    // enqueued, so a page carrying this shortcode neither shows a form that
+    // cannot complete nor loads the Stripe and intl-tel-input assets for it.
+    if ( function_exists( 'mfa_founding_member_enabled' ) && ! mfa_founding_member_enabled() ) {
+        return '<div class="mfa-card mfa-card--tinted mfa-stripe-closed">'
+            . '<p><strong>' . esc_html__( 'Founding Member is not open for sign-ups right now.', 'enaizi-mfa' ) . '</strong></p>'
+            . '<p>' . esc_html__( 'We are reworking how membership sign-up works. Message us on WhatsApp to join the waitlist and we will let you know as soon as it reopens.', 'enaizi-mfa' ) . '</p>'
+            . '</div>';
+    }
+
     // 1. Enqueue Existing Plugin Assets
     wp_enqueue_style( 'mfa-stripe-css', plugin_dir_url( dirname( __FILE__ ) ) . 'assets/css/stripe.css', array(), '1.0.0' );
     wp_enqueue_script( 'mfa-stripe-js', plugin_dir_url( dirname( __FILE__ ) ) . 'assets/js/stripe.js', array(), '1.0.0', true );
@@ -189,8 +200,22 @@ function mfa_render_payment_success_details() {
         // separate, incomplete "premium" state the way it used to
         // (previously only ever set an unused mfa_membership_status meta
         // key, never chk_premium/points/credit/payment record).
+        $grant_result = null;
+
         if ( $session->payment_status === 'paid' && function_exists( 'mfa_grant_founding_member_benefits' ) ) {
-            mfa_grant_founding_member_benefits( $session );
+            $grant_result = mfa_grant_founding_member_benefits( $session );
+        }
+
+        // The offer was switched off between this Checkout Session being
+        // created and the payer landing here. Narrow, but the money is real
+        // even though the grant did not run, so say that plainly instead of
+        // printing "your account has been updated" underneath it.
+        if ( is_wp_error( $grant_result ) && 'founding_member_disabled' === $grant_result->get_error_code() ) {
+            return '<div class="mfa-success-details-box" style="background:#fdeceb; padding:20px; border-radius:8px; border-left:5px solid #c0392b;">'
+                . '<h2 style="margin-top:0;">' . esc_html__( 'Your payment went through, but we could not activate the plan', 'enaizi-mfa' ) . '</h2>'
+                . '<p>' . esc_html__( 'Founding Member was closed while your payment was in progress, so nothing has been charged to your membership. Please contact us with this reference and we will sort it out or refund you.', 'enaizi-mfa' ) . '</p>'
+                . '<p><strong>' . esc_html__( 'Reference:', 'enaizi-mfa' ) . '</strong> ' . esc_html( $session->id ) . '</p>'
+                . '</div>';
         }
 
         // 4. --- DISPLAY LOGIC ---

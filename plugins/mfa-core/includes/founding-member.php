@@ -30,8 +30,40 @@ if ( ! defined( 'ABSPATH' ) ) {
  *                                ->currency, ->amount_total, ->metadata.
  * @return int|WP_Error The granted user's ID, or WP_Error if one couldn't be resolved.
  */
+/**
+ * Master switch for the whole Founding Member paid offer.
+ *
+ * Deactivated 2026-08-21 by decision: the offer is being reworked to run
+ * through the standard registration chokepoint
+ * (niz_user_complete_registration()) rather than its own niz_user_register()
+ * path, which is the last thing bypassing it.
+ *
+ * BOTH halves are switched off by this one function on purpose - the grant
+ * below, and the two ways to pay in enaizi-mfa (the [mfa_stripe_form]
+ * shortcode and the mfa/v1/create-session REST route). Disabling the grant
+ * on its own would leave the checkout open and hand somebody a completed
+ * payment with nothing granted for it, which is worse than not selling.
+ *
+ * The Founding Member WAITLIST is a separate feature and is deliberately left
+ * running - see mfa_lead_types()['founding_member'] in sofia-leads.php, the
+ * Sofia keyword, and the invite_founding admin action.
+ *
+ * Re-enable by returning true here, or via the filter, once the offer is
+ * wired to the shared registration path.
+ */
+function mfa_founding_member_enabled() {
+	return (bool) apply_filters( 'mfa_founding_member_enabled', false );
+}
+
 function mfa_grant_founding_member_benefits( $stripe_session ) {
 	global $wpdb;
+
+	if ( ! mfa_founding_member_enabled() ) {
+		return new WP_Error(
+			'founding_member_disabled',
+			'The Founding Member offer is currently disabled.'
+		);
+	}
 
 	$stripe_session_id = $stripe_session->id;
 

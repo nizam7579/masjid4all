@@ -36,6 +36,19 @@ function mfa_register_stripe_api_routes() {
  * Endpoint 1: Create Stripe Checkout Session
  */
 function mfa_handle_create_checkout_session( WP_REST_Request $request ) {
+    // Founding Member is deactivated - see mfa_founding_member_enabled() in
+    // mfa-core/includes/founding-member.php. Refused here as well as at the
+    // grant so that nobody can complete a payment for something that will not
+    // be granted. Checked before the Stripe key so a disabled offer reports
+    // as unavailable rather than as a misconfiguration.
+    if ( function_exists( 'mfa_founding_member_enabled' ) && ! mfa_founding_member_enabled() ) {
+        return new WP_Error(
+            'founding_member_disabled',
+            'Founding Member is not open for sign-ups at the moment.',
+            array( 'status' => 503 )
+        );
+    }
+
     // Safely load the Stripe API Key
     if ( ! defined( 'STRIPE_SECRET_KEY' ) ) {
         return new WP_Error( 'missing_key', 'Stripe Secret Key is not defined in wp-config.php', array( 'status' => 500 ) );

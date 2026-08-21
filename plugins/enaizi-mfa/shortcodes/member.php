@@ -335,57 +335,24 @@ function mfa_member_field_by_userid($user_id,$field) {
 }
 
 
-// Add Barakah Points
+/**
+ * Delegates to mfa_award_points() - see mfa-core/includes/barakah.php.
+ *
+ * 2026-08-21. This was the least broken of the three - it did dedupe on
+ * (user_id, description) - but its sync line was commented out, so it wrote
+ * the ledger row and left jet_cct_member.points untouched. A member awarded
+ * only through this path kept whatever stale figure the field already held.
+ */
 function mfa_member_add_points($user_id, $desc, $points) {
-    global $wpdb;
-    
-    $table = $wpdb->prefix . 'jet_cct_barakah'; 
-    
-    $exists = $wpdb->get_var(
-        $wpdb->prepare(
-            "SELECT user_id
-             FROM {$table}
-             WHERE description = %s
-               AND user_id = %d
-             LIMIT 1",
-            $desc,
-            $user_id
-        )
-    );
-    
-    if ( empty($exists) ) {
-        // Sanitize/Cast inputs to ensure data integrity
-        $insert_data = [
-            'user_id'     => (int) $user_id,
-            'description' => sanitize_text_field($desc),
-            'points'      => (int) $points,
-            'cct_created' => current_time('mysql')
-        ];
-    
-        $insert_format = [
-            '%d', // user_id
-            '%s', // description
-            '%d', // points
-            '%s'  // cct_created
-        ];
-    
-        $result = $wpdb->insert($table, $insert_data, $insert_format);
-    
-        if ($result === false) {
-            return [
-                'success' => false,
-                'message' => $wpdb->last_error,
-            ];
-        }
+    if ( function_exists( 'mfa_award_points' ) ) {
+        return mfa_award_points( $user_id, $desc, $points );
+    }
 
-        //niz_user_update_field($user_id, 'points', $points);
-    
-        return [
-            'success'   => true,
-            'insert_id' => (int) $wpdb->insert_id // Casted to int for clean API responses
-        ];
-    } 
-} 
+    return [
+        'success' => false,
+        'message' => 'mfa-core inactive - no award written',
+    ];
+}
 
 
 add_shortcode('mfa_member_logout', 'mfa_member_logout_shortcode');

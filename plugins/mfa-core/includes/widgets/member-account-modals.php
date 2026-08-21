@@ -291,11 +291,24 @@ function mfa_ajax_update_profile() {
 		niz_user_update_field( $user_id, 'country', $country );
 	}
 
+	// Complete Profile is a one-time milestone, deduped on (user_id,
+	// description), so a second edit correctly awards nothing. Report which of
+	// the two happened rather than discarding the result: saying "updated"
+	// either way leaves a member unable to tell whether they just earned the
+	// 50 points, which is exactly what the checklist on /member/ exists to
+	// answer. Wording matches the affiliate join below.
+	$awarded = false;
 	if ( function_exists( 'mfa_award_points' ) ) {
-		mfa_award_points( $user_id, 'Complete Profile', 50 );
+		$award   = mfa_award_points( $user_id, 'Complete Profile', 50 );
+		$awarded = ! empty( $award['success'] );
 	}
 
-	wp_send_json_success( array( 'message' => 'Profile updated successfully.' ) );
+	wp_send_json_success( array(
+		'message' => $awarded
+			? 'Profile updated. 50 Barakah points added.'
+			: 'Profile updated successfully.',
+		'awarded' => $awarded,
+	) );
 }
 
 /**

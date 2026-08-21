@@ -88,52 +88,45 @@ function niz_user_barakah_shortcode() {
     return ob_get_clean();
 }    
 
+/**
+ * Delegates to mfa_award_points() - see mfa-core/includes/barakah.php.
+ *
+ * 2026-08-21. The signature is kept because eleven call sites across
+ * enaizi-user and enaizi-mfa still use it; only the body changed. Two bugs
+ * lived here and were visible in production data:
+ *
+ * 1. The dedup check read `WHERE description = %s` with NO `user_id`, so once
+ *    any one member held an award with a given description, no other member
+ *    could ever receive that same-named award again.
+ * 2. It wrote `$points` - the value of THIS award - into the single-value
+ *    jet_cct_member.points field instead of the recomputed running total, so
+ *    that field drifted from the ledger after the very first award. The
+ *    fingerprint was unmistakable: every drifted row held the value of the
+ *    member's most recent award. User 14267 showed 10 points against a
+ *    ledger of 2,545 while ranked Gold.
+ *
+ * The ledger itself was always right; only the stored figure the UI reads was
+ * wrong. mfa_award_points() dedupes on (user_id, description) and writes the
+ * recomputed total.
+ *
+ * Return shape is preserved for callers that inspect it. The old function
+ * returned null when the award already existed; this returns the array
+ * mfa_award_points() gives, which is strictly more informative and still
+ * falsy-safe on ['success'].
+ */
 function niz_user_add_points($user_id, $desc, $points) {
-    global $wpdb;
-    
-    $table = $wpdb->prefix . 'jet_cct_barakah'; 
-    
-    $exists = $wpdb->get_var(
-        $wpdb->prepare(
-            "SELECT _ID FROM {$table} WHERE description = %s LIMIT 1",
-            $desc
-        )
-    );
-    
-    if ( ! $exists ) {
-        // Sanitize/Cast inputs to ensure data integrity
-        $insert_data = [
-            'user_id'     => (int) $user_id,
-            'description' => sanitize_text_field($desc),
-            'points'      => (int) $points,
-            'cct_created' => current_time('mysql')
-        ];
-    
-        $insert_format = [
-            '%d', // user_id
-            '%s', // description
-            '%d', // points
-            '%s'  // cct_created
-        ];
-    
-        $result = $wpdb->insert($table, $insert_data, $insert_format);
-    
-        if ($result === false) {
-            return [
-                'success' => false,
-                'message' => $wpdb->last_error,
-            ];
-        }
-       
+    if ( function_exists( 'mfa_award_points' ) ) {
+        return mfa_award_points( $user_id, $desc, $points );
+    }
 
-        niz_user_update_field($user_id, 'points', $points);
-    
-        return [
-            'success'   => true,
-            'insert_id' => (int) $wpdb->insert_id // Casted to int for clean API responses
-        ];
-    } 
-} 
+    // mfa-core inactive: award nothing rather than reintroduce the buggy
+    // insert. A missing award is recoverable from the ledger; a wrong
+    // points field silently misreports every member's balance.
+    return [
+        'success' => false,
+        'message' => 'mfa-core inactive - no award written',
+    ];
+}
 
 // Invites
 add_shortcode('niz_user_invite', 'niz_user_invite_shortcode');

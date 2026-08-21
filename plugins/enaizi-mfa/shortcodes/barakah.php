@@ -114,42 +114,24 @@ function niz_member_barakah_shortcode() {
     return ob_get_clean();
 }    
 
+/**
+ * Delegates to mfa_award_points() - see mfa-core/includes/barakah.php.
+ *
+ * 2026-08-21. This one had NO dedup check at all, so a shortcode re-rendering
+ * or a double submit awarded the same milestone twice, and like its two
+ * siblings it wrote this award's value into jet_cct_member.points rather than
+ * the recomputed total.
+ */
 function niz_member_add_points($user_id, $desc, $points) {
-    global $wpdb;
-    
-    $table = $wpdb->prefix . 'jet_cct_barakah'; 
-    
-    // Sanitize/Cast inputs to ensure data integrity
-    $insert_data = [
-        'user_id'     => (int) $user_id,
-        'description' => sanitize_text_field($desc),
-        'points'      => (int) $points,
-        'cct_created' => current_time('mysql')
-    ];
-
-    $insert_format = [
-        '%d', // user_id
-        '%s', // description
-        '%d', // points
-        '%s'  // cct_created
-    ];
-
-    $result = $wpdb->insert($table, $insert_data, $insert_format);
-
-    if ($result === false) {
-        return [
-            'success' => false,
-            'message' => $wpdb->last_error,
-        ];
+    if ( function_exists( 'mfa_award_points' ) ) {
+        return mfa_award_points( $user_id, $desc, $points );
     }
 
-    niz_user_update_field($user_id, 'points', $points);
-
     return [
-        'success'   => true,
-        'insert_id' => (int) $wpdb->insert_id // Casted to int for clean API responses
+        'success' => false,
+        'message' => 'mfa-core inactive - no award written',
     ];
-} 
+}
 
 // Invites
 add_shortcode('niz_member_invite', 'niz_member_invite_shortcode');

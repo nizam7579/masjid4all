@@ -165,12 +165,19 @@ function mfa_person_upsert( $args = array() ) {
 	// recognising it and these accounts stay out of email campaigns.
 	$login_email = $has_email ? $email : $phone . '@mfa.com';
 
-	// Login prefix is load-bearing: 'mfa_<phone>' is how this codebase records
-	// "created from a phone number" (niz-wa's own fallback uses 'nwa_', which
-	// only happens when no nwa_resolve_user_id filter is hooked - never here).
-	$login = $has_phone ? 'mfa_' . $phone : sanitize_user( current( explode( '@', $login_email ) ), true );
+	// Login prefix is load-bearing and email wins deliberately: 'mfa_<phone>'
+	// is how this codebase records "created from a phone number ALONE" - it is
+	// the tell that distinguishes a Sofia contact from a web/Google signup
+	// (niz-wa's own fallback uses 'nwa_', which only happens when no
+	// nwa_resolve_user_id filter is hooked - never on this site). A web
+	// registrant who happens to supply a phone number must keep the email-based
+	// login they have always had, or that signal stops meaning anything.
+	$login = $has_email
+		? sanitize_user( current( explode( '@', $login_email ) ), true )
+		: 'mfa_' . $phone;
+
 	if ( '' === $login ) {
-		$login = 'mfa_user';
+		$login = $has_phone ? 'mfa_' . $phone : 'mfa_user';
 	}
 	if ( username_exists( $login ) ) {
 		$login .= '_' . wp_generate_password( 5, false, false );

@@ -327,16 +327,24 @@ class Niz_Google_Provider {
         
         
         
-            $user_id =
-            wp_create_user(
-        
-                $username,
-        
-                $random_password,
-        
-                $email
-        
-            );
+            // 2026-08-21: creation now goes through mfa-core's shared path
+            // (mfa_register(), includes/identity-register.php) instead of a
+            // private wp_create_user(). The niz_user_complete_registration()
+            // call further down is now a no-op - mfa_register() has already
+            // activated them and the chokepoint returns early for a member.
+            //
+            // Only reached when the lookup above found no existing account, so
+            // resolution by email here always creates. No phone is involved in
+            // a Google sign-in, so the account keeps its email-based login.
+            $user_id = function_exists( 'mfa_register' )
+                ? mfa_register( array(
+                    'name'        => $name,
+                    'email'       => $email,
+                    'password'    => $random_password,
+                    'route'       => 'google',
+                    'lead_source' => 'google',
+                ) )
+                : wp_create_user( $username, $random_password, $email );
         
         
         

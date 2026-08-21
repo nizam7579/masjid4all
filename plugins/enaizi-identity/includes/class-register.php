@@ -99,7 +99,33 @@ public static function init(){
             'role'         => 'subscriber'   // Optional: defaults to the default site role
         ];
         
-        $user_id = wp_insert_user($user_data);
+        // 2026-08-21: creation AND activation now go through mfa-core's shared
+        // path (mfa_register(), includes/identity-register.php) rather than a
+        // private wp_insert_user() here plus a separate
+        // niz_user_complete_registration() call further down - that call is now
+        // a harmless no-op, since mfa_register() has already activated them and
+        // the chokepoint returns early for an existing member.
+        //
+        // 'phone' is deliberately NOT passed. mfa_person_upsert() resolves an
+        // existing account by phone, and this form never verifies that the
+        // number belongs to the person typing it - so passing it would let
+        // somebody register with a stranger's WhatsApp number and be logged
+        // straight into that prospect's account by the wp_set_auth_cookie()
+        // below. The email is already checked unique above, so resolution here
+        // is by email alone and always creates a new account, exactly as
+        // before. The number is still stored further down, unverified, and
+        // linking a number to an account remains the VERIFY flow's job.
+        if ( function_exists( 'mfa_register' ) ) {
+            $user_id = mfa_register( array(
+                'name'        => $name,
+                'email'       => $email,
+                'password'    => $password,
+                'route'       => 'web',
+                'lead_source' => 'website',
+            ) );
+        } else {
+            $user_id = wp_insert_user($user_data);
+        }
 
         if (is_wp_error($user_id)) {
             wp_send_json_error(

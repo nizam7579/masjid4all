@@ -117,44 +117,6 @@ with `NWA_OptOut::opt_out( 14461 )` if she confirms it was intentional.
 
 ---
 
-## Bugs
-
-### A. Members show the wrong Barakah balance — legacy award function
-**14 of the 23 members who hold any award have a stored `points` value that
-disagrees with their own ledger.** User 14267 shows **10** against a ledger of
-**2,545** while ranked Gold; user 2 shows 10 against 425. The ledger is right and
-`mfa_get_barakah_points()` computes the correct figure — it is the stored
-`jet_cct_member.points` field that is stale, and that field is what the UI reads.
-
-Root cause is `niz_user_add_points()` in
-`plugins/enaizi-user/shortcodes/barakah.php`, still live via
-`plugins/enaizi-mfa/shortcodes/mosque.php:159`. Two defects:
-
-1. **It writes the wrong number.** `niz_user_update_field( $user_id, 'points',
-   $points )` stores *this award's* value, not the running total. That is the
-   exact fingerprint in the data — every drifted row shows the value of the
-   member's most recent award (14267's last award was Add Mosque, 10 points).
-2. **Its dedupe omits `user_id`**: `WHERE description = %s`. One member earning
-   an award can block every other member from ever earning the same one.
-
-`mfa_award_points()` in `mfa-core/includes/barakah.php` gets both right — it
-dedupes on `(user_id, description)` and writes `$total`. The fix is to point the
-remaining legacy call sites at it and then backfill the 14 drifted rows from the
-ledger. **Do the code first**, or the backfill is undone by the next Add Mosque.
-
-Also worth checking while in there: `enaizi-mfa/shortcodes/member.php:381` has
-its own copy with the sync line commented out, so it writes nothing at all.
-
-### B. Profile update gives no feedback about points
-`mfa_ajax_update_profile()` (`member-account-modals.php:298`) calls
-`mfa_award_points()` and **discards the return value**, always replying
-"Profile updated successfully." The award is a one-time milestone deduped on
-`(user_id, description)`, so editing a profile a second time correctly awards
-nothing — but the member has no way to tell whether they earned 50 points or
-not. The return already carries `success` and `Already awarded`; surface it.
-
----
-
 ## Code hygiene / drift
 
 ### 7. Repo-vs-production splits, three files

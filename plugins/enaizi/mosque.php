@@ -1552,7 +1552,20 @@ function calculate_distance_km($lat1, $lon1, $lat2, $lon2) {
 function masjid4all_fontawesome() {
     wp_enqueue_style('font-awesome', 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css', [], '6.5.1');
 }
-add_action('wp_enqueue_scripts', 'masjid4all_fontawesome');
+// 2026-08-21: UNHOOKED. This pulled FontAwesome from a third-party CDN on
+// every request, and it was the SECOND copy on the page - enaizi-user ships a
+// local all.min.css with its own webfonts/ directory. The only live
+// FontAwesome left on the site is the namecard's contact buttons, which use
+// that local copy, and enaizi-user now loads it only where a namecard renders
+// (niz_user_needs_namecard_assets()). The directory spinners that were the
+// other user are now .mfa-spinner in mfa-core's global sheet.
+//
+// Left defined rather than deleted: several shortcodes in this file and in
+// business.php still emit fa- icons, but none of them render on a published
+// page (verified 2026-08-21 - all drafts, revisions, or kadence_element,
+// whose post type is no longer registered). If one is ever revived, hook this
+// again or use enaizi-user's local copy instead of the CDN.
+// add_action('wp_enqueue_scripts', 'masjid4all_fontawesome');
 
 
 /////////////////////////////

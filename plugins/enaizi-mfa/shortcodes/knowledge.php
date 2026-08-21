@@ -131,7 +131,7 @@ add_shortcode('niz_mfa_knowledge_directory', function($atts) {
         
         <div id="knowledge-list" class="niz-grid-canvas">
             <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #64748b;">
-                <i class="fa-solid fa-spinner fa-spin fa-2x"></i><br><br>Loading knowledge directory...
+                <span class="mfa-spinner" aria-hidden="true"></span><br><br>Loading knowledge directory...
             </div>
         </div>
         <button class="load-more-knowledge-btn" style="display: none;">Load More Articles</button>

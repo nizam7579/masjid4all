@@ -53,7 +53,7 @@ add_shortcode('niz_mfa_mosques_info', function() {
         <?php else : ?>
             <div class="update-prompt-box" style="padding:15px;border:1px dashed #ccc;border-radius:10px;text-align:center;background:#fafafa;">
                 <div id="update-spinner">
-                    <i class="fa-solid fa-spinner fa-spin fa-2x" style="color:#28a745;"></i><br><br>
+                    <span class="mfa-spinner" aria-hidden="true"></span><br><br>
                     <b><?= esc_html($name); ?></b><br>
                     <span style="color:#28a745;font-weight:600;">
                         Please wait...<br>We are updating the mosque information.
@@ -321,7 +321,7 @@ function niz_mfa_nearest_mosque_shortcode($atts) {
         
         <div id="mosque-list" class="niz-grid-canvas">
             <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #64748b;">
-                <i class="fa-solid fa-spinner fa-spin fa-2x"></i><br><br>Detecting your location...
+                <span class="mfa-spinner" aria-hidden="true"></span><br><br>Detecting your location...
             </div>
         </div>
         <button id="load-more-btn" style="display:none;">Load More Mosques</button>
@@ -475,7 +475,7 @@ function niz_mfa_local_mosques_shortcode() {
 
         <div class="niz-local-mosque-list niz-grid-canvas">
             <div class="niz-mosque-loading-placeholder" style="grid-column: 1/-1; text-align: center; padding: 40px;">
-                <i class="fa-solid fa-spinner fa-spin fa-2x"></i><br><br>Finding businesses near <?php echo esc_html($target_name); ?>...
+                <span class="mfa-spinner" aria-hidden="true"></span><br><br>Finding businesses near <?php echo esc_html($target_name); ?>...
             </div>
         </div>
         

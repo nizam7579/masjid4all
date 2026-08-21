@@ -63,24 +63,54 @@ foreach ( $user_core_files as $file ) {
 // =============================================
 add_action( 'wp_enqueue_scripts', 'niz_user_enqueue_assets' );
 
+/**
+ * Does this request render a digital namecard?
+ *
+ * card.css and FontAwesome exist for exactly one thing: [niz_user_namecard],
+ * which the theme's single.php renders for posts in the "Affiliate" category
+ * (id 39). Nothing else on the site used either as of 2026-08-21 - the last
+ * other FontAwesome icons were the directory-shortcode spinners, now replaced
+ * by .mfa-spinner in mfa-core's global sheet.
+ *
+ * The category test is the reliable one: a namecard post is created with
+ * [niz_user_namecard] as its content, but the shortcode then bakes its own
+ * rendered HTML back into post_content, so a has_shortcode() test alone would
+ * miss every established card. The shortcode test is kept as a second chance
+ * for anywhere it is placed by hand.
+ */
+function niz_user_needs_namecard_assets() {
+    $needs = false;
+
+    if ( is_singular( 'post' ) && ( has_category( 39 ) || has_category( 'affiliate' ) ) ) {
+        $needs = true;
+    } elseif ( is_singular() ) {
+        $post = get_post();
+        if ( $post && has_shortcode( (string) $post->post_content, 'niz_user_namecard' ) ) {
+            $needs = true;
+        }
+    }
+
+    return (bool) apply_filters( 'niz_user_needs_namecard_assets', $needs );
+}
+
 function niz_user_enqueue_assets() {
-    // 2026-08-21: style.css and niz-user.js are gone.
+    // 2026-08-21: style.css and niz-user.js are gone, and what remains is no
+    // longer sitewide.
     //
     // niz-user.js drove the phone login/register form, whose AJAX endpoints
     // were removed as a security fix, and the logout button - now a plain
     // wp_logout_url() link in mfa-core needing no JS. style.css styled only
     // that form plus a generic .niz-user-logout-btn rule that the three
-    // shells (site-chrome-v1.css, member-shell-v1.css, admin-shell-v3.css)
-    // already override with scoped rules of their own.
+    // shells already override with scoped rules of their own.
     //
-    // card.css and FontAwesome DO stay, and are still sitewide: the namecard
-    // ([niz_user_namecard], rendered by the theme's single.php for category
-    // 39 posts) owns every .niz-namecard-*/.niz-btn* rule in card.css and
-    // uses FontAwesome brand icons for its contact buttons. FontAwesome is
-    // additionally used by the "Finding businesses near ..." spinners in
-    // enaizi-mfa's directory shortcodes, which are live on every mosque and
-    // business page - so it cannot be scoped to namecard pages until those
-    // spinners are replaced. See the note in CLAUDE.md before attempting it.
+    // FontAwesome is 75,736 bytes and was loading on every request for what
+    // turned out to be a single spinner glyph per directory page plus the
+    // namecard's contact buttons. The spinners are now CSS, so both files
+    // load only where a namecard actually renders.
+    if ( ! niz_user_needs_namecard_assets() ) {
+        return;
+    }
+
     $card_path = NIZ_USER_PLUGIN_DIR . 'assets/css/card.css';
     $card_ver  = file_exists( $card_path ) ? filemtime( $card_path ) : NIZ_USER_VERSION;
 

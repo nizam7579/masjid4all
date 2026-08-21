@@ -496,3 +496,37 @@
   margin: 0 0 16px;
   font-family: Lato, sans-serif;
 }
+
+/* ---------- Loading spinner ----------
+   Replaces <i class="fa-solid fa-spinner fa-spin"> across the directory
+   shortcodes (2026-08-21). Those eight icons were the ONLY FontAwesome left
+   on any public page, and they were holding a 75,736-byte webfont on every
+   request; with them gone, enaizi-user loads FontAwesome and card.css only
+   where the namecard renders.
+
+   Lives in the global sheet because both mfa-core and enaizi-mfa's
+   shortcodes render it, and the global sheet is the one stylesheet loaded
+   on every public page - a module sheet would not reach both.
+
+   Decorative: every call site sits next to its own explanatory text
+   ("Detecting your location...", "Finding businesses near ..."), which is
+   what a screen reader should announce, so the span is aria-hidden. */
+.mfa-spinner {
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--mfa-border, #d7e4e1);
+  border-top-color: var(--mfa-teal, #25988b);
+  border-radius: 50%;
+  animation: mfa-spin 0.8s linear infinite;
+}
+
+@keyframes mfa-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Honour a reduced-motion preference rather than removing the animation
+   outright - a spinner that does not move reads as a broken page. */
+@media (prefers-reduced-motion: reduce) {
+  .mfa-spinner { animation-duration: 2.4s; }
+}

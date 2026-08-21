@@ -261,7 +261,7 @@ add_shortcode('niz_mfa_nearest_business', function($atts) {
         
         <div id="business-list" class="niz-grid-canvas">
             <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #64748b;">
-                <i class="fa-solid fa-spinner fa-spin fa-2x"></i><br><br>Detecting your location...
+                <span class="mfa-spinner" aria-hidden="true"></span><br><br>Detecting your location...
             </div>
         </div>
         <button id="load-more-business-btn" style="display: none;">Load More Businesses</button>
@@ -434,7 +434,7 @@ add_shortcode('niz_mfa_local_business', function() {
         
         <div class="local-business-list-canvas niz-grid-canvas">
             <div class="loading-placeholder" style="grid-column: 1/-1; text-align: center; padding: 40px; color: #64748b;">
-                <i class="fa-solid fa-spinner fa-spin fa-2x"></i><br><br>Finding businesses near <?php echo esc_html($target_name); ?>...
+                <span class="mfa-spinner" aria-hidden="true"></span><br><br>Finding businesses near <?php echo esc_html($target_name); ?>...
             </div>
         </div>
         <button class="load-more-local-btn" style="display: none; margin: 40px auto 20px auto; font-size: 14px; padding: 12px 28px; background: #ffffff; color: #1e3a5f; border: 2px solid #1e3a5f; border-radius: 8px; cursor: pointer; font-weight: 700;">Load More Businesses</button>

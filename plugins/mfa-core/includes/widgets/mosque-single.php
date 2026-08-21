@@ -120,7 +120,7 @@ function mfa_mosque_info_display( $post_id ) {
 			<p class="mfa-mosque-update-intro">Full details for this mosque haven&rsquo;t been generated yet. Click below to fetch and publish up-to-date information.</p>
 			<button type="button" class="mfa-btn mfa-mosque-update-btn" data-post="<?php echo (int) $post_id; ?>" data-nonce="<?php echo esc_attr( $nonce ); ?>" data-name="<?php echo esc_attr( $name ); ?>">Click to Update</button>
 			<div class="mfa-mosque-update-spinner" hidden>
-				<i class="fa-solid fa-spinner fa-spin fa-2x" aria-hidden="true"></i>
+				<span class="mfa-spinner" aria-hidden="true"></span>
 				<p>Please wait&hellip; we are updating the mosque information.</p>
 			</div>
 			<p class="mfa-mosque-update-error" role="alert" hidden></p>

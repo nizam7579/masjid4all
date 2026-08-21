@@ -38,7 +38,7 @@ add_shortcode('niz_knowledge_carousel', function() {
             <div class="swiper-wrapper">
                 <?php while ($query->have_posts()) : $query->the_post(); 
                     $post_id = get_the_ID();
-                    $img = get_the_post_thumbnail_url($post_id, 'medium') ?: 'https://cdn.masjid4all.com/media/placeholder.webp';
+                    $img = get_the_post_thumbnail_url($post_id, 'medium') ?: 'https://cdn.masjid4all.com/business/business-owner.webp';
                     $excerpt = wp_trim_words(get_the_excerpt(), 15, '...');
                     
                     $terms = get_the_terms($post_id, 'knowledge_category');

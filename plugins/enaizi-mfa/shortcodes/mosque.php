@@ -217,7 +217,7 @@ function niz_masjid_carousel_shortcode($atts) {
         <div id="<?php echo esc_attr($instance_id); ?>" class="swiper nizMosqueSwiper" data-post-count="<?php echo esc_attr($query->post_count); ?>">
             <div class="swiper-wrapper">
                 <?php while ($query->have_posts()) : $query->the_post(); 
-                    $img = get_the_post_thumbnail_url(get_the_ID(), 'large') ?: 'https://cdn.masjid4all.com/media/placeholder.webp';
+                    $img = get_the_post_thumbnail_url(get_the_ID(), 'large') ?: 'https://cdn.masjid4all.com/business/business-owner.webp';
                     $excerpt = wp_trim_words(get_the_excerpt(), 15, '...');
                 ?>
                     <div class="swiper-slide">

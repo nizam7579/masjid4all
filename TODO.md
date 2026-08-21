@@ -81,11 +81,25 @@ already in exactly the right state to test that: `niz_google_connected = "No"`,
 no WhatsApp history, nothing authored. Signing in with it needs **no reset and
 no deletion** — the account existing is precisely what makes it a link test.
 
-Only if the registration path needs re-running with that same address: change
-the account's email to `nemkad7579+kept@gmail.com` first (reversible), rather
-than deleting user 14553. Deleting works — `mfa_cleanup_records_for_deleted_user`
-removes the CCT row and barakah rows, FluentCRM cleans up too — but it is
-irreversible and drops the member count.
+**⚠ PRODUCTION IS CURRENTLY IN A TEMPORARY STATE (2026-08-21).** User 14553's
+address was moved to `nemkad7579+kept@gmail.com` — on `wp_users` **and** on CCT
+row 228, so the two do not disagree — so that a Google sign-in with the real
+`nemkad7579@gmail.com` takes the registration branch instead of the link one.
+`get_user_by( 'email', 'nemkad7579@gmail.com' )` now returns nothing; verified.
+
+**This must be undone after the test.** The original values are stored in the
+production option **`mfa_nemkad_email_swap`**. Restore = delete the account the
+test created, then put both emails back from that option.
+
+Expected on a successful test: a new user above ID 142919 with login
+`nemkad7579_xxxxx` (the plain login is taken, so `mfa_person_upsert()` appends a
+random suffix), `mfa_registration_route = google`, `niz_google_connected = Yes`,
+`niz_email_verified = Yes`. Counters move members 30 → 31 and route `google`
+1 → 2.
+
+Deleting user 14553 outright was the alternative and was rejected as
+irreversible — `mfa_cleanup_records_for_deleted_user` drops the CCT row and
+barakah rows, and FluentCRM cleans up its contact.
 
 Side note worth tidying: user 123923's login is literally `admin`, derived from
 the email local part by `mfa_register()`. Harmless but confusing in support

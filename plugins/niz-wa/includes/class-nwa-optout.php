@@ -44,16 +44,50 @@ class NWA_OptOut {
 		add_filter( 'nwa_route_message_override', array( __CLASS__, 'route' ), 30, 5 );
 	}
 
-	/** Exact matches only - "stop" inside a sentence is not an opt-out. */
+	/**
+	 * Exact matches only - "stop" inside a sentence is not an opt-out.
+	 *
+	 * Spanish added 2026-08-21. The flows already answer in Spanish and Malay,
+	 * but only English and Malay could unsubscribe, so a Spanish speaker
+	 * writing "parar" fell through to the AI and was never opted out.
+	 *
+	 * Two words are deliberately NOT here, and both would be bugs:
+	 *
+	 *   'cancelar'  The Spanish flow copy advertises the ENGLISH *cancel* to
+	 *               get out of a flow ("puedes responder *cancel* cuando
+	 *               quieras"), so somebody typing the obvious Spanish form
+	 *               means "cancel this flow", not "never message me again".
+	 *               Treating it as an opt-out repeats, in Spanish, exactly the
+	 *               bug that made us stop advertising *stop* as a cancel word.
+	 *               Only the unambiguous two-word "cancelar suscripcion" is
+	 *               accepted.
+	 *   'para'      Ordinary Spanish for "for"/"to". Far too common to burn.
+	 *
+	 * Accented and unaccented spellings both need entries: route() lowercases
+	 * and trims ".!" but does not fold accents.
+	 */
 	public static function stop_words() {
 		return apply_filters( 'nwa_optout_stop_words', array(
-			'stop', 'unsubscribe', 'opt out', 'optout', 'berhenti', 'henti',
+			'stop', 'unsubscribe', 'opt out', 'optout',
+			'berhenti', 'henti',
+			'parar', 'detener', 'baja', 'dar de baja', 'darse de baja',
+			'cancelar suscripcion', 'cancelar suscripción',
 		) );
 	}
 
+	/**
+	 * Spanish added 2026-08-21, same reasoning as stop_words().
+	 *
+	 * 'si' / 'sí' are deliberately NOT here: they are the affirmative the
+	 * directory flow's place-confirm step already accepts, so a "yes" would
+	 * silently re-subscribe someone.
+	 */
 	public static function start_words() {
 		return apply_filters( 'nwa_optout_start_words', array(
-			'start', 'unstop', 'subscribe', 'resume', 'mula', 'sambung',
+			'start', 'unstop', 'subscribe', 'resume',
+			'mula', 'sambung',
+			'empezar', 'comenzar', 'iniciar', 'activar',
+			'suscribir', 'suscribirme', 'reanudar',
 		) );
 	}
 

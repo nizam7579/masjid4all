@@ -58,6 +58,7 @@ $mfa_core_includes = array(
 	'includes/member-relogin-status.php',
 	'includes/admin-template.php',
 	'includes/admin-access-control.php',
+	'includes/admin-time.php',
 	'includes/widgets/prayer-times.php',
 	'includes/widgets/qibla.php',
 	'includes/widgets/daily-quran.php',

@@ -113,7 +113,9 @@ function mfa_admin_report_normalize_range( $start_raw, $end_raw ) {
 	$end_ts   = $end_raw ? strtotime( $end_raw ) : false;
 
 	if ( ! $start_ts || ! $end_ts ) {
-		$year = (int) gmdate( 'Y' );
+		// The staff's year, not GMT's - on 1 January the two disagree until
+		// 8am and the report would open on the year that just ended.
+		$year = (int) current_time( 'Y' );
 		return array( 'start' => $year . '-01-01', 'end' => $year . '-12-31' );
 	}
 
@@ -157,9 +159,17 @@ function mfa_admin_report_buckets( $start, $end ) {
 function mfa_admin_report_compute_member( $wpdb, $range ) {
 	$buckets = mfa_admin_report_buckets( $range['start'], $range['end'] );
 
+	// user_registered is GMT while the dates in the picker are the staff's,
+	// so the column is shifted to site time BEFORE the month is taken. It has
+	// to be the same expression in the SELECT and the WHERE: shifting only the
+	// range would leave a signup made late on the 31st filtered into the range
+	// but bucketed under the previous month, so the columns would not sum to
+	// the range's own total.
+	$local = mfa_admin_local_sql( 'user_registered' );
+
 	$rows = $wpdb->get_results(
 		$wpdb->prepare(
-			"SELECT DATE_FORMAT(user_registered, '%%Y-%%m') AS ym, COUNT(*) AS n FROM {$wpdb->users} WHERE DATE(user_registered) BETWEEN %s AND %s GROUP BY ym",
+			"SELECT DATE_FORMAT({$local}, '%%Y-%%m') AS ym, COUNT(*) AS n FROM {$wpdb->users} WHERE DATE({$local}) BETWEEN %s AND %s GROUP BY ym",
 			$range['start'],
 			$range['end']
 		),
@@ -176,7 +186,7 @@ function mfa_admin_report_compute_member( $wpdb, $range ) {
 			"SELECT COALESCE(NULLIF(TRIM(m.country), ''), 'Unknown') AS c, COUNT(*) AS n
 			 FROM {$wpdb->users} u
 			 INNER JOIN {$wpdb->prefix}jet_cct_member m ON m.user_id = u.ID
-			 WHERE DATE(u.user_registered) BETWEEN %s AND %s
+			 WHERE DATE(" . mfa_admin_local_sql( 'u.user_registered' ) . ") BETWEEN %s AND %s
 			 GROUP BY c ORDER BY n DESC",
 			$range['start'],
 			$range['end']
@@ -196,6 +206,10 @@ function mfa_admin_report_compute_member( $wpdb, $range ) {
 		// until it arrives. An unbounded COUNT(*) contradicted both - it read
 		// 74,852 while the homepage said 39,488, the gap being 35,364
 		// future-dated prospects from the directory and Indonesian imports.
+		//
+		// gmdate() is RIGHT here and must stay: this compares the GMT column
+		// against GMT "now", which is the same instant either way. It is a
+		// point in time, not a day boundary, so there is nothing to shift.
 		'total_all'    => (int) $wpdb->get_var(
 			$wpdb->prepare(
 				"SELECT COUNT(*) FROM {$wpdb->users} WHERE user_registered <= %s",
@@ -210,6 +224,11 @@ function mfa_admin_report_compute_member( $wpdb, $range ) {
  * (cct_created for the date, country on the same row), just a different
  * table name, so one function covers all three. Takes the shared $range
  * computed once in the main shortcode, not its own GET read.
+ *
+ * Unlike the Member tab above, cct_created is ALREADY site-local, so these
+ * queries compare it raw and must keep doing so. Wrapping them in
+ * mfa_admin_local_sql() for consistency would push these three tabs eight
+ * hours wrong in the opposite direction.
  */
 function mfa_admin_report_compute_cct( $wpdb, $table, $range ) {
 	$buckets = mfa_admin_report_buckets( $range['start'], $range['end'] );
@@ -463,7 +482,7 @@ function mfa_admin_export_members_csv() {
 			"SELECT m.name, m.country, m.phone
 			 FROM {$wpdb->users} u
 			 INNER JOIN {$wpdb->prefix}jet_cct_member m ON m.user_id = u.ID
-			 WHERE DATE(u.user_registered) BETWEEN %s AND %s
+			 WHERE DATE(" . mfa_admin_local_sql( 'u.user_registered' ) . ") BETWEEN %s AND %s
 			 ORDER BY u.user_registered ASC",
 			$range['start'],
 			$range['end']

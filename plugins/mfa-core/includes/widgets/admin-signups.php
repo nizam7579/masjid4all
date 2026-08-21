@@ -36,8 +36,13 @@
  * 31 Dec 2026 date. It is trustworthy for MEMBERS only, because
  * niz_user_complete_registration() resets it at activation. So:
  *   - members converted today -> user_registered (GMT)
- *   - prospects added today   -> cct_created
+ *   - prospects added today   -> cct_created (site-local)
  * Never the other way round.
+ *
+ * Those two clocks are why "today" is not one expression. user_registered
+ * is GMT and gets shifted to site time before the date is taken;
+ * cct_created is already local and must be left alone. Both are compared
+ * against mfa_admin_today_local(), never gmdate() - see admin-time.php.
  *
  * @package mfa-core
  */
@@ -159,19 +164,29 @@ function mfa_overview_members() {
 		$counts['total'] = $counts['prospects'] + $counts['members'] + $counts['premium'];
 
 		// Members converted today: user_registered is reset at activation, so
-		// it is real for these rows specifically. GMT, like the column.
+		// it is real for these rows specifically.
+		//
+		// The column is GMT and the day is the staff's, so the column is
+		// shifted to site time before the date is taken - see
+		// mfa_admin_local_sql(). Comparing raw GMT put the boundary at 8am:
+		// a member who activated at 9pm counted as tomorrow, and for the
+		// eight hours after midnight "today" meant yesterday entirely.
 		$counts['members_today'] = (int) $wpdb->get_var( $wpdb->prepare(
 			"SELECT COUNT(*) FROM {$wpdb->users} u
 			 INNER JOIN {$cct} c ON c.user_id = u.ID
 			 WHERE c.status IN ('Member','Premium Member','Premium Lifetime')
-			   AND DATE(u.user_registered) = %s",
-			gmdate( 'Y-m-d' )
+			   AND DATE(" . mfa_admin_local_sql( 'u.user_registered' ) . ") = %s",
+			mfa_admin_today_local()
 		) );
 
 		// Prospects added today: cct_created is clean, unlike user_registered.
+		//
+		// This column is ALREADY site-local, so it must NOT be shifted - only
+		// the date it is compared against was wrong. Shifting both would move
+		// the count eight hours the other way.
 		$counts['prospects_today'] = (int) $wpdb->get_var( $wpdb->prepare(
 			"SELECT COUNT(*) FROM {$cct} WHERE status = 'Prospect' AND DATE(cct_created) = %s",
-			gmdate( 'Y-m-d' )
+			mfa_admin_today_local()
 		) );
 
 		$counts['today'] = $counts['members_today'] + $counts['prospects_today'];

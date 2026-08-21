@@ -164,6 +164,37 @@ function mfa_seo_sitemap_where_skip_thin( $where, $post_types ) {
 }
 
 /**
+ * Never announce a page to IndexNow that we are telling search engines not to
+ * index.
+ *
+ * Rank Math's auto-submit already guards with Helper::is_post_indexable(), but
+ * that reads STORED `rank_math_robots` meta - and this file's noindex is
+ * computed at render time on purpose (see the docblock at the top), so Rank
+ * Math cannot see it and returns true for a boilerplate page. Verified on
+ * production: a thin business post reports our mfa_seo_is_thin_post() = true
+ * and Rank Math's is_post_indexable() = true at the same time.
+ *
+ * The cost of leaving it: of 102,447 published business pages only 245 are
+ * indexable, so 99.8% of the submissions were announcing pages that carry
+ * noindex - and the crawler fires one on every save.
+ *
+ * Returning an empty URL makes Instant Indexing skip the post entirely.
+ *
+ * @param string  $url  URL Rank Math intends to submit.
+ * @param WP_Post $post
+ */
+add_filter( 'rank_math/instant_indexing/publish_url', 'mfa_seo_skip_thin_instant_indexing', 10, 2 );
+function mfa_seo_skip_thin_instant_indexing( $url, $post ) {
+	$post_id = is_object( $post ) ? $post->ID : (int) $post;
+
+	if ( ! $post_id ) {
+		return $url;
+	}
+
+	return mfa_seo_is_thin_post( $post_id ) ? '' : $url;
+}
+
+/**
  * Counts for the admin, so the effect of the generator is visible: as pages get
  * written they leave the "hidden" column and enter the sitemap on their own.
  *

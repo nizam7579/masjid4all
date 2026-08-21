@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: Enaizi MFA - Muslim Friendly App
- * Plugin URI: https://staging.masjid4all.com
+ * Plugin URI: https://masjid4all.com
  * Description: Muslim-friendly features including prayer times, Qibla finder, location, date, and PWA support. Optimized for LiteSpeed & Cloudflare edge caching.
  * Version: 1.0.1
  * Author: Masjid4All
@@ -41,7 +41,7 @@ $mfa_shortcode_files = [
     'directory.php',
     'website.php',
     'barakah.php',
-    'review.php',
+    'review.php', 
     'upload-image.php',
     'image-upload.php',
     'image-upload-r2.php',
@@ -54,7 +54,7 @@ $mfa_shortcode_files = [
     'register.php',
     'admin.php',
     'member.php',
-    'install-button.php'
+    'install-button.php'   
 ];
 
 foreach ($mfa_shortcode_files as $file) {
@@ -145,7 +145,7 @@ add_action('wp_enqueue_scripts', function(){
         true
     );
 
-});
+}); 
 
 add_action('wp_enqueue_scripts', 'niz_mfa_enqueue_plugin_assets');
 function niz_mfa_enqueue_plugin_assets() {
@@ -245,3 +245,4 @@ function niz_mfa_deactivate() {
     flush_rewrite_rules();
     flush_rewrite_rules();
 }
+

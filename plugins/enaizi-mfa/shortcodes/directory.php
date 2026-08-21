@@ -59,7 +59,7 @@ add_shortcode('niz_web_carouselx', function($atts) {
                     // Fetch the featured image URL, fallback to placeholder if empty
                     $img = get_the_post_thumbnail_url(get_the_ID(), 'large');
                     if (empty($img)) {
-                        $img = 'https://cdn.staging.masjid4all.com/media/placeholder.webp';
+                        $img = 'https://cdn.masjid4all.com/media/placeholder.webp';
                     }
                     
                     // Fetch native or auto-generated excerpt, cleanly truncated

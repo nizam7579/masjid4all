@@ -12,14 +12,13 @@
 add_shortcode('niz_add_website', 'niz_add_website_shortcode');
 function niz_add_website_shortcode() {
     if (!is_user_logged_in()) {
-        return '<p class="must-login-msg">Please <a href="/member/">Register / Login</a> to add your Website.</p>';
+        return '<div class="alert alert-warning">Please <a href="' . esc_url(wp_login_url(get_permalink())) . '">log in</a> to add a website.</div>';
     }
 
     ob_start();
     ?>
     <div class="niz-add-website-form">
         <h3>Add New Website to Directory</h3>
-        <p class="mfa-add-intro">Your website is not listed? Please search and add it to our directory.</p>
         <form method="post" action="" id="nizAddWebsiteForm">
             <?php wp_nonce_field('niz_add_website_action', 'niz_add_website_nonce'); ?>
             <div class="form-group">
@@ -27,7 +26,7 @@ function niz_add_website_shortcode() {
                 <input type="url" name="website_url" id="website_url" class="form-control" required placeholder="https://example.com">
                 <small class="form-text text-muted">Enter the full URL including https://</small>
             </div>
-
+            
             <div id="nizFormActions">
                 <button type="submit" name="submit_website" id="nizSubmitBtn" class="btn btn-primary">Submit Website</button>
             </div>
@@ -37,25 +36,25 @@ function niz_add_website_shortcode() {
 
     <script type="text/javascript">
         document.getElementById('nizAddWebsiteForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-
+            e.preventDefault(); 
+            
             var urlInput = document.getElementById('website_url').value;
             var submitBtn = document.getElementById('nizSubmitBtn');
             var feedbackContainer = document.getElementById('nizFormFeedback');
             var nonce = document.getElementById('niz_add_website_nonce').value;
-
+            
             submitBtn.disabled = true;
             submitBtn.innerText = '⏳ Generating content...';
             submitBtn.style.opacity = '0.6';
             submitBtn.style.cursor = 'not-allowed';
-
+            
             feedbackContainer.innerHTML = '<div class="alert alert-info">⏳ Please wait... Connecting and parsing live data for <strong>' + urlInput + '</strong>...</div>';
-
+            
             var formData = new FormData();
             formData.append('action', 'niz_ajax_add_website');
             formData.append('website_url', urlInput);
             formData.append('niz_add_website_nonce', nonce);
-
+            
             fetch('<?php echo esc_url(admin_url('admin-ajax.php')); ?>', {
                 method: 'POST',
                 body: formData
@@ -152,34 +151,34 @@ function mfa_website_process($base_url, $is_admin_mode = false, $existing_cct_id
         $post_id = $wpdb->get_var($wpdb->prepare("SELECT cct_single_post_id FROM {$table_name} WHERE _ID = %d", $existing_cct_id));
         $post_title = get_the_title( $post_id );
         $post_url = esc_url(get_permalink($post_id));
-
+        
         if ($post_id) {
             return '<div class="alert alert-info"><b>This website is already in our directory!</b><br>' . $base_url . '<br><br>Click to View<br><a href="' . $post_url . '" target="_self">' . esc_html($post_title) . '</a></div>';
         }
     }
-
+    
 
     if ($is_admin_mode) {
         return '<div class="alert alert-success">✓ <strong>Processed:</strong> ' . esc_html($base_url) . ' | 📝 <strong>Post ID:</strong> ' . intval($post_id) . '</div>';
     }
-
-    // chk url
+    
+    // chk url 
     $name = mfa_get_remote_website_title( $base_url );
-
+   
     $msg = '<div class="alert alert-success">';
     if ( str_starts_with( $name, 'Error:' ) ) {
-        $msg .= '<b>' . $name . '</b><br>';
+        $msg .= '<b>' . $name . '</b><br>'; 
     }else{
-        // ADD CCT AND POST
+        // ADD CCT AND POST 
         $result = mfa_insert_web_cct( $name, $base_url);
         $item_id = $result['item_id'];
         $post_id = $result['post_id'];
-        $slug = 'https://staging.masjid4all.com/web/' . get_post_field( 'post_name', $post_id );
+        $slug = 'https://masjid4all.com/web/' . get_post_field( 'post_name', $post_id );
 
         // Expose the new website page URL so the AJAX handler can redirect the
         // user there (flagged ?added=1 for the one-time success banner).
         $GLOBALS['mfa_web_added_redirect'] = add_query_arg( 'added', '1', get_permalink( $post_id ) );
-
+        
         $msg .= '✅ <b>Website added to the directory!</b><br><br>';
         $msg .= 'Please click the link to update the content<br>';
         //$msg .= 'URL : ' . $slug . '<br>';
@@ -194,11 +193,11 @@ function mfa_website_process($base_url, $is_admin_mode = false, $existing_cct_id
 // ADD CCT WEB AND POST WEB
 function mfa_insert_web_cct( $name, $url ) {
     global $wpdb;
-
+    
     $table_name   = $wpdb->prefix . 'jet_cct_web';
     $current_user = get_current_user_id();
     $clean_name   = sanitize_text_field( $name );
-
+    
     // ==========================================
     // 1. INSERT CCT RECORD
     // ==========================================
@@ -230,22 +229,22 @@ function mfa_insert_web_cct( $name, $url ) {
     );
 
     // The 'true' parameter tells WP to return a WP_Error object if it fails
-    $post_id = wp_insert_post( $post_data, true );
+    $post_id = wp_insert_post( $post_data, true ); 
 
     if ( is_wp_error( $post_id ) ) {
         // Optional: If the post fails, delete the CCT record so you don't get ghost data
         $wpdb->delete( $table_name, array( '_ID' => $item_id ), array( '%d' ) );
-        return $post_id;
+        return $post_id; 
     }
 
     // ==========================================
     // 3. LINK THEM TOGETHER
     // ==========================================
-
+    
     // A. Save the CCT item_id to the WP Post Meta
     update_post_meta( $post_id, 'item_id', $item_id );
     update_post_meta( $post_id, 'url', $url );
-
+    
     // B. Save the WP post_id back to the CCT table
     $wpdb->update(
         $table_name,
@@ -285,18 +284,18 @@ function mfa_get_remote_website_title( $url ) {
     $status_code = wp_remote_retrieve_response_code( $response );
 
     if ( $status_code < 200 || $status_code >= 400 ) {
-
+    
         // Fallback: create name from domain
         $domain = parse_url($url, PHP_URL_HOST);
-
+    
         $domain = preg_replace('/^www\./', '', $domain);
-
+    
         $fallback_name = str_replace(
             array('-', '_', '.'),
             ' ',
             $domain
         );
-
+    
         return ucwords($fallback_name);
     }
 
@@ -368,8 +367,8 @@ function niz_user_web_process_shortcode() {
 
     // Pull exactly one unlinked record flagged as new traffic
     $record = $wpdb->get_row( "
-        SELECT _ID, url FROM {$table_name}
-        WHERE url IS NOT NULL AND url != ''
+        SELECT _ID, url FROM {$table_name} 
+        WHERE url IS NOT NULL AND url != '' 
           AND (status IS NULL OR status = '' OR status = 'New')
         LIMIT 1
     " );
@@ -390,8 +389,8 @@ function niz_user_web_process_shortcode() {
     }
 
     $remaining_count = $wpdb->get_var( "
-        SELECT COUNT(*) FROM {$table_name}
-        WHERE url IS NOT NULL AND url != ''
+        SELECT COUNT(*) FROM {$table_name} 
+        WHERE url IS NOT NULL AND url != '' 
           AND (status IS NULL OR status = '' OR status = 'New')
     " );
 
@@ -399,7 +398,7 @@ function niz_user_web_process_shortcode() {
     $output .= '<p style="margin: 10px 0; font-weight:bold; color:#333;">📊 Remaining to process: ' . intval( $remaining_count ) . '</p>';
     $output .= '<p style="color: #155724;">⏳ <strong>Auto-refreshing queue in 1 second...</strong> <span id="countdown">1</span></p>';
     $output .= '</div>';
-
+    
     $output .= '<meta http-equiv="refresh" content="1">';
     $output .= '<script>
         let seconds = 1;
@@ -409,7 +408,7 @@ function niz_user_web_process_shortcode() {
             if (seconds <= 0) { clearInterval(interval); }
         }, 1000);
     </script>';
-
+    
     return $output;
 }
 
@@ -420,7 +419,7 @@ function niz_user_web_process_shortcode() {
 
 function niz_create_wordpress_post($record_id, $base_url, $update_fields, $keywords) {
     $post_title = !empty($update_fields['name']) ? $update_fields['name'] : 'Website ' . $base_url;
-
+    
     $post_data = [
         'post_title'   => wp_strip_all_tags($post_title),
         'post_content' => $update_fields['content'],
@@ -429,12 +428,12 @@ function niz_create_wordpress_post($record_id, $base_url, $update_fields, $keywo
         'post_type'    => 'web',
         'post_author'  => get_current_user_id(),
     ];
-
+    
     $new_post_id = wp_insert_post($post_data, true);
     if (is_wp_error($new_post_id)) {
         return $new_post_id;
     }
-
+    
     update_post_meta($new_post_id, 'item_id', $record_id);
     update_post_meta($new_post_id, 'url', $base_url);
     update_post_meta($new_post_id, 'rank_math_focus_keyword', $keywords);
@@ -445,7 +444,7 @@ function niz_create_wordpress_post($record_id, $base_url, $update_fields, $keywo
     update_post_meta($new_post_id, 'website_email', $update_fields['email']);
     update_post_meta($new_post_id, 'website_status', $update_fields['listing_status']);
     //update_post_meta($new_post_id, 'website_status_detail', $update_fields['status_detail']);
-
+    
     return $new_post_id;
 }
 
@@ -464,26 +463,18 @@ function cct_trim_url_to_base( $url ) {
 // 5. PERPLEXITY API INTEGRATION
 // =========================================================================
 
-/**
- * AI content generation for a website listing - analyzes the listing's own
- * URL and returns a JSON string (Name/Introduction/Category/keywords/
- * whatsapp/email/country/status/status_detail/Content). Was dead code
- * (wrapped in a comment block, never actually defined) until 2026-08-14 -
- * web_update_content() below has always called this expecting it to exist,
- * so "Update Content" silently failed every time. Re-enabled as-is (the
- * prompt itself was already well-built) with one change: JSON extraction
- * now uses the same first-{...}-block regex proven in mosques_perplexity()
- * (enaizi/mosque.php), which is more robust than only stripping markdown
- * backtick fences.
- */
+/*
+
 function niz_perplexity_web($url) {
     $api_key = defined('PERPLEXITY_API_KEY') ? PERPLEXITY_API_KEY : get_option('perplexity_api_key', '');
     if (empty($api_key)) {
         return wp_json_encode(['error' => 'Perplexity API key is missing.']);
     }
 
+    // FIXED: Clean URL without markdown formatting
+    //$api_url = '[https://api.perplexity.ai/chat/completions](https://api.perplexity.ai/chat/completions)';
     $api_url = 'https://api.perplexity.ai/chat/completions';
-
+    
     $categories = ['Islamic Resources', 'Islamic Bodies', 'Government', 'Education', 'Finance', 'Business & Services', 'Charity & Zakat', 'Health & Wellness', 'Family & Lifestyle', 'Community & Social', 'News & Media', 'Technology & Tools', 'E-Commerce & Shopping', 'Travel & Directory', 'Others'];
     $categories_list = implode(', ', $categories);
 
@@ -514,7 +505,7 @@ Write in a neutral directory-style tone that presents factual information about 
 
 Instructions:
 - Browse the website thoroughly (homepage, about, contact, services, etc.).
-- For "status":
+- For "status": 
     - "Approved" -> default status for standard Islamic websites. Fully aligns with Islamic principles, no obvious violations.
     - "Pending" -> contains controversial, sectarian, or highly ambiguous content requiring a human scholar's expert review. Do NOT use this status just for general caution.
     - "Rejected" -> contains clearly un-Islamic content (e.g., interest-based riba, music, gambling, inappropriate images).
@@ -543,7 +534,7 @@ PROMPT;
         ],
         'body' => json_encode($request_body),
         'timeout' => 60
-    ]);
+    ]); 
 
     if (is_wp_error($response)) {
         return wp_json_encode(['error' => $response->get_error_message()]);
@@ -551,19 +542,16 @@ PROMPT;
 
     $body = wp_remote_retrieve_body($response);
     $data = json_decode($body, true);
-
+    
     $raw_content = $data['choices'][0]['message']['content'] ?? '';
 
-    // Extract the first valid JSON block - proven approach from
-    // mosques_perplexity() (enaizi/mosque.php), more robust than only
-    // stripping markdown backtick fences since it also copes with any
-    // stray leading/trailing text the model adds despite instructions.
-    if (preg_match('/\{.*\}/s', $raw_content, $matches)) {
-        return $matches[0];
-    }
-
-    return $raw_content;
+    // Better regex to strip out backtick wrapping just in case the model ignored instructions
+    $clean_json = preg_replace('/^`{3}(?:json)?\s*|\s*`{3}$/i', '', trim($raw_content));
+    
+    return $clean_json;
 }
+
+*/
 
 // =========================================================================
 // 6. DEEPSEEK API INTEGRATION
@@ -587,10 +575,10 @@ function niz_user_deepseek_web($url) {
         You are an expert website analyst for Islamic content. Analyze the website at this URL: {$url}
         Return **only valid JSON** (no extra text, no markdown) exactly in the schema below.
         Extract ONLY what is explicitly stated. Do not add information not present. Do not guess or hallucinate.
-
+        
         IMPORTANT: Do not invent information. If the website is about e-vouchers for donations, say that. Do not call it a productivity app unless that's explicitly stated.
         IMPORTANT: All content MUST be in English.
-
+        
         Schema:
         {
           "Name": "Official name of the organization/website",
@@ -603,13 +591,13 @@ function niz_user_deepseek_web($url) {
           "status": "Approved or Pending or Rejected",
           "status_detail": "Brief reason for the status (e.g., Shariah-compliant, contains music, unclear Islamic rulings)",
           "Content": "Full HTML content for a webpage article. Must be SEO-friendly and informative. Use one tag with the Name as the main heading, followed by Table of Contents. Then create relevant sections based on the website category, such as 'Introduction', 'About the Website', 'Services & Resources', 'Benefits for Muslims', 'Key Features & Highlights', 'Target Audience', 'Country & Language', and 'Getting Started'. The Introduction should be written in paragraph form, while other sections may use bullet points where appropriate. Write at least 600 words.
-
+        
         Write in a neutral directory-style tone that presents factual information about the website. Describe the website directly and confidently without using first-person language ('we', 'our', 'us') and without review-style language such as 'appears to', 'seems to', 'likely', 'may offer', or 'users can find'. Avoid opinions, ratings, recommendations, assessments, or judgments. Focus on providing clear information about the website's purpose, content, services, features, audience, and relevance to Muslims. Use natural keyword placement throughout the article for SEO purposes. Do NOT include the JSON schema in the content."
         }
-
+        
         Instructions:
         - Browse the website thoroughly (homepage, about, contact, services, etc.).
-        - For "status":
+        - For "status": 
             - "Approved" -> default status for standard Islamic websites. Fully aligns with Islamic principles, no obvious violations.
             - "Pending" -> contains controversial, sectarian, or highly ambiguous content requiring a human scholar's expert review. Do NOT use this status just for general caution.
             - "Rejected" -> contains clearly un-Islamic content (e.g., interest-based riba, music, gambling, inappropriate images).
@@ -617,8 +605,8 @@ function niz_user_deepseek_web($url) {
         - For "whatsapp" and "email": Only if explicitly published on the site. Do not guess.
         - The "Content" field should be a standalone article. Use proper HTML markup. The H1 must be the same as "Name". Use H2 for sections, H3 for subsections if needed. Include clickable table of content after the name, and FAQ as the last section. For sections (other than Introduction), use bullet points. Write in a neutral, informative tone suitable for a Muslim audience.
         - For "keywords" field should Comma-separated list of 5-10 SEO keywords relevant to the site.
-
-
+        
+        
         Now analyze {$url} and output ONLY the JSON object.
 PROMPT;
 
@@ -648,8 +636,9 @@ PROMPT;
     $body = wp_remote_retrieve_body($response);
     $data = json_decode($body, true);
     $assistant_message = $data['choices'][0]['message']['content'] ?? '';
-
+    
     return $assistant_message;
 }
 
 */
+

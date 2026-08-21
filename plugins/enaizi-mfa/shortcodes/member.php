@@ -9,9 +9,9 @@
  * 6. mfa_member_field_by_userid
  * 7. mfa_member_add_points
  */
-
-
-// MEMBER INFO
+ 
+ 
+// MEMBER INFO 
 add_shortcode('mfa_member_info', 'mfa_member_info_shortcode');
 function mfa_member_info_shortcode() {
 
@@ -29,7 +29,7 @@ function mfa_member_info_shortcode() {
     $email   = $current_user->user_email;
     $phone   = sanitize_text_field(get_user_meta($user_id, 'user_phone', true));
     $chg_pwd = get_user_meta($user_id, 'change_password', true);
-
+    
     // Set phone cookies safely
     if (!empty($phone)) {
         setcookie(
@@ -42,7 +42,7 @@ function mfa_member_info_shortcode() {
             false // allow JS access
         );
     }
-
+    
     $country     = isset($_COOKIE['country']) ? sanitize_text_field(wp_unslash($_COOKIE['country'])) : '';
     $partner_id  = isset($_COOKIE['partnerid']) ? intval($_COOKIE['partnerid']) : 0;
     $referrer_id = isset($_COOKIE['affiliateid']) ? intval($_COOKIE['affiliateid']) : 14270;
@@ -84,13 +84,13 @@ function mfa_member_info_shortcode() {
         $email   = mfa_member_field_by_userid($user_id, 'email');
         $rank    = mfa_member_field_by_userid($user_id, 'rank');
     }
-
+    
     $points = mfa_member_field_by_userid($user_id, 'points');
     if (!$points){
         $points = 50;
         mfa_member_add_points($user_id, 'Welcome Bonus', $points);
     }
-
+    
 
     ob_start();
     ?>
@@ -111,7 +111,7 @@ function mfa_member_info_shortcode() {
 }
 
 
-// MEMBER PROFILE
+// MEMBER PROFILE 
 add_shortcode('mfa_member_profile', 'mfa_member_profile_shortcode');
 function mfa_member_profile_shortcode() {
 
@@ -128,7 +128,7 @@ function mfa_member_profile_shortcode() {
     $user_email = $current_user->user_email;
     $user_phone = get_user_meta($user_id, 'user_phone', true);
 
-
+     
     $name       = mfa_member_field_by_userid($user_id, 'name');
     $email      = mfa_member_field_by_userid($user_id, 'email');
     $phone      = mfa_member_field_by_userid($user_id, 'phone');
@@ -149,7 +149,7 @@ function mfa_member_profile_shortcode() {
             $phone = '<i style="color: #25988B;">Please update</i>';
         }
     }
-
+    
     if (empty($email)){
         if (!empty($user_email)){
             $email = $user_email;
@@ -161,7 +161,7 @@ function mfa_member_profile_shortcode() {
         }
     }
 
-
+    
     if (empty($sex)){
         $sex = '<i style="color: #25988B;">Please update</i>';
     }
@@ -171,7 +171,7 @@ function mfa_member_profile_shortcode() {
     if (empty($country)){
         $country = '<i style="color: #25988B;">Please update</i>';
     }
-
+    
     ob_start();
     ?>
 
@@ -281,13 +281,13 @@ function mfa_member_todo_shortcode() {
     $email   = $current_user->user_email;
     $phone   = sanitize_text_field(get_user_meta($user_id, 'user_phone', true));
     $chg_pwd = get_user_meta($user_id, 'change_password', true);
-
+    
     $chk_update  = mfa_member_field_by_userid($user_id,'chk_update');
     $chk_premium = mfa_member_field_by_userid($user_id,'chk_premium');
     $chk_card    = mfa_member_field_by_userid($user_id,'chk_card');
     $chk_share   = mfa_member_field_by_userid($user_id,'chk_share');
     $chk_affiliate   = mfa_member_field_by_userid($user_id,'chk_affiliate');
-
+    
     ob_start();
     ?>
     <span style="color: #25988B;">TODO</span>
@@ -299,23 +299,23 @@ function mfa_member_todo_shortcode() {
     <?php if (empty($chg_pwd)) : ?>
         <li style="color: red;">Please update your password</li>
     <?php endif; ?>
-
+    
     <?php if (empty($chk_premium)) : ?>
         <li style="color: #25988B;">Upgrade to Premium Membership</li>
     <?php endif; ?>
-
+    
     <?php if (empty($chk_card)) : ?>
         <li style="color: #25988B;">Create your Digital Namecard</li>
     <?php endif; ?>
-
+    
     <?php if (empty($chk_share)) : ?>
         <li style="color: #25988B;">Start Share/Promote</li>
     <?php endif; ?>
-
+    
     <?php if (empty($chk_affiliate)) : ?>
         <li style="color: #25988B;">Join our Affiliate Program</li>
     <?php endif; ?>
-
+    
     </ul>
 
     <?php
@@ -338,9 +338,9 @@ function mfa_member_field_by_userid($user_id,$field) {
 // Add Barakah Points
 function mfa_member_add_points($user_id, $desc, $points) {
     global $wpdb;
-
-    $table = $wpdb->prefix . 'jet_cct_barakah';
-
+    
+    $table = $wpdb->prefix . 'jet_cct_barakah'; 
+    
     $exists = $wpdb->get_var(
         $wpdb->prepare(
             "SELECT user_id
@@ -352,7 +352,7 @@ function mfa_member_add_points($user_id, $desc, $points) {
             $user_id
         )
     );
-
+    
     if ( empty($exists) ) {
         // Sanitize/Cast inputs to ensure data integrity
         $insert_data = [
@@ -361,16 +361,16 @@ function mfa_member_add_points($user_id, $desc, $points) {
             'points'      => (int) $points,
             'cct_created' => current_time('mysql')
         ];
-
+    
         $insert_format = [
             '%d', // user_id
             '%s', // description
             '%d', // points
             '%s'  // cct_created
         ];
-
+    
         $result = $wpdb->insert($table, $insert_data, $insert_format);
-
+    
         if ($result === false) {
             return [
                 'success' => false,
@@ -379,13 +379,13 @@ function mfa_member_add_points($user_id, $desc, $points) {
         }
 
         //niz_user_update_field($user_id, 'points', $points);
-
+    
         return [
             'success'   => true,
             'insert_id' => (int) $wpdb->insert_id // Casted to int for clean API responses
         ];
-    }
-}
+    } 
+} 
 
 
 add_shortcode('mfa_member_logout', 'mfa_member_logout_shortcode');
@@ -393,13 +393,11 @@ function mfa_member_logout_shortcode() {
     if (!is_user_logged_in()) {
         return ''; // nothing shown if already logged out
     }
+    $user = wp_get_current_user();
     // 2026-08-21: was a <button> whose click handler lived in enaizi-user's
     // niz-user.js, which has been deleted - so it would have rendered a
     // button that does nothing. Now a nonce-protected wp_logout_url() link,
-    // matching mfa-core's [niz_user_logout]. This shortcode is not currently
-    // used by any live page; it is fixed rather than removed so it cannot
-    // become a silently broken control if one of the draft blocks that
-    // reference it is ever published.
+    // matching mfa-core's [niz_user_logout].
     return '<a href="' . esc_url(wp_logout_url(home_url('/'))) . '"'
         . ' class="niz-user-logout-btn" rel="nofollow">&#10148;] Logout</a>';
 }

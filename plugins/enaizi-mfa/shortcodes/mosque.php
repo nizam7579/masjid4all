@@ -217,7 +217,7 @@ function niz_masjid_carousel_shortcode($atts) {
         <div id="<?php echo esc_attr($instance_id); ?>" class="swiper nizMosqueSwiper" data-post-count="<?php echo esc_attr($query->post_count); ?>">
             <div class="swiper-wrapper">
                 <?php while ($query->have_posts()) : $query->the_post(); 
-                    $img = get_the_post_thumbnail_url(get_the_ID(), 'large') ?: 'https://cdn.staging.masjid4all.com/media/placeholder.webp';
+                    $img = get_the_post_thumbnail_url(get_the_ID(), 'large') ?: 'https://cdn.masjid4all.com/media/placeholder.webp';
                     $excerpt = wp_trim_words(get_the_excerpt(), 15, '...');
                 ?>
                     <div class="swiper-slide">
@@ -275,7 +275,7 @@ function niz_mfa_nearest_mosque_shortcode($atts) {
     // Use WordPress Transients to cache the country list for 12 hours. Prevents DB spam.
     $country_list = get_transient('niz_mfa_country_list');
     if (false === $country_list) {
-        $country_list = $wpdb->get_col("SELECT DISTINCT country FROM $table WHERE country IS NOT NULL AND country != '' AND listing_status IN ('Approved','Active','New','Pending') ORDER BY country ASC");
+        $country_list = $wpdb->get_col("SELECT DISTINCT country FROM $table WHERE country IS NOT NULL AND country != '' AND listing_status IN ('Approved','Active') ORDER BY country ASC");
         set_transient('niz_mfa_country_list', $country_list, 12 * HOUR_IN_SECONDS);
     }
     if (empty($country_list)) {
@@ -365,10 +365,8 @@ function niz_mfa_load_more_mosques_handler() {
         $params[] = $wildcard;
     }
 
-    // Show approved/active listings plus not-yet-generated ones (New/Pending
-    // now searchable/findable so visitors can find their mosque and click
-    // "Click to Update" themselves, rather than only seeing generated pages).
-    $where_clauses[] = "listing_status IN ('Approved','Active','New','Pending')";
+    // Ensure we only show approved/active listings
+    $where_clauses[] = "listing_status IN ('Approved','Active')";
 
     $where_sql = implode(" AND ", $where_clauses);
 
@@ -379,7 +377,7 @@ function niz_mfa_load_more_mosques_handler() {
         ( 6371 * acos( cos( radians(%f) ) * cos( radians( latitude ) ) * cos( radians( longitude ) - radians(%f) ) + sin( radians(%f) ) * sin( radians( latitude ) ) ) ) AS distance
         FROM {$table}
         WHERE {$where_sql}
-        ORDER BY distance ASC, _ID ASC
+        ORDER BY distance ASC
         LIMIT %d OFFSET %d
     ", array_merge([$latitude, $longitude, $latitude], $params, [$limit, $offset]));
 
@@ -404,7 +402,7 @@ function niz_mfa_load_more_mosques_handler() {
                     </div>
                 <?php endif; ?>
                 <div class="mosque-card-content">
-                    <div class="mosque-meta-body">
+                    <div class="mosque-meta-body
                         <h3 class="mosque-name"><?php echo esc_html($m['name'] ?? 'Masjid'); ?></h3>
                         <p class="mosque-excerpt"><?php echo esc_html($m['address'] ?? ''); ?></p>
                     </div>
@@ -504,7 +502,7 @@ function niz_mfa_load_local_mosques_handler() {
     $offset = isset($_POST['offset']) ? intval($_POST['offset']) : 0;
     $limit  = isset($_POST['limit']) ? intval($_POST['limit']) : 6;
 
-    $where_clauses = ["listing_status IN ('Approved','Active','New','Pending')"];
+    $where_clauses = ["listing_status IN ('Approved','Active')"];
     $params = [];
 
     if (!empty($search)) {
@@ -524,7 +522,7 @@ function niz_mfa_load_local_mosques_handler() {
         ( 6371 * acos( cos( radians(%f) ) * cos( radians( latitude ) ) * cos( radians( longitude ) - radians(%f) ) + sin( radians(%f) ) * sin( radians( latitude ) ) ) ) AS distance
         FROM {$table}
         WHERE {$where_sql}
-        ORDER BY distance ASC, _ID ASC
+        ORDER BY distance ASC
         LIMIT %d OFFSET %d
     ", array_merge([$bLat, $bLng, $bLat], $params, [$limit, $offset]));
 

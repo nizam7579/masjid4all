@@ -12,7 +12,7 @@ add_shortcode('niz_mfa_add_business', 'directory_add_business_shortcode');
 
 function directory_add_business_shortcode() {
     if ( ! is_user_logged_in() ) {
-        return '<p class="must-login-msg">Please <a href="/member/">Register / Login</a> to add your Business.</p>';
+        return '<p>You must be logged in to add a business.</p>';
     }
 
     global $directory_form_feedback;
@@ -149,7 +149,6 @@ function directory_add_business_shortcode() {
     ob_start();
     ?>
     <div class="directory-shortcode-wrapper" style="max-width: 600px; margin: 0 auto; padding: 10px;">
-        <p class="mfa-add-intro">Your business is not listed? Please search and add it to our directory.</p>
         <?php echo $output; ?>
         
         <form id="add-business-standard-form" method="POST" action="">
@@ -320,8 +319,6 @@ function directory_process_business_submission() {
             // ==========================================
             $post_args = array(
                 'post_title'   => $name,
-                // Same as the website generator - the card is appended in
-                // PHP so its position cannot vary with the model output.
                 'post_content' => function_exists( 'mfa_append_about_block' )
                     ? mfa_append_about_block( wp_kses_post( $ai_data['content'] ) )
                     : wp_kses_post( $ai_data['content'] ),

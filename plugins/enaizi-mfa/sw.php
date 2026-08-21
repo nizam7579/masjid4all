@@ -86,7 +86,7 @@ self.addEventListener('fetch', event => {
           const networkResponse = await fetch(event.request);
           if (networkResponse && networkResponse.status === 200) {
             const isSameOrigin = event.request.url.startsWith(self.location.origin);
-            const isAllowedCdn = event.request.url.includes('cdn.staging.masjid4all.com') || event.request.url.includes('jsdelivr.net');
+            const isAllowedCdn = event.request.url.includes('cdn.masjid4all.com') || event.request.url.includes('jsdelivr.net');
             
             if (isSameOrigin || isAllowedCdn) {
               const cache = await caches.open(CACHE_NAME);

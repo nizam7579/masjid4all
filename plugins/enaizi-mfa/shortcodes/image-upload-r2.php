@@ -11,7 +11,7 @@ function upload_to_cloudflare_r2x($file_path, $file_name) {
     // 🔌 CONFIGURATION BLOCK
     $account_id  = NIZ_R2_ACCOUNT_ID; 
     $bucket_name = 'masjid4all'; 
-    $public_url  = 'https://cdn.staging.masjid4all.com'; 
+    $public_url  = 'https://cdn.masjid4all.com'; 
     
     $access_key  = NIZ_R2_ACCESS_KEY_ID;     
     $secret_key  = NIZ_R2_SECRET_ACCESS_KEY; 

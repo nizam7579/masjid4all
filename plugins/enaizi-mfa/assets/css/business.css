@@ -22,7 +22,7 @@
     border: 1px solid #6ee7b7 !important; 
     
     /* Slightly stronger shadow to lift it off the page */
-    box-shadow: 0 6px 20px rgba(13, 77, 71, 0.15) !important; 
+    box-shadow: 0 6px 20px rgba(0, 107, 62, 0.15) !important; 
 }
 
 .m4a-card {
@@ -110,9 +110,9 @@
 }
 
 .niz-business-input-group { display: flex; flex-direction: column; flex: 1; gap: 6px; }
-.niz-business-input-group label { font-size: 11px; font-weight: 700; color: #0d4d47; text-transform: uppercase; letter-spacing: 0.5px; }
+.niz-business-input-group label { font-size: 11px; font-weight: 700; color: #1e3a5f; text-transform: uppercase; letter-spacing: 0.5px; }
 .niz-business-input-group input, .niz-business-input-group select { padding: 12px 16px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; width: 100%; box-sizing: border-box; background-color: #f8fafc; transition: all 0.2s ease; color: #334155; }
-.niz-business-input-group input:focus, .niz-business-input-group select:focus { border-color: #25988b; background-color: #fff; outline: none; box-shadow: 0 0 0 3px rgba(37, 152, 139, 0.15); }
+.niz-business-input-group input:focus, .niz-business-input-group select:focus { border-color: #2c5f8a; background-color: #fff; outline: none; box-shadow: 0 0 0 3px rgba(44, 95, 138, 0.15); }
 
 /* Grid Layout */
 .niz-grid-canvas { display: grid; grid-template-columns: 1fr; gap: 25px; margin-top: 15px; }
@@ -157,19 +157,19 @@
 .business-excerpt, .niz-card-excerpt { font-size: 13px; color: #64748b; line-height: 1.5; margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
 .business-card-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 14px; border-top: 1px solid #f1f5f9; margin-top: auto; }
-.business-distance-metric { font-size: 12px; font-weight: 700; color: #0d4d47; background: #e0f2fe; padding: 4px 10px; border-radius: 20px; display: inline-flex; align-items: center; }
+.business-distance-metric { font-size: 12px; font-weight: 700; color: #1e3a5f; background: #e0f2fe; padding: 4px 10px; border-radius: 20px; display: inline-flex; align-items: center; }
 
 /* Hover Effects */
-.business-card-link:hover .business-card, .niz-business-card:hover { transform: translateY(-5px); box-shadow: 0 12px 30px rgba(13, 77, 71, 0.07); border-color: #cbd5e1; }
+.business-card-link:hover .business-card, .niz-business-card:hover { transform: translateY(-5px); box-shadow: 0 12px 30px rgba(30, 58, 95, 0.07); border-color: #cbd5e1; }
 .niz-business-card:hover .niz-card-img-box img { transform: scale(1.06); }
-.business-card-link:hover .business-name, .niz-business-card:hover .niz-card-title { color: #25988b; }
+.business-card-link:hover .business-name, .niz-business-card:hover .niz-card-title { color: #2c5f8a; }
 
 /* Pagination & Buttons */
 .nizBusinessSwiper .swiper-pagination-bullet { background: #cbd5e1; opacity: 1; width: 8px; height: 8px; transition: all 0.3s ease; }
-.nizBusinessSwiper .swiper-pagination-bullet-active { background: #25988b; width: 22px; border-radius: 4px; }
+.nizBusinessSwiper .swiper-pagination-bullet-active { background: #2c5f8a; width: 22px; border-radius: 4px; }
 
-#load-more-business-btn { display: block; margin: 40px auto 20px auto; font-size: 14px; padding: 12px 28px; background: #ffffff; color: #0d4d47; border: 2px solid #0d4d47; border-radius: 8px; cursor: pointer; font-weight: 700; transition: all 0.2s ease; }
-#load-more-business-btn:hover { background: #0d4d47; color: #ffffff; }
+#load-more-business-btn { display: block; margin: 40px auto 20px auto; font-size: 14px; padding: 12px 28px; background: #ffffff; color: #1e3a5f; border: 2px solid #1e3a5f; border-radius: 8px; cursor: pointer; font-weight: 700; transition: all 0.2s ease; }
+#load-more-business-btn:hover { background: #1e3a5f; color: #ffffff; }
 
 /* Local Wrappers */
 .niz-local-wrapper { max-width: 1200px; margin: auto; padding: 0px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }

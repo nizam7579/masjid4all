@@ -6,7 +6,7 @@
  * 3. niz_mfa_web_directory
  * 4. niz_mfa_load_more_web_handler
  */
-
+ 
 if (!defined('ABSPATH')) exit;
 
 // ============================================
@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) exit;
 add_shortcode('niz_web_header', function($atts) {
     // 1. Define the fallback default image
     $default_url = "https://cdn.masjid4all.com/web/website-owner.webp";
-
+    
     // 2. Check if the current post/page has a featured image
     if ( has_post_thumbnail() ) {
         // Grab the 'full' size URL of the featured image
@@ -32,11 +32,11 @@ add_shortcode('niz_web_header', function($atts) {
 add_shortcode( 'niz_mfa_web_status', 'niz_user_web_status_shortcode' );
 function niz_user_web_status_shortcode() {
     global $wpdb;
-
+    
     $post_id = get_the_ID();
     $item_id = get_post_meta( $post_id, 'item_id', true );
     $ret = '';
-
+    
     if ( empty( $item_id ) ) {
         return $ret;
     }
@@ -46,19 +46,19 @@ function niz_user_web_status_shortcode() {
 
     if ( is_user_logged_in() ) {
         $current_user_id = get_current_user_id();
-
+        
         // Check if Admin or Editor
         if ( current_user_can('editor') || current_user_can('administrator') ) {
             $is_authorized = true;
         } else {
             // Check if user is the listing owner in the CCT table
             $owner_table = $wpdb->prefix . 'jet_cct_listing_owner';
-            $is_owner = $wpdb->get_var( $wpdb->prepare(
-                "SELECT user_id FROM {$owner_table} WHERE post_id = %d AND user_id = %d LIMIT 1",
-                $post_id,
-                $current_user_id
+            $is_owner = $wpdb->get_var( $wpdb->prepare( 
+                "SELECT user_id FROM {$owner_table} WHERE post_id = %d AND user_id = %d LIMIT 1", 
+                $post_id, 
+                $current_user_id 
             ) );
-
+            
             if ( $is_owner ) {
                 $is_authorized = true;
             }
@@ -78,7 +78,7 @@ function niz_user_web_status_shortcode() {
     // 3. Fetch status and display if not Approved
     $web_table = $wpdb->prefix . 'jet_cct_web';
     $result = $wpdb->get_row( $wpdb->prepare( "SELECT status, status_detail FROM {$web_table} WHERE _ID = %d", $item_id ) );
-
+    
     if ( $result && $result->status !== 'Approved' ) {
         // 4. Added the 'owner' class to the div wrapper
         $ret = '<div class="owner" style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 4px; font-size:14px; line-height:1.5;">';
@@ -86,7 +86,7 @@ function niz_user_web_status_shortcode() {
         $ret .= '<b>Our team will manually review and assess the website for Islamic compliance and update the status soon.</b>';
         $ret .= '</div>';
     }
-
+    
     return $ret;
 }
 
@@ -98,7 +98,7 @@ add_shortcode('niz_web_carousel', function($atts) {
     if (empty($atts['ids'])) return '<p style="text-align:center; color:#94a3b8;">Please provide post IDs.</p>';
 
     $id_array = array_map('intval', explode(',', $atts['ids']));
-    $id_array = array_slice($id_array, 0, 10);
+    $id_array = array_slice($id_array, 0, 10); 
 
     $query = new WP_Query([
         'post_type'           => 'web',
@@ -112,7 +112,7 @@ add_shortcode('niz_web_carousel', function($atts) {
 
     wp_enqueue_style('swiper-cdn-css', 'https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css', [], '11.0.0');
     wp_enqueue_script('swiper-cdn-js', 'https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js', [], '11.0.0', true);
-
+    
     wp_enqueue_style('niz-web-css', plugin_dir_url(__FILE__) . '../assets/css/web-v3.css', [], NIZ_MFA_VERSION);
     wp_enqueue_script('niz-web-js', plugin_dir_url(__FILE__) . '../assets/js/web.js', ['swiper-cdn-js'], NIZ_MFA_VERSION, true);
 
@@ -123,7 +123,7 @@ add_shortcode('niz_web_carousel', function($atts) {
     <div class="niz-carousel-wrapper">
         <div id="<?php echo esc_attr($unique_carousel_id); ?>" class="swiper nizWebSwiper" data-post-count="<?php echo esc_attr($query->post_count); ?>">
             <div class="swiper-wrapper">
-                <?php while ($query->have_posts()) : $query->the_post();
+                <?php while ($query->have_posts()) : $query->the_post(); 
                     $img = get_the_post_thumbnail_url(get_the_ID(), 'large') ?: 'https://cdn.masjid4all.com/media/placeholder.webp';
                     $url = get_post_meta(get_the_ID(), 'url', true);
                 ?>
@@ -149,7 +149,7 @@ add_shortcode('niz_web_carousel', function($atts) {
 // ============================================
 add_shortcode('niz_mfa_web_directory', function($atts) {
     global $wpdb;
-
+    
     $atts = shortcode_atts(['columns' => '3'], $atts);
     $cols = intval($atts['columns']);
     if ($cols < 1 || $cols > 4) $cols = 3;
@@ -158,7 +158,7 @@ add_shortcode('niz_mfa_web_directory', function($atts) {
     $post_id = get_the_ID();
     $post_type = get_post_type($post_id);
     $current_web_id = 0;
-
+    
     // Set default filter bar class
     $filter_class = 'niz-web-filter-bar';
 
@@ -173,18 +173,18 @@ add_shortcode('niz_mfa_web_directory', function($atts) {
     $country_list = get_transient('niz_mfa_web_countries_master_list');
     if (false === $country_list) {
         $countries_table = $wpdb->prefix . "jet_cct_countries";
-
+        
         // Checks the schema to see if your field is named 'country' or 'name' dynamically
         $column_exists = $wpdb->get_var("SHOW COLUMNS FROM {$countries_table} LIKE 'country'");
         $target_column = $column_exists ? 'country' : 'name';
-
+        
         $country_list = $wpdb->get_col("
-            SELECT DISTINCT {$target_column}
-            FROM {$countries_table}
-            WHERE {$target_column} IS NOT NULL AND {$target_column} != ''
+            SELECT DISTINCT {$target_column} 
+            FROM {$countries_table} 
+            WHERE {$target_column} IS NOT NULL AND {$target_column} != '' 
             ORDER BY {$target_column} ASC
         ");
-
+        
         set_transient('niz_mfa_web_countries_master_list', $country_list, 12 * HOUR_IN_SECONDS);
     }
     if (empty($country_list)) {
@@ -210,10 +210,10 @@ add_shortcode('niz_mfa_web_directory', function($atts) {
         }
     </style>
 
-    <div id="<?php echo esc_attr($widget_id); ?>" class="niz-web-wrapper"
+    <div id="<?php echo esc_attr($widget_id); ?>" class="niz-web-wrapper" 
          data-ajaxurl="<?php echo esc_url(admin_url('admin-ajax.php')); ?>"
          data-current-id="<?php echo esc_attr($current_web_id); ?>">
-
+         
         <div class="<?php echo esc_attr($filter_class); ?>">
             <div class="niz-web-input-group">
                 <label>Search Website</label>
@@ -238,7 +238,7 @@ add_shortcode('niz_mfa_web_directory', function($atts) {
                 </select>
             </div>
         </div>
-
+        
         <div id="web-list" class="niz-grid-canvas">
             <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #64748b;">
                 <span class="mfa-spinner" aria-hidden="true"></span><br><br>Loading websites...
@@ -267,9 +267,6 @@ function niz_mfa_load_more_web_handler() {
     $limit    = isset($_POST['limit']) ? intval($_POST['limit']) : 9;
     $exclude  = isset($_POST['current_web_id']) ? intval($_POST['current_web_id']) : 0;
 
-        // Only reviewed listings are shown publicly - New/Pending stay hidden
-    // from the directory until approved (2026-08-14, explicit user
-    // direction: don't surface unreviewed website listings).
     $where_clauses = ["listing_status IN ('Approved','Verified','Premium')"];
     $params = [];
 
@@ -296,22 +293,22 @@ function niz_mfa_load_more_web_handler() {
 
     // Fetch results with listing_status included, sorted by hierarchy then newest
     $sql = $wpdb->prepare("
-        SELECT _ID, cct_single_post_id, name, url, category, introduction, country, listing_status
-        FROM {$table}
-        WHERE {$where_sql}
-        ORDER BY
+        SELECT _ID, cct_single_post_id, name, url, category, introduction, country, listing_status 
+        FROM {$table} 
+        WHERE {$where_sql} 
+        ORDER BY 
             CASE listing_status
                 WHEN 'Premium' THEN 1
                 WHEN 'Verified' THEN 2
                 WHEN 'Approved' THEN 3
                 WHEN 'Pending' THEN 4
                 WHEN 'New' THEN 5
-                ELSE 6
+                ELSE 6 
             END ASC,
-            _ID DESC
+            _ID DESC 
         LIMIT %d OFFSET %d
     ", array_merge($params, [$limit, $offset]));
-
+    
     $slice = $wpdb->get_results($sql, ARRAY_A);
     if (empty($slice)) { echo ''; wp_die(); }
 
@@ -319,12 +316,12 @@ function niz_mfa_load_more_web_handler() {
         $post_id = intval($w['cct_single_post_id']);
         $img = get_the_post_thumbnail_url($post_id, 'medium'); // Do not force fallback template string here
         $permalink = get_permalink($post_id) ?: '#';
-
+        
         $intro = !empty($w['introduction'])? esc_html(mb_strimwidth($w['introduction'], 0, 300, '...')) : '';
         $cat_label = !empty($w['category']) ? esc_html($w['category']) : 'Uncategorized';
         $country_label = !empty($w['country']) ? esc_html($w['country']) : 'Global';
         $domain = !empty($w['url']) ? parse_url($w['url'], PHP_URL_HOST) : '';
-
+        
         // Grab the status to display a badge on the UI
         $status_badge = !empty($w['listing_status']) ? esc_html($w['listing_status']) : '';
         ?>
@@ -335,7 +332,7 @@ function niz_mfa_load_more_web_handler() {
                         <img src="<?php echo esc_url($img); ?>" loading="lazy" alt="<?php echo esc_attr($w['name']); ?>">
                     </div>
                 <?php endif; ?>
-
+                
                 <div class="web-card-content">
                     <h3 class="web-name"><?php echo esc_html($w['name']); ?></h3>
                     <span class="web-intro"><?php echo $intro; ?></span>
@@ -377,25 +374,25 @@ function mfa_claim_web_listing_shortcode() {
     $post_type       = get_post_type($post_id);
     $current_user    = wp_get_current_user();
     $current_user_id = $current_user->ID;
-
+    
     $table_name = $wpdb->prefix . 'jet_cct_listing_owner';
-
+    
     // 2. Check if the website is already claimed
     $existing_claim = $wpdb->get_row($wpdb->prepare("SELECT user_id FROM `$table_name` WHERE post_id = %d LIMIT 1", $post_id));
-
+    
     if ( $existing_claim ) {
-
+        
         // CHECK: Is the current user the owner?
         if ( $existing_claim->user_id == $current_user_id ) {
             return '<div style="background-color: #d4edda; color: #155724; padding: 20px; border-left: 4px solid #28a745; border-radius: 4px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
                         <strong style="font-size: 16px;">👋 Welcome back, ' . esc_html($current_user->display_name) . '!</strong><br><br>
                         You are the verified manager of this website.<br><br>
-                        <a href="/member/business/?id=' . $post_id . '" style="display: inline-block; background: #006B3E; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <a href="/member/business/" style="display: inline-block; background: #006B3E; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                             Manage Your Website
                         </a>
                     </div>';
         }
-
+        
         // If claimed by someone else:
         $owner_info = get_userdata($existing_claim->user_id);
         $owner_name = $owner_info ? $owner_info->display_name : 'another user';
@@ -405,11 +402,11 @@ function mfa_claim_web_listing_shortcode() {
                     If you believe this is incorrect or would like to dispute this claim, please contact our support team for assistance.
                 </div>';
     }
-
+    
     // 3. Handle Form Submission
     $error_msg = '';
     if ( isset($_POST['niz_submit_claim']) && isset($_POST['niz_claim_nonce']) && wp_verify_nonce($_POST['niz_claim_nonce'], 'niz_claim_action_' . $post_id) ) {
-
+        
         if ( empty($_POST['niz_claim_confirm']) ) {
             $error_msg = '<div style="color: #721c24; background: #f8d7da; padding: 10px; border-radius: 4px; margin-bottom: 15px;">Please check the authorization box to proceed.</div>';
         } else {
@@ -424,80 +421,66 @@ function mfa_claim_web_listing_shortcode() {
                 ),
                 array('%s', '%d', '%d', '%s')
             );
-
+            
             if ( $inserted ) {
                 // Promote an Approved listing to Verified now it has an owner.
                 if ( $inserted && function_exists( 'mfa_listing_sync_verified' ) ) {
                     mfa_listing_sync_verified( $post_id, 'web' );
                 }
 
-                $manage_url = '/member/business/?id=' . $post_id;
                 return '<div style="background-color: #d4edda; color: #155724; padding: 20px; border-left: 4px solid #28a745; border-radius: 4px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
                             <strong style="font-size: 16px;">🎉 Listing Successfully Claimed!</strong><br><br>
-                            You are now verified as the manager of this website. Redirecting you to your listing&hellip;<br><br>
-                            <a href="' . esc_url( $manage_url ) . '" style="display: inline-block; background: #006B3E; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                                Go to your listing now
+                            You are now verified as the manager of this website.<br><br>
+                            <a href="/member/business/" style="display: inline-block; background: #006B3E; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                Please go to Member\'s Page to update your website
                             </a>
-                        </div>
-                        <script>setTimeout(function(){window.location.href=' . wp_json_encode( $manage_url ) . ';}, 1500);</script>';
+                        </div>';
             } else {
                 $error_msg = '<div style="color: #721c24; background: #f8d7da; padding: 10px; border-radius: 4px; margin-bottom: 15px;">Database Error: Could not process your claim. Please try again later.</div>';
             }
         }
     }
-
+    
     // 4. Generate The Interface (If not claimed and not submitted)
     $user_phone = get_user_meta($current_user_id, 'user_phone', true);
     $display_phone = !empty($user_phone) ? esc_html($user_phone) : '<em style="color:#999;">Not provided in profile</em>';
-
+    
     $output = '<div style="background: #ffffff; border: 1px solid #e5e5e5; padding: 25px; border-radius: 8px; margin-bottom: 20px; max-width: 500px; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">';
     $output .= '<h4 style="margin-top: 0; color: #006B3E; display: flex; align-items: center; gap: 8px;">🛡️ Claim This Website</h4>';
     $output .= '<p style="font-size: 14px; color: #555; margin-bottom: 20px;">Verify your details below to take official control of this listing.</p>';
-
+    
     if ( !empty($error_msg) ) {
         $output .= $error_msg;
     }
-
+    
     // User Info Display Card
     $output .= '<div style="background: #f8f9fa; padding: 15px; border: 1px solid #e9ecef; border-radius: 6px; margin-bottom: 20px; font-size: 14px;">';
     $output .= '<div style="margin-bottom: 5px;"><strong>Claiming as:</strong> ' . esc_html($current_user->display_name) . '</div>';
     $output .= '<div><strong>Phone:</strong> ' . $display_phone . '</div>';
     $output .= '</div>';
-
+    
     // Claim Form
     $output .= '<form method="POST" action="">';
     $output .= wp_nonce_field('niz_claim_action_' . $post_id, 'niz_claim_nonce', true, false);
-
+    
     $output .= '<label style="display: flex; gap: 12px; align-items: flex-start; margin-bottom: 20px; font-size: 14px; cursor: pointer; color: #444;">';
     $output .= '<input type="checkbox" name="niz_claim_confirm" required style="margin-top: 3px; width: 16px; height: 16px; cursor: pointer;">';
     $output .= '<span style="line-height: 1.4;">Are you the website owner or authorised to manage this website?</span>';
     $output .= '</label>';
-
+    
     $output .= '<button type="submit" name="niz_submit_claim" style="background: #006B3E; color: #fff; border: none; padding: 12px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; font-size: 15px; transition: background 0.3s ease;">';
     $output .= 'Claim this website';
     $output .= '</button>';
     $output .= '</form>';
     $output .= '</div>';
-
+    
     return $output;
 }
 
 /**
- * Triggers an AI content update for an existing website listing - analyzes
- * the listing's own URL via niz_perplexity_web() (add-website.php) and
- * writes the result back into both the CCT record and the WP post/SEO meta.
- * Does not require a logged-in user or a form submission (called from the
- * per-listing "Update Content" button and the /admin/website/ "Generate
- * Content" batch button alike).
- *
- * Rebuilt 2026-08-14 - this function existed but its actual DB/content
- * update logic was entirely commented out (and its own AI dependency,
- * niz_perplexity_web(), didn't exist as a live function at all), so
- * "Update Content" silently did nothing on every click. Field mapping and
- * flow follow niz_mfa_mosques_callback()'s proven pattern (enaizi/
- * mosque.php) adapted to the website schema.
- *
- * @param int $post_id The WordPress Post ID of the website.
+ * Triggers an AI content update for an existing Business listing.
+ * Does not require a logged-in user or a form submission.
+ * * @param int $post_id The WordPress Post ID of the business.
  * @return array|WP_Error Returns success message array or WP_Error on failure.
  */
 function web_update_content( $post_id ) {
@@ -509,7 +492,7 @@ function web_update_content( $post_id ) {
     }
 
     $item_id = get_post_meta( $post_id, 'item_id', true );
-
+    
     if ( empty( $item_id ) ) {
         return new WP_Error( 'missing_cct', 'No linked JetEngine CCT item found for this post.' );
     }
@@ -522,90 +505,191 @@ function web_update_content( $post_id ) {
         return new WP_Error( 'cct_not_found', 'Web record not found in the database.' );
     }
 
-    $old_status = $web['listing_status'];
-    $name       = $web['name'];
+    // Decode opening hours if they are stored as JSON strings
+    $opening_hours = !empty($web['opening_hours']) ? json_decode($web['opening_hours'], true) : [];
 
-    // 3. Call the AI Function
-    if ( ! function_exists( 'niz_perplexity_web' ) ) {
-        return new WP_Error( 'missing_function', 'niz_perplexity_web function is missing.' );
-    }
-
-    $url = $web['url'];
-    if ( empty( $url ) ) {
-        return new WP_Error( 'missing_url', 'This record has no URL to analyze.' );
-    }
-    $json_output = niz_perplexity_web( $url );
-    $data        = json_decode( $json_output, true );
-
-    if ( ! is_array( $data ) || isset( $data['error'] ) || empty( $data['Content'] ) ) {
-        return new WP_Error( 'api_failure', isset( $data['error'] ) ? $data['error'] : 'Invalid AI content received.' );
-    }
-
-    // 4. Structure and write the CCT update
-    $status = ! empty( $data['status'] ) ? sanitize_text_field( $data['status'] ) : 'Pending';
-
-    $cct_update = array(
-        'status'         => 'Updated',
-        'status_detail'  => isset( $data['status_detail'] ) ? sanitize_textarea_field( $data['status_detail'] ) : '',
-        'listing_status' => $status,
-        'cct_modified'   => current_time( 'mysql' ),
+    // 3. Prepare Payload for Perplexity AI
+    $raw_info = array(
+        'name'         => $web['name'],
+        'address'      => $web['address'],
+        'email'        => $web['email'],
+        'website'      => $web['website'],
+        'phone'        => $web['phone'],
+        'whatsapp'     => $web['whatsapp'],
+        'city'         => $web['city'],
+        'country'      => $web['country'],
+        'introduction' => $web['introduction'],
+        'fb'           => $web['fb'],
+        'linkedin'     => $web['linkedin'],
+        'insta'        => $web['insta'],
+        'tiktok'       => $web['tiktok'],
+        'opening_hours'=> $opening_hours
     );
-    if ( ! empty( $data['Introduction'] ) ) {
-        $cct_update['introduction'] = sanitize_textarea_field( $data['Introduction'] );
-    }
-    if ( ! empty( $data['Category'] ) ) {
-        $cct_update['category'] = sanitize_text_field( $data['Category'] );
-    }
-    // Only fill in country when it's currently missing - a crawled listing's
-    // country (from the source Serper business record) is more reliable
-    // than an AI guess from browsing the site content, and the AI sometimes
-    // answers with a placeholder like "Unknown" rather than leaving it
-    // blank (found 2026-08-14: overwrote a correct "Malaysia" this way on
-    // the first real test run).
-    if ( empty( $web['country'] ) && ! empty( $data['country'] ) && ! preg_match( '/^(unknown|n\/?a|none|not (specified|available|known))$/i', trim( $data['country'] ) ) ) {
-        $cct_update['country'] = sanitize_text_field( $data['country'] );
-    }
-    if ( ! empty( $data['whatsapp'] ) ) {
-        $cct_update['whatsapp'] = sanitize_text_field( $data['whatsapp'] );
-    }
-    if ( ! empty( $data['email'] ) ) {
-        $cct_update['email'] = sanitize_text_field( $data['email'] );
+   
+    
+    $old_status = $web['listing_status'];
+    $name = $web['name'];
+    // Strip out empty values to prevent AI crawler crashes
+    $clean_info = array_filter($raw_info, function($value) {
+        return $value !== '' && $value !== null && $value !== [];
+    });
+
+    // 4. Call the AI Function
+    if ( ! function_exists( 'niz_perplexity_web' ) ) {
+        return new WP_Error( 'missing_function', 'mfa_web_perplexity function is missing.' );
     }
 
-    $wpdb->update( $table_name, $cct_update, array( '_ID' => $item_id ) );
+    $url = 'https://pewarisan.my';
+    $json_output = niz_perplexity_web($url);
+    $data = json_decode($json_output, true);
 
-    // 5. Update WordPress Post Content & SEO Meta
-    $post_update = wp_update_post( array(
+    if (!$data || isset($data['error'])) {
+        return new WP_Error('api_failure', isset($data['error']) ? $data['error'] : 'Data extraction schema parsing error from Perplexity API.');
+    }
+
+    // 3. Structure Ingestion Payload Properties
+    $status   = !empty($data['status']) ? $data['status'] : 'Pending';
+    $reason   = !empty($data['status_detail']) ? $data['status_detail'] : '';
+    $keywords = isset($data['keywords']) ? $data['keywords'] : '';
+
+    $update_fields = [
+        'name'          => !empty($data['Name']) ? $data['Name'] : $base_url,
+        'category'      => isset($data['Category']) ? $data['Category'] : '',
+        'introduction'  => isset($data['Introduction']) ? $data['Introduction'] : '',
+        'whatsapp'      => isset($data['whatsapp']) ? $data['whatsapp'] : '',
+        'email'         => isset($data['email']) ? $data['email'] : '',
+        'status'        => $status,
+        'status_detail' => isset($data['status_detail']) ? $data['status_detail'] : '',
+        'content'       => isset($data['Content']) ? $data['Content'] : '',
+        'country'       => isset($data['country']) ? $data['country'] : '',
+        'cct_modified'  => current_time('mysql'),
+    ];
+
+    // 4. Update or Insert CCT Record
+//    if ($existing_cct_id) {
+//        $db_action = $wpdb->update($table_name, $update_fields, ['_ID' => $existing_cct_id]);
+//        $record_id = $existing_cct_id;
+//    } else {
+//        $update_fields['cct_author_id'] = $current_user_id;
+//        $update_fields['cct_created']   = current_time('mysql');
+//        $db_action = $wpdb->insert($table_name, $update_fields);
+//        $record_id = $wpdb->insert_id;
+//    }
+
+//    if ($db_action === false) {
+//        return new WP_Error('db_error', 'Database write operation execution failure.');
+//    }
+
+    // 5. Generate and Link Custom Directory Post Asset Mapping
+//    $post_id = niz_create_wordpress_post($record_id, $base_url, $update_fields, $keywords);
+    
+    if (is_wp_error($post_id)) {
+        if (!$existing_cct_id) { $wpdb->delete($table_name, ['_ID' => $record_id]); }
+        return $post_id;
+    }
+
+//    $wpdb->update($table_name, ['cct_single_post_id' => $post_id], ['_ID' => $record_id]);
+
+//    if ($is_admin_mode) {
+//        return '<div class="alert alert-success">✓ <strong>Processed:</strong> ' . esc_html($base_url) . ' | 📝 <strong>Post ID:</strong> ' . intval($post_id) . '</div>';
+//    }
+
+/*
+
+    $msg = '<div class="alert alert-success">';
+    if ($status === 'Approved' && function_exists('niz_user_add_points')) {
+        $desc = 'Add website - ' . $update_fields['name'];
+//        niz_user_add_points($current_user_id, $desc, 10);
+
+        $msg .= '✅ Website successfully analyzed and added to the directory!<br>';
+        $msg .= 'Status : ' . esc_html($status) . '<br>';
+        $msg .= 'Link : ' . '<a href="' . esc_url(get_permalink($post_id)) . '" target="_blank"><strong>' . esc_html($update_fields['name']) . '</strong></a><br>';
+
+        $msg .= '<br><p style="color:#155724; font-weight:bold;">✨ Congratulations! You earned 10 Barakah points.</p>';
+    } else {
+        $msg .= '✅ Website NOT ADDED to the directory!<br>';
+        $msg .= 'Status : ' . esc_html($status) . '<br>';
+        $msg .= 'Reason : ' . esc_html($reason) . '<br>';
+        $msg .= 'Link : <a href="' . esc_url(get_permalink($post_id)) . '" target="_blank"><strong>' . esc_html($update_fields['name']) . '</strong></a>';
+        $msg .= '<br><p style="color:#155724; font-weight:bold;">You will earn 10 Barakah points if we approve the website.</p>';
+    }
+    $msg .= '</div>';
+
+    return $msg;
+*/
+
+    
+    /*
+    
+    $ai_data  = json_decode( $json_raw, true );
+
+    // 5. Validate AI Response
+    if ( ! $ai_data || isset( $ai_data['error'] ) || empty( $ai_data['content'] ) ) {
+        $error_reason = isset( $ai_data['reason'] ) ? $ai_data['reason'] : 'API Parsing Failure';
+        error_log( 'Web AI Update Failed for Post ID ' . $post_id . ': ' . $error_reason );
+        return new WP_Error( 'ai_failure', 'AI generation failed: ' . $error_reason );
+    }
+
+    // 6. Update CCT Table Data
+    $cct_update_data = array(
+        'business_status' => 'Updated'
+    );
+
+    $listing_status = $ai_data['listingStatus'];
+
+    if ( ! empty( $ai_data['listingStatus'] ) ) {
+        $cct_update_data['listing_status'] = sanitize_text_field( $ai_data['listingStatus'] );
+    }
+    if ( ! empty( $ai_data['category'] ) ) {
+        $cct_update_data['category'] = sanitize_text_field( $ai_data['category'] );
+    }
+    if ( ! empty( $ai_data['introduction'] ) ) {
+        $cct_update_data['introduction'] = sanitize_text_field( $ai_data['introduction'] );
+    }
+
+    $wpdb->update(
+        $table_name,
+        $cct_update_data,
+        array( '_ID' => $item_id )
+    );
+
+    // 7. Update WordPress Post Content & SEO Meta
+    $post_update = array(
         'ID'           => $post_id,
-        'post_content' => wp_kses_post( $data['Content'] ),
-    ), true );
+        'post_content' => wp_kses_post( $ai_data['content'] )
+    );
+    wp_update_post( $post_update );
 
-    if ( is_wp_error( $post_update ) ) {
-        return $post_update;
+    if ( ! empty( $ai_data['title'] ) ) {
+        update_post_meta( $post_id, 'rank_math_title', sanitize_text_field( $ai_data['title'] ) );
     }
-
-    if ( ! empty( $data['Name'] ) ) {
-        update_post_meta( $post_id, 'rank_math_title', sanitize_text_field( $data['Name'] ) . ' | Islamic Website Directory' );
+    if ( ! empty( $ai_data['metaDescription'] ) ) {
+        update_post_meta( $post_id, 'rank_math_description', sanitize_textarea_field( $ai_data['metaDescription'] ) );
     }
-    if ( ! empty( $data['Introduction'] ) ) {
-        update_post_meta( $post_id, 'rank_math_description', sanitize_textarea_field( mb_strimwidth( $data['Introduction'], 0, 160, '...' ) ) );
+    if ( ! empty( $ai_data['keywords'] ) ) {
+        update_post_meta( $post_id, 'rank_math_focus_keyword', sanitize_text_field( $ai_data['keywords'] ) );
     }
-    if ( ! empty( $data['keywords'] ) ) {
-        update_post_meta( $post_id, 'rank_math_focus_keyword', sanitize_text_field( $data['keywords'] ) );
+    
+    // Barakah Point, if Approved
+    if ($old_status === 'New' || $old_status === 'Pending' || empty($old_status)){
+        if ($listing_status == 'Approved'){
+            // Give Baraqah Point
+            $author_id = get_post_field('post_author', $post_id);
+            $desc = 'Add Web - ' . $name;
+            niz_user_add_points($author_id, $desc, 10);
+        }
     }
-
-    // Barakah Point, if newly Approved (mirrors mosque/business updaters).
-    if ( ( in_array( $old_status, array( 'New', 'Pending' ), true ) || empty( $old_status ) ) && 'Approved' === $status && function_exists( 'niz_user_add_points' ) ) {
-        $author_id = get_post_field( 'post_author', $post_id );
-        niz_user_add_points( $author_id, 'Add Website - ' . $name, 10 );
-    }
-
-    // 6. Return Success
+    
+    */
+    
+    // 8. Return Success
     return array(
         'success' => true,
         'message' => $name . ' successfully updated.',
-        'status'  => $status,
+        'status'  => isset($cct_update_data['listing_status']) ? $cct_update_data['listing_status'] : 'Pending'
     );
+    
+    
 }
 
 
@@ -618,7 +702,7 @@ function niz_web_ai_updater_shortcode() {
     $post_id = get_the_ID();
    // Only display this button on single web posts
     if (get_post_type($post_id) !== 'web') {
-        return '';
+        return ''; 
     }
 
     $nonce    = wp_create_nonce('niz_ai_update_nonce_' . $post_id);
@@ -627,10 +711,10 @@ function niz_web_ai_updater_shortcode() {
     ob_start();
     ?>
     <div class="niz-ai-update-wrapper" style="margin: 20px 0;">
-        <button type="button" class="niz-ai-update-btn"
-                data-post-id="<?php echo esc_attr($post_id); ?>"
-                data-nonce="<?php echo esc_attr($nonce); ?>"
-                data-ajaxurl="<?php echo esc_url($ajax_url); ?>"
+        <button type="button" class="niz-ai-update-btn" 
+                data-post-id="<?php echo esc_attr($post_id); ?>" 
+                data-nonce="<?php echo esc_attr($nonce); ?>" 
+                data-ajaxurl="<?php echo esc_url($ajax_url); ?>" 
                 style="background: #e6a800; color: #fff; padding: 10px 20px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; transition: all 0.3s ease;">
             🔄 Update Content
         </button>
@@ -641,11 +725,11 @@ function niz_web_ai_updater_shortcode() {
         document.addEventListener('DOMContentLoaded', function() {
             // Find all update buttons on the page (just in case there are multiple)
             const updateBtns = document.querySelectorAll('.niz-ai-update-btn');
-
+            
             updateBtns.forEach(btn => {
                 btn.addEventListener('click', async function(e) {
                     e.preventDefault();
-
+                    
                     const postId = this.dataset.postId;
                     const nonce = this.dataset.nonce;
                     const ajaxUrl = this.dataset.ajaxurl;
@@ -671,7 +755,7 @@ function niz_web_ai_updater_shortcode() {
                             method: 'POST',
                             body: formData
                         });
-
+                        
                         const result = await response.json();
 
                         // Handle the result
@@ -679,7 +763,7 @@ function niz_web_ai_updater_shortcode() {
                             msgDiv.innerHTML = '<span style="color: #155724; background: #d4edda; padding: 5px 10px; border-radius: 4px;">✅ ' + result.data.message + ' Refreshing page...</span>';
                             this.innerText = 'Success!';
                             this.style.background = '#28a745'; // Turn green
-
+                            
                             // Reload the page to show the new AI content!
                             setTimeout(() => location.reload(), 2000);
                         } else {
@@ -701,7 +785,7 @@ function niz_web_ai_updater_shortcode() {
         });
     </script>
     <?php
-
+    
     $content = ob_get_clean();
 
     return $content ;
@@ -729,7 +813,7 @@ function niz_ajax_web_ai_update_handler() {
     }
 
     // FIRE THE FUNCTION!
-    $result = web_update_content($post_id);
+    //$result = web_update_content($post_id);
 
     // Read the response from your AI function and return it to the JavaScript
     if ( is_wp_error($result) ) {

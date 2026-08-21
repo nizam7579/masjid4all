@@ -7,12 +7,12 @@
   "theme_color": "#0f766e",
   "icons": [
     {
-      "src": "https://staging.masjid4all.com/wp-content/plugins/enaizi-mfa/assets/icon-192.png",
+      "src": "https://masjid4all.com/wp-content/plugins/enaizi-mfa/assets/icon-192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "https://staging.masjid4all.com/wp-content/plugins/enaizi-mfa/assets/icon-512.png",
+      "src": "https://masjid4all.com/wp-content/plugins/enaizi-mfa/assets/icon-512.png",
       "sizes": "512x512",
       "type": "image/png"
     }

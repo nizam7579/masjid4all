@@ -305,6 +305,8 @@ body.wp-theme-kadence, body.mfa-site { padding-top: 64px !important; }
   font-weight: 700;
   line-height: 1;
   cursor: pointer;
+  /* It is an <a> since 2026-08-21 (wp_logout_url), not a <button>. */
+  text-decoration: none;
 }
 .mfa-header-mobile-account-row .niz-user-logout-btn:hover {
   background: #0d4d47;

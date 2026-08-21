@@ -41,7 +41,10 @@ foreach ( $user_shortcode_files as $file ) {
 $user_core_files = [
     // 'user.php' removed — moved to mfa-core/includes/identity-core.php.
     // niz_user_check/register/create_prospect/etc. now live there.
-    'ajax-handlers.php',
+    // 'ajax-handlers.php' removed 2026-08-21 — its four unauthenticated
+    // endpoints were deleted as a security fix, and the one live handler
+    // (logout) is gone too: [niz_user_logout] in mfa-core is now a plain
+    // wp_logout_url() link, so it needs no AJAX and no JavaScript.
     'fluentform.php',
     'member.php',
     'admin.php',
@@ -61,28 +64,28 @@ foreach ( $user_core_files as $file ) {
 add_action( 'wp_enqueue_scripts', 'niz_user_enqueue_assets' );
 
 function niz_user_enqueue_assets() {
-    $style_path  = NIZ_USER_PLUGIN_DIR . 'assets/css/style.css';
-    $card_path   = NIZ_USER_PLUGIN_DIR . 'assets/css/card.css';
-    $script_path = NIZ_USER_PLUGIN_DIR . 'assets/js/niz-user.js';
+    // 2026-08-21: style.css and niz-user.js are gone.
+    //
+    // niz-user.js drove the phone login/register form, whose AJAX endpoints
+    // were removed as a security fix, and the logout button - now a plain
+    // wp_logout_url() link in mfa-core needing no JS. style.css styled only
+    // that form plus a generic .niz-user-logout-btn rule that the three
+    // shells (site-chrome-v1.css, member-shell-v1.css, admin-shell-v3.css)
+    // already override with scoped rules of their own.
+    //
+    // card.css and FontAwesome DO stay, and are still sitewide: the namecard
+    // ([niz_user_namecard], rendered by the theme's single.php for category
+    // 39 posts) owns every .niz-namecard-*/.niz-btn* rule in card.css and
+    // uses FontAwesome brand icons for its contact buttons. FontAwesome is
+    // additionally used by the "Finding businesses near ..." spinners in
+    // enaizi-mfa's directory shortcodes, which are live on every mosque and
+    // business page - so it cannot be scoped to namecard pages until those
+    // spinners are replaced. See the note in CLAUDE.md before attempting it.
+    $card_path = NIZ_USER_PLUGIN_DIR . 'assets/css/card.css';
+    $card_ver  = file_exists( $card_path ) ? filemtime( $card_path ) : NIZ_USER_VERSION;
 
-    // Dynamic fallback versioning to prevent site crashes if files are missing
-    $style_ver  = file_exists( $style_path )  ? filemtime( $style_path )  : NIZ_USER_VERSION;
-    $card_ver   = file_exists( $card_path )   ? filemtime( $card_path )   : NIZ_USER_VERSION;
-    $script_ver = file_exists( $script_path ) ? filemtime( $script_path ) : NIZ_USER_VERSION;
-
-    // Enqueue Stylesheets
-    wp_enqueue_style( 'niz-user-style', NIZ_USER_PLUGIN_URL . 'assets/css/style.css', [], $style_ver );
     wp_enqueue_style( 'niz-user-card', NIZ_USER_PLUGIN_URL . 'assets/css/card.css', [], $card_ver );
     wp_enqueue_style( 'font-awesome-local', NIZ_USER_PLUGIN_URL . 'assets/css/all.min.css', [], '6.5.1' );
-
-    // Enqueue Javascript Scripts
-    wp_enqueue_script( 'niz-user-script', NIZ_USER_PLUGIN_URL . 'assets/js/niz-user.js', [], $script_ver, true );
-
-    // Localize dynamic Ajax script variables
-    wp_localize_script( 'niz-user-script', 'niz_user_ajax', [
-        'ajax_url' => admin_url( 'admin-ajax.php' ),
-        'nonce'    => wp_create_nonce( 'niz_user_ajax_nonce' ) // Added security token for your AJAX calls
-    ] );
 }
 
 // =============================================

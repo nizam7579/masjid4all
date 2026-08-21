@@ -393,8 +393,15 @@ function mfa_member_logout_shortcode() {
     if (!is_user_logged_in()) {
         return ''; // nothing shown if already logged out
     }
-    $user = wp_get_current_user();
-    return '<button id="niz_user_logout_btn" class="niz-user-logout-btn">➜] Logout</button>';
+    // 2026-08-21: was a <button> whose click handler lived in enaizi-user's
+    // niz-user.js, which has been deleted - so it would have rendered a
+    // button that does nothing. Now a nonce-protected wp_logout_url() link,
+    // matching mfa-core's [niz_user_logout]. This shortcode is not currently
+    // used by any live page; it is fixed rather than removed so it cannot
+    // become a silently broken control if one of the draft blocks that
+    // reference it is ever published.
+    return '<a href="' . esc_url(wp_logout_url(home_url('/'))) . '"'
+        . ' class="niz-user-logout-btn" rel="nofollow">&#10148;] Logout</a>';
 }
 
 // mfa_member_share moved to mfa-core/includes/widgets/member-share.php

@@ -11,128 +11,20 @@ if (!defined('ABSPATH')) {
  */
 
 /**
- * Login or Register User
- * [niz_user_login]
+ * [niz_user_login] was REMOVED on 2026-08-21.
+ *
+ * It rendered the .niz-user-box phone login/register form, driven by
+ * assets/js/niz-user.js against four unauthenticated AJAX endpoints
+ * (niz_user_check / _register / _login / _reset). Those endpoints verified no
+ * nonce and were deleted as a security fix; niz_user_reset in particular let
+ * anyone reset any member's password. With them gone the form could not work,
+ * and it rendered on no published page on either environment anyway - every
+ * occurrence was a draft, a revision, an unregistered kadence_element, or a
+ * reusable block whose only parents were drafts.
+ *
+ * The live login is [niz_login] (enaizi-identity), reached through
+ * [mfa_auth_tabs] on /member/. Do not confuse the two.
  */
-
-add_shortcode('niz_user_login', 'niz_user_login_shortcode');
-function niz_user_login_shortcode() {
-    if (is_user_logged_in()) {
-        $user = wp_get_current_user();
-        return '<div class="niz-user-welcome">Welcome ' . esc_html($user->display_name) . '</div>';
-    }
-
-    // 1. Enqueue Assets
-    wp_enqueue_style( 'intl-tel-input-css', 'https://cdn.jsdelivr.net/npm/intl-tel-input@24.5.1/build/css/intlTelInput.css', array(), '24.5.1' );
-    wp_enqueue_script( 'intl-tel-input-js', 'https://cdn.jsdelivr.net/npm/intl-tel-input@24.5.1/build/js/intlTelInput.min.js', array(), '24.5.1', true );
-    
-    // CSS Fixes
-    $intl_css_fix = '
-        .iti { width: 100%; display: block; }
-        .iti__dropdown-content { z-index: 999999 !important; }
-        .mfa-whatsapp-input-wrapper { overflow: visible !important; }
-        .iti__selected-dial-code { 
-            color: #000000 !important; 
-        }
-        .iti--allow-dropdown input[type="tel"], 
-        .iti--separate-dial-code input[type="tel"] {
-            padding-left: 90px !important; 
-        }
-    ';
-    wp_add_inline_style( 'intl-tel-input-css', $intl_css_fix );
-
-    // JS Initialization (Now includes the Phone Cookie Auto-fill)
-    $intl_init_script = '
-        document.addEventListener("DOMContentLoaded", function() {
-            if (window.mfaIntlLoaded) return; 
-            window.mfaIntlLoaded = true;
-
-            var phoneInputs = document.querySelectorAll(".mfa-global-phone, #mfa-whatsapp");
-            if (phoneInputs.length === 0) return;
-
-            function getCookie(name) {
-                var value = "; " + document.cookie;
-                var parts = value.split("; " + name + "=");
-                if (parts.length === 2) return decodeURIComponent(parts.pop().split(";").shift());
-                return null;
-            }
-
-            var finalIso2 = "my"; 
-            try {
-                var cookieCountry = getCookie("country"); 
-                if (cookieCountry) {
-                    cookieCountry = cookieCountry.toLowerCase().trim();
-                    var countryData = window.intlTelInput.getCountryData(); 
-                    for (var i = 0; i < countryData.length; i++) {
-                        if (countryData[i].name.toLowerCase().indexOf(cookieCountry) !== -1) {
-                            finalIso2 = countryData[i].iso2;
-                            break;
-                        }
-                    }
-                }
-            } catch (error) {
-                console.error("Could not read country cookie, falling back to default.", error);
-            }
-
-            phoneInputs.forEach(function(input) {
-                // Initialize the plugin and save it to a variable (iti)
-                var iti = window.intlTelInput(input, {
-                    initialCountry: finalIso2,
-                    countrySearch: true,
-                    separateDialCode: true,
-                    utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@24.5.1/build/js/utils.js"
-                });
-
-                // NEW: Check for saved phone cookie and auto-fill the input
-                var savedPhone = getCookie("user_phone"); // Make sure your cookie is exactly named "phone"
-                if (savedPhone) {
-                    // Add a "+" if missing so the library parses the country code correctly
-                    if (savedPhone.charAt(0) !== "+") {
-                        savedPhone = "+" + savedPhone;
-                    }
-                    iti.setNumber(savedPhone);
-                }
-
-                // MAGIC TRICK: Sync the visible field to the hidden AJAX field
-                var loginWrapper = input.closest(".niz-user-form-wrapper");
-                if (loginWrapper) {
-                    var hiddenAjaxInput = loginWrapper.querySelector(".niz_user_phone");
-                    if (hiddenAjaxInput) {
-                        var syncNumber = function() {
-                            hiddenAjaxInput.value = iti.getNumber().replace("+", "");
-                        };
-                        input.addEventListener("input", syncNumber);
-                        input.addEventListener("countrychange", syncNumber);
-                        
-                        // Force initial sync so the hidden input gets the cookie value immediately
-                        setTimeout(syncNumber, 100); 
-                    }
-                }
-            });
-        });
-    ';
-    wp_add_inline_script( 'intl-tel-input-js', $intl_init_script );
-
-    // 2. Output the Login Form
-    ob_start();
-    ?>
-    <div class="niz-user-box niz-user-form-wrapper">
-        Please enter your WhatsApp number<br>
-        
-        <div class="mfa-whatsapp-input-wrapper">
-            <input type="tel" class="niz-user-input mfa-global-phone" placeholder="123456789">
-        </div>
-
-        <input type="hidden" class="niz_user_phone">
-        
-        <button type="button" class="niz_user_continue niz-user-button">Continue</button>
-        
-        <div class="niz_user_dynamic"></div>
-        <div class="niz_user_message" style="color:red; margin-top:10px;"></div>
-    </div>
-    <?php
-    return ob_get_clean();
-}
 
 
 

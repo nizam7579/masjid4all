@@ -157,6 +157,8 @@ body.mfa-admin-area {
   font-size: 15px;
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
+  /* It is an <a> since 2026-08-21 (wp_logout_url), not a <button>. */
+  text-decoration: none;
 }
 .mfa-admin-header-account .niz-user-logout-btn:hover {
   background: var(--mfa-mint-bg);

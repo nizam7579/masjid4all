@@ -290,11 +290,26 @@ class NWA_DB {
 		return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", $message_id ) );
 	}
 
+	/**
+	 * The ", id" is a tiebreaker, not decoration — do not drop it.
+	 *
+	 * An inbound row's created_at is META's timestamp, and Meta reports whole
+	 * seconds, so a burst of taps all share one value. Ordering on created_at
+	 * alone leaves those ties in whatever order MySQL happens to return, which
+	 * can differ between page loads — that is the "messages out of sequence"
+	 * report (conversation 4 has four messages at 13:26:46 and three at
+	 * 13:26:47). id breaks the tie in insert order.
+	 *
+	 * created_at stays PRIMARY on purpose. Ordering by id alone would be
+	 * wrong: a reply can be inserted before a later batch whose messages Meta
+	 * timestamped earlier, so id order and real chronology genuinely disagree
+	 * (id 464 is 13:26:50, ids 465-467 are 13:26:47).
+	 */
 	public static function get_messages( $conversation_id, $limit = 50 ) {
 		global $wpdb;
 		$table = self::messages_table();
 		return $wpdb->get_results( $wpdb->prepare(
-			"SELECT * FROM {$table} WHERE conversation_id = %d AND processed = 1 ORDER BY created_at DESC LIMIT %d",
+			"SELECT * FROM {$table} WHERE conversation_id = %d AND processed = 1 ORDER BY created_at DESC, id DESC LIMIT %d",
 			$conversation_id, $limit
 		) );
 	}
@@ -303,6 +318,10 @@ class NWA_DB {
 	 * Recent context for AI calls: last $limit messages, but only those
 	 * within $minutes of "now" — whichever cutoff hits first. Returns
 	 * oldest-first (natural reading order for a prompt).
+	 *
+	 * Same ", id" tiebreaker as get_messages(), and it matters more here: an
+	 * unstable order means the AI can be handed the same conversation
+	 * shuffled differently on consecutive turns.
 	 */
 	public static function get_recent_context( $conversation_id, $limit = 6, $minutes = 45 ) {
 		global $wpdb;
@@ -312,7 +331,7 @@ class NWA_DB {
 		$rows = $wpdb->get_results( $wpdb->prepare(
 			"SELECT direction, msg_type, content, created_at FROM {$table}
 			 WHERE conversation_id = %d AND processed = 1 AND created_at >= %s
-			 ORDER BY created_at DESC LIMIT %d",
+			 ORDER BY created_at DESC, id DESC LIMIT %d",
 			$conversation_id, $cutoff, $limit
 		) );
 
@@ -330,7 +349,7 @@ class NWA_DB {
 		$table  = self::messages_table();
 		$cutoff = gmdate( 'Y-m-d H:i:s', strtotime( "-{$older_than_minutes} minutes" ) );
 		return $wpdb->get_results( $wpdb->prepare(
-			"SELECT * FROM {$table} WHERE processed = 0 AND created_at < %s ORDER BY created_at ASC LIMIT %d",
+			"SELECT * FROM {$table} WHERE processed = 0 AND created_at < %s ORDER BY created_at ASC, id ASC LIMIT %d",
 			$cutoff, $limit
 		) );
 	}

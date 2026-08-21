@@ -162,7 +162,9 @@ class NWA_Shortcodes {
 										</a>
 									<?php endif; ?>
 								<?php endif; ?>
-								<?php echo esc_html( $m->content ); ?>
+								<?php // format_for_display() escapes before it adds any tag, so this
+								      // is already-escaped HTML - do not wrap it in esc_html(). ?>
+								<?php echo NWA_Sender::format_for_display( $m->content ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 								<?php // Stored in GMT; shown in the site timezone so the thread reads in local time. ?>
 								<br><small><?php echo esc_html( get_date_from_gmt( $m->created_at, 'Y-m-d H:i:s' ) ); ?> &middot; <?php echo esc_html( $m->msg_type ); ?></small>
 							</div>

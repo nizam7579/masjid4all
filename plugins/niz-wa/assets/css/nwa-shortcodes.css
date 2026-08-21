@@ -344,3 +344,18 @@
 .nwa-inbox-identity small {
   color: #666;
 }
+
+/* WhatsApp emphasis, once format_for_display() has turned the stored
+   *bold* / _italic_ / ~strike~ / ```mono``` markup into real tags. Without
+   these the browser defaults are close enough for strong/em, but code needs a
+   face and del needs to look struck rather than just grey. */
+.nwa-message-bubble strong { font-weight: 700; }
+.nwa-message-bubble em     { font-style: italic; }
+.nwa-message-bubble del    { opacity: 0.7; }
+.nwa-message-bubble code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 4px;
+  padding: 1px 4px;
+}

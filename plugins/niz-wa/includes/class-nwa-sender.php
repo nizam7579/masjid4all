@@ -496,6 +496,38 @@ class NWA_Sender {
 		return $text;
 	}
 
+	/**
+	 * The inverse of format_for_whatsapp(), for the admin screens: turn stored
+	 * WhatsApp markup into HTML so staff read *Ramadán* as Ramadán rather than
+	 * as literal asterisks.
+	 *
+	 * Returns HTML and is therefore ALREADY ESCAPED — echo it raw, never wrap
+	 * it in esc_html() again. Escaping happens first, before any tag is
+	 * introduced, so nothing a contact sends can inject markup.
+	 *
+	 * Deliberately does NOT nl2br(): every surface that shows this sets
+	 * `white-space: pre-wrap` (.nwa-message-bubble, and the member-info wrap
+	 * cell), so the newlines already render. Adding <br> as well would double
+	 * every line break.
+	 *
+	 * The markers must hug their text and sit on a word boundary, matching
+	 * WhatsApp's own behaviour. That is what stops the underscores in
+	 * `mfa_registration_route` — or in the JSON stored for a template message,
+	 * `{"template":"mfa_welcome"}` — from turning into italics.
+	 */
+	public static function format_for_display( $text ) {
+		$out = esc_html( (string) $text );
+
+		// Triple backticks first, so a marker inside a code span is left alone.
+		$out = preg_replace( '/```(.+?)```/s', '<code>$1</code>', $out );
+
+		$out = preg_replace( '/(?<![\w*])\*(?!\s)([^*\n]+?)(?<!\s)\*(?![\w*])/u', '<strong>$1</strong>', $out );
+		$out = preg_replace( '/(?<![\w_])_(?!\s)([^_\n]+?)(?<!\s)_(?![\w_])/u',    '<em>$1</em>',        $out );
+		$out = preg_replace( '/(?<![\w~])~(?!\s)([^~\n]+?)(?<!\s)~(?![\w~])/u',    '<del>$1</del>',      $out );
+
+		return $out;
+	}
+
 	private static function api_request( $body ) {
 		$phone_number_id = NWA_Config::get( 'phone_number_id' );
 		$access_token    = NWA_Config::get( 'access_token' );
@@ -533,6 +565,15 @@ class NWA_Sender {
 
 function nwa_send_message( $user_id, $to, $text ) {
 	return NWA_Sender::send_message( $user_id, $to, $text );
+}
+
+/**
+ * Stored WhatsApp markup -> HTML, for admin display. Returns ESCAPED HTML;
+ * echo it raw. mfa-core calls this through function_exists(), so niz-wa stays
+ * standalone and mfa-core degrades to plain text if it is not active.
+ */
+function nwa_format_for_display( $text ) {
+	return NWA_Sender::format_for_display( $text );
 }
 
 function nwa_send_template( $to, $template_name, $lang_code = '', $components = array(), $user_id = null ) {

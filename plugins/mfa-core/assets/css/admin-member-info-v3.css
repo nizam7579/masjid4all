@@ -60,12 +60,36 @@
 
 /* ---------- Activity / Inquiry / WhatsApp table cells ---------- */
 
+/* The `.mfa-admin-member-table td` prefix is REQUIRED, not tidiness.
+   admin-member-list-v1.css - loaded as a dependency of this file - sets
+   `white-space: nowrap` on every cell via `.mfa-admin-member-table th, td`.
+   That selector scores 0,0,1,1 and this class alone scores 0,0,1,0, so the
+   nowrap won on specificity no matter which sheet loaded last, and WhatsApp
+   messages ran off the side of the table instead of wrapping. Prefixing takes
+   this to 0,0,2,1. Exactly the broad-catch-all trap the design-system notes in
+   CLAUDE.md describe. */
+.mfa-admin-member-table td.mfa-admin-member-info-wrap-cell,
 .mfa-admin-member-info-wrap-cell {
   white-space: pre-wrap;   /* keep the line breaks Sofia sends */
   overflow-wrap: anywhere;  /* break long URLs and codes rather than overflow */
   word-break: break-word;
-  max-width: 480px;
   min-width: 240px;
+  /* max-width is ignored on a cell in an auto-layout table, so the width is
+     held by the column itself; with nowrap gone the text wraps inside it. */
+  max-width: 480px;
+}
+
+/* The message keeps WhatsApp's own emphasis once nwa_format_for_display()
+   has converted it, so bold reads as bold rather than as *asterisks*. */
+.mfa-admin-member-info-wrap-cell strong { font-weight: 700; }
+.mfa-admin-member-info-wrap-cell em     { font-style: italic; }
+.mfa-admin-member-info-wrap-cell del    { opacity: 0.7; }
+.mfa-admin-member-info-wrap-cell code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  background: var(--mfa-mint-bg, #eef6f4);
+  border-radius: 4px;
+  padding: 1px 4px;
 }
 
 .mfa-admin-activity-type {

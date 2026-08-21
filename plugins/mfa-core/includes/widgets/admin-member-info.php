@@ -361,7 +361,18 @@ function mfa_admin_member_info_shortcode() {
 												<?php foreach ( $wa_messages as $message ) : ?>
 													<tr>
 														<td data-label="Direction"><span class="mfa-admin-activity-type mfa-admin-activity-type-<?php echo esc_attr( $message['direction'] ); ?>"><?php echo esc_html( ucfirst( $message['direction'] ) ); ?></span></td>
-														<td data-label="Message" class="mfa-admin-member-info-wrap-cell"><?php echo esc_html( $message['content'] ? $message['content'] : '[' . $message['msg_type'] . ']' ); ?></td>
+														<?php
+														$wa_body = $message['content'] ? $message['content'] : '[' . $message['msg_type'] . ']';
+														// niz-wa renders the stored *bold* / _italic_ markup as HTML so
+														// staff read it the way the contact saw it. Guarded because
+														// mfa-core must still work with niz-wa inactive, in which case
+														// this falls back to the plain escaped text.
+														?>
+														<td data-label="Message" class="mfa-admin-member-info-wrap-cell"><?php
+															echo function_exists( 'nwa_format_for_display' )
+																? nwa_format_for_display( $wa_body ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside.
+																: esc_html( $wa_body );
+														?></td>
 														<td data-label="Time"><?php echo esc_html( date_i18n( 'j M Y, g:i a', strtotime( $message['created_at'] ) ) ); ?></td>
 													</tr>
 												<?php endforeach; ?>

@@ -78,7 +78,14 @@ function mfa_admin_member_info_shortcode() {
 					'country'     => '',
 					'status'      => get_user_meta( $user_id, 'user_status', true ),
 					'rank'        => '',
-					'cct_created' => $account->user_registered,
+					// Converted here, not at render: every other row reaching
+					// the "Registered" field is jet_cct_member.cct_created,
+					// which is site-local. user_registered is GMT (WordPress
+					// writes it that way and the site is UTC+8), so assigning
+					// it raw showed a contact-only account eight hours early.
+					'cct_created' => $account->user_registered
+						? get_date_from_gmt( $account->user_registered )
+						: '',
 				);
 			}
 
@@ -373,7 +380,11 @@ function mfa_admin_member_info_shortcode() {
 																? nwa_format_for_display( $wa_body ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside.
 																: esc_html( $wa_body );
 														?></td>
-														<td data-label="Time"><?php echo esc_html( date_i18n( 'j M Y, g:i a', strtotime( $message['created_at'] ) ) ); ?></td>
+														<?php // wp_nwa_* datetimes are GMT and the site is UTC+8, so this
+														      // MUST go through get_date_from_gmt() or every WhatsApp
+														      // message reads eight hours early. The activity table above
+														      // is site-local and deliberately does NOT get this. ?>
+														<td data-label="Time"><?php echo esc_html( date_i18n( 'j M Y, g:i a', strtotime( get_date_from_gmt( $message['created_at'] ) ) ) ); ?></td>
 													</tr>
 												<?php endforeach; ?>
 											<?php endif; ?>
